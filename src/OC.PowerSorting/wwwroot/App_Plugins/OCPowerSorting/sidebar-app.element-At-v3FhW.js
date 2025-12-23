@@ -1,14 +1,17 @@
-import { LitElement as h, html as n, css as m, state as d, customElement as p } from "@umbraco-cms/backoffice/external/lit";
-import { UmbElementMixin as b } from "@umbraco-cms/backoffice/element-api";
+import { LitElement as p, html as n, css as v, state as h, customElement as w } from "@umbraco-cms/backoffice/external/lit";
+import { UmbElementMixin as f } from "@umbraco-cms/backoffice/element-api";
 import { UMB_AUTH_CONTEXT as l } from "@umbraco-cms/backoffice/auth";
-var g = Object.defineProperty, f = Object.getOwnPropertyDescriptor, i = (e, t, r, o) => {
-  for (var s = o > 1 ? void 0 : o ? f(t, r) : t, u = e.length - 1, c; u >= 0; u--)
-    (c = e[u]) && (s = (o ? c(t, r, s) : c(s)) || s);
-  return o && s && g(t, r, s), s;
-};
-let a = class extends b(h) {
+import { UMB_SECTION_CONTEXT as g } from "@umbraco-cms/backoffice/section";
+var b = Object.defineProperty, C = Object.getOwnPropertyDescriptor, m = (e) => {
+  throw TypeError(e);
+}, i = (e, t, r, o) => {
+  for (var s = o > 1 ? void 0 : o ? C(t, r) : t, c = e.length - 1, u; c >= 0; c--)
+    (u = e[c]) && (s = (o ? u(t, r, s) : u(s)) || s);
+  return o && s && b(t, r, s), s;
+}, x = (e, t, r) => t.has(e) || m("Cannot " + r), y = (e, t, r) => t.has(e) ? m("Cannot add the same private member more than once") : t instanceof WeakSet ? t.add(e) : t.set(e, r), k = (e, t, r, o) => (x(e, t, "write to private field"), t.set(e, r), r), d;
+let a = class extends f(p) {
   constructor() {
-    super(), this.menuItems = [], this.hasError = !1, this.errorMessage = "", this.authToken = "", window.addEventListener("powerSortMenuUpdated", this.handleMenuUpdate.bind(this));
+    super(), this.menuItems = [], this.hasError = !1, this.errorMessage = "", this.authToken = "", y(this, d), window.addEventListener("powerSortMenuUpdated", this.handleMenuUpdate.bind(this));
   }
   connectedCallback() {
     super.connectedCallback(), this.setupContexts();
@@ -18,7 +21,7 @@ let a = class extends b(h) {
   }
   async setupContexts() {
     try {
-      await this.setupAuthContext(), await this.loadMenuItemsFromDb();
+      await this.setupAuthContext(), await this.setupSectionContext(), await this.loadMenuItemsFromDb();
     } catch (e) {
       console.error("Failed to setup contexts:", e), this.hasError = !0, this.errorMessage = "Failed to initialize sidebar";
     }
@@ -34,6 +37,15 @@ let a = class extends b(h) {
         }
       }).asPromise({ preventTimeout: !0 }).catch(() => {
         console.error("Auth context not available"), this.hasError = !0, this.errorMessage = "Failed to access authentication context", e();
+      });
+    });
+  }
+  async setupSectionContext() {
+    return new Promise((e) => {
+      this.consumeContext(g, (t) => {
+        k(this, d, t), e();
+      }).asPromise({ preventTimeout: !0 }).catch(() => {
+        console.warn("Section context not available"), e();
       });
     });
   }
@@ -53,10 +65,8 @@ let a = class extends b(h) {
     }
   }
   async makeAuthenticatedRequest(e, t = {}) {
-    const r = await this.getAuthToken(), o = {
-      "Content-Type": "application/json"
-    };
-    return r && (o.Authorization = `Bearer ${r}`), fetch(e, {
+    const r = await this.getAuthToken(), o = new Headers(t.headers);
+    return o.set("Content-Type", "application/json"), r && o.set("Authorization", `Bearer ${r}`), fetch(e, {
       ...t,
       headers: o
     });
@@ -85,7 +95,8 @@ let a = class extends b(h) {
     this.menuItems = e ? JSON.parse(e) : [];
   }
   handleMenuItemClick(e) {
-    window.location.hash = `/section/power-sort/dashboard/power-sort-children/${e}`;
+    const t = `/umbraco/section/power-sort/dashboard/power-sort-children/${e}`;
+    history.pushState(null, "", t), window.dispatchEvent(new PopStateEvent("popstate"));
   }
   render() {
     return n`
@@ -115,7 +126,8 @@ let a = class extends b(h) {
     `;
   }
 };
-a.styles = m`
+d = /* @__PURE__ */ new WeakMap();
+a.styles = v`
     :host {
       display: block;
     }
@@ -153,20 +165,20 @@ a.styles = m`
     }
   `;
 i([
-  d()
+  h()
 ], a.prototype, "menuItems", 2);
 i([
-  d()
+  h()
 ], a.prototype, "hasError", 2);
 i([
-  d()
+  h()
 ], a.prototype, "errorMessage", 2);
 a = i([
-  p("oc-powersorting-sidebar-app")
+  w("oc-powersorting-sidebar-app")
 ], a);
-const k = a;
+const T = a;
 export {
   a as OcPowersortingSidebarAppElement,
-  k as default
+  T as default
 };
-//# sourceMappingURL=sidebar-app.element-CFmPMZRq.js.map
+//# sourceMappingURL=sidebar-app.element-At-v3FhW.js.map

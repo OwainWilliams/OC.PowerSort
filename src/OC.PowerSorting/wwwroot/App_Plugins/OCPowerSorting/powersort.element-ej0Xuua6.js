@@ -1,18 +1,18 @@
-var p = (i) => {
+var h = (i) => {
   throw TypeError(i);
 };
-var h = (i, a, e) => a.has(i) || p("Cannot " + e);
-var v = (i, a, e) => (h(i, a, "read from private field"), e ? e.call(i) : a.get(i)), g = (i, a, e) => a.has(i) ? p("Cannot add the same private member more than once") : a instanceof WeakSet ? a.add(i) : a.set(i, e), b = (i, a, e, t) => (h(i, a, "write to private field"), t ? t.call(i, e) : a.set(i, e), e);
-import { LitElement as I, css as y, html as d, property as n } from "@umbraco-cms/backoffice/external/lit";
+var p = (i, a, e) => a.has(i) || h("Cannot " + e);
+var v = (i, a, e) => (p(i, a, "read from private field"), e ? e.call(i) : a.get(i)), g = (i, a, e) => a.has(i) ? h("Cannot add the same private member more than once") : a instanceof WeakSet ? a.add(i) : a.set(i, e), b = (i, a, e, t) => (p(i, a, "write to private field"), t ? t.call(i, e) : a.set(i, e), e);
+import { LitElement as y, css as I, html as c, property as n } from "@umbraco-cms/backoffice/external/lit";
 import { UmbElementMixin as N } from "@umbraco-cms/backoffice/element-api";
 import { UmbDocumentItemRepository as S } from "@umbraco-cms/backoffice/document";
 import { UMB_AUTH_CONTEXT as f } from "@umbraco-cms/backoffice/auth";
-var k = Object.defineProperty, c = (i, a, e, t) => {
+var k = Object.defineProperty, d = (i, a, e, t) => {
   for (var o = void 0, s = i.length - 1, u; s >= 0; s--)
     (u = i[s]) && (o = u(a, e, o) || o);
   return o && k(a, e, o), o;
 }, l;
-const m = class m extends N(I) {
+const m = class m extends N(y) {
   constructor() {
     super();
     g(this, l);
@@ -42,11 +42,12 @@ const m = class m extends N(I) {
       });
     });
   }
-  async makeAuthenticatedRequest(e) {
-    const t = await this.getAuthToken(), o = {
-      "Content-Type": "application/json"
-    };
-    return t && (o.Authorization = `Bearer ${t}`), fetch(e, { headers: o });
+  async makeAuthenticatedRequest(e, t = {}) {
+    const o = await this.getAuthToken(), s = new Headers(t.headers);
+    return s.set("Content-Type", "application/json"), o && s.set("Authorization", `Bearer ${o}`), fetch(e, {
+      ...t,
+      headers: s
+    });
   }
   async getAuthToken() {
     try {
@@ -65,7 +66,12 @@ const m = class m extends N(I) {
   }
   async loadMenuItemsFromDb() {
     try {
-      const e = await this.makeAuthenticatedRequest("/umbraco/management/api/v1/oc/power-sorting/menu-items");
+      const e = await this.makeAuthenticatedRequest(
+        "/umbraco/management/api/v1/oc/power-sorting/menu-items",
+        {
+          method: "GET"
+        }
+      );
       if (!e.ok) {
         console.error("Failed to load menu items:", e.status);
         const o = localStorage.getItem("powerSortMenuItems");
@@ -82,7 +88,13 @@ const m = class m extends N(I) {
   }
   async saveMenuItemsToDb() {
     try {
-      const e = await this.makeAuthenticatedRequest("/umbraco/management/api/v1/oc/power-sorting/menu-items");
+      const e = await this.makeAuthenticatedRequest(
+        "/umbraco/management/api/v1/oc/power-sorting/menu-items",
+        {
+          method: "POST",
+          body: JSON.stringify({ items: this.menuItems })
+        }
+      );
       if (!e.ok) {
         const t = await e.text();
         throw console.error("API Error:", e.status, t), new Error(`Failed to save menu items: ${e.status}`);
@@ -159,7 +171,7 @@ const m = class m extends N(I) {
     e && t && (this.selectedNodeName = e, this.selectedNodeId = t, this.requestUpdate());
   }
   render() {
-    return d`
+    return c`
       <div class="dashboard-container">
         <div class="dashboard-header">
           <h1>Power Sort Dashboard</h1>
@@ -202,13 +214,13 @@ const m = class m extends N(I) {
             </div>
           </div>
 
-          ${this.saveMessage ? d`
+          ${this.saveMessage ? c`
             <div class="save-message">
               ${this.saveMessage}
             </div>
           ` : ""}
 
-          ${this.selectedNodeName ? d`
+          ${this.selectedNodeName ? c`
             <div class="selected-info">
               <uui-icon name="icon-check"></uui-icon>
               <div>
@@ -227,13 +239,13 @@ const m = class m extends N(I) {
         <div class="menu-items-section">
           <h2>Active Menu Items (${this.menuItems.length})</h2>
           
-          ${this.menuItems.length > 0 ? d`
+          ${this.menuItems.length > 0 ? c`
             <div class="info-box">
               <strong>💡 How to use:</strong>
               Click on any menu item in the sidebar (left panel) to view and sort its children.
             </div>
             <div class="menu-items-list">
-              ${this.menuItems.map((e) => d`
+              ${this.menuItems.map((e) => c`
                 <div class="menu-item">
                   <uui-icon name="${e.icon}"></uui-icon>
                   <div class="menu-item-content">
@@ -251,7 +263,7 @@ const m = class m extends N(I) {
                 </div>
               `)}
             </div>
-          ` : d`
+          ` : c`
             <div class="no-items">
               <p>No menu items added yet.</p>
               <p>Use the content picker above to select a node and click "Add to Menu".</p>
@@ -262,7 +274,7 @@ const m = class m extends N(I) {
     `;
   }
 };
-l = new WeakMap(), m.styles = y`
+l = new WeakMap(), m.styles = I`
     :host {
       display: block;
       padding: var(--uui-size-space-5);
@@ -421,29 +433,29 @@ l = new WeakMap(), m.styles = y`
     }
   `;
 let r = m;
-c([
+d([
   n({ type: String })
 ], r.prototype, "selectedNodeId");
-c([
+d([
   n({ type: String })
 ], r.prototype, "selectedNodeName");
-c([
+d([
   n({ type: Array })
 ], r.prototype, "menuItems");
-c([
+d([
   n({ type: String })
 ], r.prototype, "saveMessage");
-c([
+d([
   n({ type: Boolean })
 ], r.prototype, "hasError");
-c([
+d([
   n({ type: String })
 ], r.prototype, "errorMessage");
-c([
+d([
   n({ type: String })
 ], r.prototype, "authToken");
 customElements.define("power-sort-dashboard", r);
 export {
   r as default
 };
-//# sourceMappingURL=powersort.element-2Y7lvUJt.js.map
+//# sourceMappingURL=powersort.element-ej0Xuua6.js.map

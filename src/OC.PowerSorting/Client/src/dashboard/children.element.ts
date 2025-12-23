@@ -1,6 +1,7 @@
 import { LitElement, html, css, customElement, state, property } from '@umbraco-cms/backoffice/external/lit';
 import { UmbElementMixin } from '@umbraco-cms/backoffice/element-api';
 import type { NodeChild } from '../types/index.js';
+import { UMB_AUTH_CONTEXT } from '@umbraco-cms/backoffice/auth';
 
 @customElement('power-sort-children-dashboard')
 export default class PowerSortChildrenDashboardElement extends UmbElementMixin(LitElement) {
@@ -9,32 +10,136 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
 
   @state()
   private parentNodeName: string = '';
-  
+
   @state()
   private nodeChildren: NodeChild[] = [];
-  
+
   @state()
   private loading: boolean = false;
-  
+
   @state()
   private error: string = '';
+
+
+  @property({ type: Boolean })
+  public hasError: boolean = false;
+
+
+  @property({ type: String })
+  public errorMessage: string = '';
+
+  @property({ type: String })
+  private authToken: string = '';
+
 
   constructor() {
     super();
   }
 
+  private isGuid(value: string): boolean {
+    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value);
+  }
+
   async connectedCallback() {
     super.connectedCallback();
-    
+    this.setupContexts();
+
+    const path = window.location.pathname;
+    const segments = path.split('/').filter(Boolean);
+    const maybeGuid = segments[segments.length - 1];
+
+    if (this.isGuid(maybeGuid)) {
+      this.id = maybeGuid;
+      this.loadNodeChildren();
+    }
+
     // The id will be set via the router before this is called
     if (this.id) {
       await this.loadNodeChildren();
     }
   }
 
+  private async setupContexts() {
+    try {
+      await this.setupAuthContext();
+      //  await this.setupWorkspaceContext();
+    } catch (error) {
+      console.error('Failed to setup contexts:', error);
+      this.hasError = true;
+      this.errorMessage = 'Failed to initialize editor contexts';
+    }
+  }
+
+  private async setupAuthContext(): Promise<void> {
+    return new Promise((resolve) => {
+      this.consumeContext(UMB_AUTH_CONTEXT, async (authContext: any) => {
+        try {
+          const config = authContext?.getOpenApiConfiguration?.();
+          if (config?.token) {
+            this.authToken = await config.token();
+          }
+          resolve();
+        } catch (error) {
+          console.error('Failed to setup auth context:', error);
+          this.hasError = true;
+          this.errorMessage = 'Failed to authenticate';
+          resolve();
+        }
+      })
+        .asPromise({ preventTimeout: true })
+        .catch(() => {
+          console.error('Auth context not available');
+          this.hasError = true;
+          this.errorMessage = 'Failed to access authentication context';
+          resolve();
+        });
+    });
+  }
+
+
+  private async makeAuthenticatedRequest(url: string, options: RequestInit = {}): Promise<Response> {
+    const token = await this.getAuthToken();
+
+    const headers = new Headers(options.headers);
+    headers.set('Content-Type', 'application/json');
+
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return fetch(url as unknown as RequestInfo, {
+      ...options,
+      headers
+    });
+  }
+  private async getAuthToken(): Promise<string> {
+    try {
+      let token = this.authToken;
+
+      if (!token) {
+        const authContext = await this.getContext(UMB_AUTH_CONTEXT);
+        if (authContext) {
+          const config = authContext.getOpenApiConfiguration?.();
+          if (config?.token) {
+            token = await config.token() ?? '';
+            if (token != '') {
+              this.authToken = token;
+            }
+          }
+        }
+      }
+
+      return token;
+    } catch (error) {
+      console.error('Failed to get auth token:', error);
+      return '';
+    }
+  }
+
+
   async updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
-    
+
     // If id changes, reload children
     if (changedProperties.has('id') && this.id) {
       await this.loadNodeChildren();
@@ -48,17 +153,17 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
     this.error = '';
 
     try {
-      // Use Umbraco MCP to get document children
-      const response = await fetch(`/umbraco/management/api/v1/document/${this.id}/children?skip=0&take=100`);
-      
+      // Use your custom endpoint
+      const response = await this.makeAuthenticatedRequest(`/umbraco/management/api/v1/oc/power-sorting/children/${this.id}`);
+
       if (!response.ok) {
         throw new Error('Failed to load children');
       }
 
       const data = await response.json();
-      
+
       // Get parent node info
-      const parentResponse = await fetch(`/umbraco/management/api/v1/document/${this.id}`);
+      const parentResponse = await this.makeAuthenticatedRequest(`/umbraco/management/api/v1/document/${this.id}`);
       if (parentResponse.ok) {
         const parentData = await parentResponse.json();
         this.parentNodeName = parentData.variants?.[0]?.name || 'Unknown Node';
@@ -67,14 +172,11 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
       // Transform the response to our NodeChild format
       this.nodeChildren = data.items?.map((item: any) => ({
         id: item.id,
-        name: item.variants?.[0]?.name || 'Unnamed',
-        sortOrder: item.sortOrder || 0,
-        contentTypeAlias: item.documentType?.alias,
+        name: item.name,
+        sortOrder: item.sortOrder,
+        contentTypeAlias: item.documentType?.id, // You might want to fetch the alias separately
         icon: item.documentType?.icon || 'icon-document'
       })) || [];
-
-      // Sort by sortOrder
-      this.nodeChildren.sort((a, b) => a.sortOrder - b.sortOrder);
 
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'An error occurred';
@@ -84,16 +186,25 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
     }
   }
 
-  async updateSortOrder(childId: string, newSortOrder: number) {
+  async updateSortOrder() {
+    if (!this.id) return;
+
     try {
-      // Update the sort order via API
-      const response = await fetch(`/umbraco/management/api/v1/document/${childId}`, {
+      // Build the sorting array from current node children order
+      const sorting = this.nodeChildren.map((child, index) => ({
+        id: child.id,
+        sortOrder: index
+      }));
+
+      // Use the Umbraco sort endpoint
+      const response = await this.makeAuthenticatedRequest(`/umbraco/management/api/v1/sort/document`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sortOrder: newSortOrder
+          parent: { id: this.id },
+          sorting: sorting
         })
       });
 
@@ -112,6 +223,14 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
   handleDragStart(event: DragEvent, child: NodeChild) {
     event.dataTransfer!.effectAllowed = 'move';
     event.dataTransfer!.setData('text/plain', child.id);
+
+    // Add visual feedback
+    (event.target as HTMLElement).style.opacity = '0.5';
+  }
+
+  handleDragEnd(event: DragEvent) {
+    // Reset opacity
+    (event.target as HTMLElement).style.opacity = '1';
   }
 
   handleDragOver(event: DragEvent) {
@@ -121,18 +240,29 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
 
   async handleDrop(event: DragEvent, targetChild: NodeChild) {
     event.preventDefault();
-    
+
     const draggedId = event.dataTransfer!.getData('text/plain');
     const draggedChild = this.nodeChildren.find(c => c.id === draggedId);
-    
+
     if (!draggedChild || draggedId === targetChild.id) return;
 
-    // Swap sort orders
-    const draggedOrder = draggedChild.sortOrder;
-    const targetOrder = targetChild.sortOrder;
+    // Find indices
+    const draggedIndex = this.nodeChildren.findIndex(c => c.id === draggedId);
+    const targetIndex = this.nodeChildren.findIndex(c => c.id === targetChild.id);
 
-    await this.updateSortOrder(draggedId, targetOrder);
-    await this.updateSortOrder(targetChild.id, draggedOrder);
+    // Reorder the array
+    const newOrder = [...this.nodeChildren];
+    const [removed] = newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, removed);
+
+    // Update local state
+    this.nodeChildren = newOrder.map((child, index) => ({
+      ...child,
+      sortOrder: index
+    }));
+
+    // Save to server
+    await this.updateSortOrder();
   }
 
   static styles = css`
@@ -181,6 +311,7 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
       background: var(--uui-color-surface);
       border-radius: var(--uui-border-radius);
       overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .children-table thead {
@@ -201,11 +332,15 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
 
     .children-table tbody tr {
       cursor: move;
-      transition: background-color 0.2s;
+      transition: all 0.2s;
     }
 
     .children-table tbody tr:hover {
       background: var(--uui-color-surface-emphasis);
+    }
+
+    .children-table tbody tr:active {
+      opacity: 0.5;
     }
 
     .children-table tbody tr:last-child td {
@@ -233,7 +368,11 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
 
     .drag-handle {
       color: var(--uui-color-text-alt);
-      cursor: move;
+      cursor: grab;
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
     }
   `;
 
@@ -285,6 +424,7 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
                 <tr 
                   draggable="true"
                   @dragstart=${(e: DragEvent) => this.handleDragStart(e, child)}
+                  @dragend=${this.handleDragEnd}
                   @dragover=${this.handleDragOver}
                   @drop=${(e: DragEvent) => this.handleDrop(e, child)}>
                   <td>

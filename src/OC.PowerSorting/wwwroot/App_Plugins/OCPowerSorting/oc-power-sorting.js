@@ -39,7 +39,7 @@ const o = [
     name: "OCPower Sorting Dashboard",
     alias: "OC.PowerSorting-Dashboard",
     type: "dashboard",
-    js: () => import("./powersort.element-2Y7lvUJt.js"),
+    js: () => import("./powersort.element-ej0Xuua6.js"),
     meta: {
       label: "Power Sort Dashboard",
       pathname: "power-sort-dashboard"
@@ -56,7 +56,7 @@ const o = [
     name: "OCPower Sorting Children Dashboard",
     alias: "OC.PowerSorting-Children-Dashboard",
     type: "dashboard",
-    js: () => import("./children.element-BQxPfkvv.js"),
+    js: () => import("./children.element-ERDTc107.js"),
     meta: {
       label: "Sort Children",
       pathname: "power-sort-children/:id"
@@ -73,7 +73,7 @@ const o = [
     type: "sectionSidebarApp",
     alias: "OC.PowerSorting.SectionSidebar",
     name: "My Section Sidebar App",
-    element: () => import("./sidebar-app.element-CFmPMZRq.js"),
+    element: () => import("./sidebar-app.element-At-v3FhW.js"),
     conditions: [{
       alias: "Umb.Condition.SectionAlias",
       match: "OC.PowerSorting.Section"

@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
@@ -7,60 +8,46 @@ using NPoco;
 using OC.PowerSorting.Models;
 using Umbraco.Cms.Api.Management.Controllers;
 using Umbraco.Cms.Api.Management.Routing;
-using Umbraco.Cms.Core.Models.Membership;
+using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Security;
+using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Persistence;
-using Umbraco.Cms.Web.Common.Authorization;
+
 
 namespace OC.PowerSorting.Controllers
 {
     [ApiVersion("1.0")]
     [VersionedApiBackOfficeRoute("oc/power-sorting")]
-    [Authorize(Policy = AuthorizationPolicies.SectionAccessContent)]
     [ApiExplorerSettings(GroupName = Constants.ApiName)]
     public class OCPowerSortingApiController : ManagementApiControllerBase
     {
         private readonly IBackOfficeSecurityAccessor _backOfficeSecurityAccessor;
         private readonly IUmbracoDatabaseFactory _databaseFactory;
+        private readonly IEntityService _entityService;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IContentService _contentService;
+
+
+
         private const string MENU_ITEMS_KEY = "PowerSortMenuItems_";
 
         public OCPowerSortingApiController(
             IBackOfficeSecurityAccessor backOfficeSecurityAccessor,
-            IUmbracoDatabaseFactory databaseFactory)
+            IUmbracoDatabaseFactory databaseFactory,
+            IHttpClientFactory httpClientFactory,
+            IEntityService entityService,
+            IContentService contentService)
         {
             _backOfficeSecurityAccessor = backOfficeSecurityAccessor;
             _databaseFactory = databaseFactory;
+            _httpClientFactory = httpClientFactory;
+            _entityService = entityService;
+            _contentService = contentService;
         }
 
-        [HttpGet("ping")]
-        [ProducesResponseType<string>(StatusCodes.Status200OK)]
-        public string Ping() => "Pong";
 
-        [HttpGet("test-menu")]
-        [ProducesResponseType<string>(StatusCodes.Status200OK)]
-        public string TestMenu() => "Menu endpoint is working!";
-
-        [HttpGet("whatsTheTimeMrWolf")]
-        [ProducesResponseType(typeof(DateTime), 200)]
-        public DateTime WhatsTheTimeMrWolf() => DateTime.Now;
-
-        [HttpGet("whatsMyName")]
-        [ProducesResponseType<string>(StatusCodes.Status200OK)]
-        public string WhatsMyName()
-        {
-            // So we can see a long request in the dashboard with a spinning progress wheel
-            Thread.Sleep(2000);
-
-            var currentUser = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-            return currentUser?.Name ?? "I have no idea who you are";
-        }
-
-        [HttpGet("whoAmI")]
-        [ProducesResponseType<IUser>(StatusCodes.Status200OK)]
-        public IUser? WhoAmI() => _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
 
         [HttpGet("menu-items")]
-        [AllowAnonymous]
         [ProducesResponseType<MenuItemsResponse>(StatusCodes.Status200OK)]
         public IActionResult GetMenuItems()
         {
@@ -73,7 +60,7 @@ namespace OC.PowerSorting.Controllers
                 }
 
                 var key = MENU_ITEMS_KEY + currentUser.Id;
-                
+
                 using var database = _databaseFactory.CreateDatabase();
                 var keyValueRow = database.SingleOrDefault<KeyValueDto>(
                     "SELECT * FROM umbracoKeyValue WHERE [key] = @0", key);
@@ -93,7 +80,6 @@ namespace OC.PowerSorting.Controllers
         }
 
         [HttpPost("menu-items")]
-        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult SaveMenuItems([FromBody] MenuItemsResponse request)
         {
@@ -109,7 +95,7 @@ namespace OC.PowerSorting.Controllers
                 var value = JsonSerializer.Serialize(request.Items);
 
                 using var database = _databaseFactory.CreateDatabase();
-                
+
                 // Check if key exists
                 var existing = database.SingleOrDefault<KeyValueDto>(
                     "SELECT * FROM umbracoKeyValue WHERE [key] = @0", key);
@@ -140,6 +126,7 @@ namespace OC.PowerSorting.Controllers
             }
         }
 
+
         // DTO for umbracoKeyValue table
         [TableName("umbracoKeyValue")]
         [PrimaryKey("key", AutoIncrement = false)]
@@ -147,12 +134,79 @@ namespace OC.PowerSorting.Controllers
         {
             [Column("key")]
             public string Key { get; set; } = string.Empty;
-            
+
             [Column("value")]
             public string Value { get; set; } = string.Empty;
-            
+
             [Column("updated")]
             public DateTime Updated { get; set; }
         }
+
+        [HttpGet("children/{id:guid}")]
+        public IActionResult GetChildren(Guid id)
+        {
+            var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
+            if (user == null)
+                return Unauthorized();
+
+            // Get child entities in correct sort order
+            var children = _entityService.GetChildren(id, UmbracoObjectTypes.Document);
+
+            var result = children.Select((child, index) =>
+            {
+                var content = _contentService.GetById(child.Id);
+                return new
+                {
+                    Id = child.Key,
+                    Name = content?.Name ?? "Unnamed",
+                    SortOrder = index,
+                    DocumentType = new
+                    {
+                        Id = content?.ContentType.Key,
+                        Icon = content?.ContentType.Icon
+                    },
+                    child.HasChildren,
+                    content?.CreateDate
+                };
+            });
+
+            return Ok(new
+            {
+                Total = result.Count(),
+                Items = result
+            });
+        }
+
+        // Response models matching the Management API structure
+        public class DocumentTreeResponse
+        {
+            public int Total { get; set; }
+            public List<DocumentTreeItem> Items { get; set; }
+        }
+
+        public class DocumentTreeItem
+        {
+            public Guid Id { get; set; }
+            public DocumentTypeReference DocumentType { get; set; }
+            public List<DocumentVariant> Variants { get; set; }
+            public bool HasChildren { get; set; }
+            public bool IsTrashed { get; set; }
+            public DateTime CreateDate { get; set; }
+        }
+
+        public class DocumentTypeReference
+        {
+            public Guid Id { get; set; }
+            public string Icon { get; set; }
+        }
+
+        public class DocumentVariant
+        {
+            public string Name { get; set; }
+            public string State { get; set; }
+            public string Culture { get; set; }
+        }
+
     }
+
 }

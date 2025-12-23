@@ -82,18 +82,20 @@ export default class PowerSortDashboardElement extends UmbElementMixin(LitElemen
   }
 
  
-  private async makeAuthenticatedRequest(url: string): Promise<Response> {
+  private async makeAuthenticatedRequest(url: string, options: RequestInit = {}): Promise<Response> {
     const token = await this.getAuthToken();
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-
+    const headers = new Headers(options.headers);
+    headers.set('Content-Type', 'application/json');
+    
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers.set('Authorization', `Bearer ${token}`);
     }
 
-    return fetch(url as unknown as RequestInfo, { headers });
+    return fetch(url as unknown as RequestInfo, { 
+      ...options,
+      headers 
+    });
   }
   private async getAuthToken(): Promise<string> {
     try {
@@ -122,7 +124,12 @@ export default class PowerSortDashboardElement extends UmbElementMixin(LitElemen
 
   async loadMenuItemsFromDb() {
     try {
-      const response = await this.makeAuthenticatedRequest('/umbraco/management/api/v1/oc/power-sorting/menu-items');
+      const response = await this.makeAuthenticatedRequest(
+        '/umbraco/management/api/v1/oc/power-sorting/menu-items',
+        {
+          method: 'GET'
+        }
+      );
 
       if (!response.ok) {
         console.error('Failed to load menu items:', response.status);
@@ -142,7 +149,13 @@ export default class PowerSortDashboardElement extends UmbElementMixin(LitElemen
 
   async saveMenuItemsToDb() {
     try {
-      const response = await this.makeAuthenticatedRequest('/umbraco/management/api/v1/oc/power-sorting/menu-items')
+      const response = await this.makeAuthenticatedRequest(
+        '/umbraco/management/api/v1/oc/power-sorting/menu-items',
+        {
+          method: 'POST',
+          body: JSON.stringify({ items: this.menuItems })
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();

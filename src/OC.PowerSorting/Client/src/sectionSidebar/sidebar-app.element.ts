@@ -2,6 +2,7 @@ import { LitElement, html, customElement, css, state } from '@umbraco-cms/backof
 import { UmbElementMixin } from '@umbraco-cms/backoffice/element-api';
 import type { MenuItem } from '../types/index.js';
 import { UMB_AUTH_CONTEXT } from '@umbraco-cms/backoffice/auth';
+import { UMB_SECTION_CONTEXT } from '@umbraco-cms/backoffice/section';
 
 @customElement('oc-powersorting-sidebar-app')
 export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement) {
@@ -15,6 +16,9 @@ export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement)
   private errorMessage: string = '';
 
   private authToken: string = '';
+
+  // @ts-expect-error TS6133: stored for future use
+  #sectionContext?: typeof UMB_SECTION_CONTEXT.TYPE;
 
   constructor() {
     super();
@@ -35,6 +39,7 @@ export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement)
   private async setupContexts() {
     try {
       await this.setupAuthContext();
+      await this.setupSectionContext();
       await this.loadMenuItemsFromDb();
     } catch (error) {
       console.error('Failed to setup contexts:', error);
@@ -69,6 +74,20 @@ export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement)
     });
   }
 
+  private async setupSectionContext(): Promise<void> {
+    return new Promise((resolve) => {
+      this.consumeContext(UMB_SECTION_CONTEXT, (context: any) => {
+        this.#sectionContext = context;
+        resolve();
+      })
+        .asPromise({ preventTimeout: true })
+        .catch(() => {
+          console.warn('Section context not available');
+          resolve();
+        });
+    });
+  }
+
   private async getAuthToken(): Promise<string> {
     try {
       let token = this.authToken;
@@ -96,12 +115,11 @@ export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement)
   private async makeAuthenticatedRequest(url: string, options: RequestInit = {}): Promise<Response> {
     const token = await this.getAuthToken();
     
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-
+    const headers = new Headers(options.headers);
+    headers.set('Content-Type', 'application/json');
+    
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers.set('Authorization', `Bearer ${token}`);
     }
 
     return fetch(url, {
@@ -143,8 +161,14 @@ export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement)
   }
 
   private handleMenuItemClick(nodeId: string) {
-    // Navigate to the children dashboard for this node
-    window.location.hash = `/section/power-sort/dashboard/power-sort-children/${nodeId}`;
+    // Navigate to the children dashboard for this node using the router
+    const path = `/umbraco/section/power-sort/dashboard/power-sort-children/${nodeId}`;
+    
+    // Use history API to navigate properly
+    history.pushState(null, '', path);
+    
+    // Dispatch a popstate event to trigger Umbraco's router
+    window.dispatchEvent(new PopStateEvent('popstate'));
   }
 
   static styles = css`
