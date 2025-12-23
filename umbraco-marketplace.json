@@ -1,0 +1,14 @@
+{
+    "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json", 
+    "AuthorDetails": {
+      "Name": "Owain Williams",
+      "ImageUrl": "https://github.com/OwainWilliams.png"
+    },
+    "Category": "",
+    "Description": "",
+    "LicenseTypes": [ "Free" ],
+    "IssueTrackerUrl": "https://github.com/OwainWilliams/OC.PowerSorting/issues",
+    "PackageType": "Package",
+    "Tags": [],
+    "Title": "OC.Power Sorting "
+  }
