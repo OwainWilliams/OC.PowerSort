@@ -5,7 +5,7 @@ const o = [
     type: "backofficeEntryPoint",
     js: () => import("./entrypoint-CUHy5R0W.js")
   }
-], t = [
+], e = [
   {
     type: "section",
     alias: "OC.PowerSorting.Section",
@@ -34,7 +34,7 @@ const o = [
       }
     ]
   }
-], i = [
+], t = [
   {
     name: "OCPower Sorting Dashboard",
     alias: "OC.PowerSorting-Dashboard",
@@ -51,12 +51,12 @@ const o = [
       }
     ]
   }
-], e = [
+], i = [
   {
     name: "OCPower Sorting Children Dashboard",
     alias: "OC.PowerSorting-Children-Dashboard",
     type: "dashboard",
-    js: () => import("./children.element-ERDTc107.js"),
+    js: () => import("./children.element-DTQ7OjNs.js"),
     meta: {
       label: "Sort Children",
       pathname: "power-sort-children/:id"
@@ -69,6 +69,23 @@ const o = [
     ]
   }
 ], n = [
+  {
+    name: "OCPower Sorting Schedules Dashboard",
+    alias: "OC.PowerSorting-Schedules-Dashboard",
+    type: "dashboard",
+    js: () => import("./schedules.element-FLbLgS07.js"),
+    meta: {
+      label: "Manage Schedules",
+      pathname: "power-sort-schedules/:id"
+    },
+    conditions: [
+      {
+        alias: "Umb.Condition.SectionAlias",
+        match: "OC.PowerSorting.Section"
+      }
+    ]
+  }
+], a = [
   {
     type: "sectionSidebarApp",
     alias: "OC.PowerSorting.SectionSidebar",
@@ -84,14 +101,15 @@ const o = [
       menus: ["OC.PowerSorting.Menu"]
     }
   }
-], a = [
+], r = [
   ...o,
-  ...i,
-  ...e,
   ...t,
-  ...n
+  ...i,
+  ...n,
+  ...e,
+  ...a
 ];
 export {
-  a as manifests
+  r as manifests
 };
 //# sourceMappingURL=oc-power-sorting.js.map

@@ -9,6 +9,9 @@ using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.DependencyInjection;
 using Umbraco.Cms.Api.Management.OpenApi;
 using Umbraco.Cms.Api.Common.OpenApi;
+using Umbraco.Cms.Core.Notifications;
+using OC.PowerSorting.Migrations;
+using OC.PowerSorting.Services;
 
 namespace OC.PowerSorting.Composers
 {
@@ -21,6 +24,12 @@ namespace OC.PowerSorting.Composers
                 .AddApplicationPart(typeof(OCPowerSortingApiComposer).Assembly);
 
             builder.Services.AddSingleton<IOperationIdHandler, CustomOperationHandler>();
+
+            // Register migration component
+            builder.AddNotificationHandler<UmbracoApplicationStartingNotification, MigrationComponent>();
+
+            // Register background service for schedule processing
+            builder.Services.AddHostedService<ScheduleProcessingService>();
 
             builder.Services.Configure<SwaggerGenOptions>(opt =>
             {
