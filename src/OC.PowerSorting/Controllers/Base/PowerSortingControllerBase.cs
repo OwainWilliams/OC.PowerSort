@@ -14,10 +14,10 @@ namespace OC.PowerSorting.Controllers.Base
     /// </summary>
     public abstract class PowerSortingControllerBase : ManagementApiControllerBase
     {
-        protected readonly IBackOfficeSecurityAccessor _backOfficeSecurityAccessor;
-        protected readonly IUmbracoDatabaseFactory _databaseFactory;
-        protected readonly IContentService _contentService;
-        protected readonly IUserService _userService;
+        private readonly IBackOfficeSecurityAccessor _backOfficeSecurityAccessor;
+        private readonly IUmbracoDatabaseFactory _databaseFactory;
+        private readonly IContentService _contentService;
+        private readonly IUserService _userService;
 
         protected PowerSortingControllerBase(
             IBackOfficeSecurityAccessor backOfficeSecurityAccessor,
@@ -56,7 +56,10 @@ namespace OC.PowerSorting.Controllers.Base
             string? successMessage = null)
         {
             var authResult = ValidateUserAccess(out _);
-            if (authResult != null) return authResult;
+            if (authResult != null)
+            {
+                return authResult;
+            }
 
             try
             {
@@ -81,7 +84,10 @@ namespace OC.PowerSorting.Controllers.Base
             string? successMessage = null)
         {
             var authResult = ValidateUserAccess(out _);
-            if (authResult != null) return authResult;
+            if (authResult != null)
+            {
+                return authResult;
+            }
 
             try
             {
@@ -106,7 +112,10 @@ namespace OC.PowerSorting.Controllers.Base
             string? successMessage = null)
         {
             var authResult = ValidateUserAccess(out var userId);
-            if (authResult != null) return authResult;
+            if (authResult != null)
+            {
+                return authResult;
+            }
 
             try
             {

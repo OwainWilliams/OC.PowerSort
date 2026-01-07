@@ -39,7 +39,7 @@ namespace OC.PowerSorting.Migrations
             var upgrader = new Upgrader(plan);
 
             using var scope = _coreScopeProvider.CreateCoreScope();
-            upgrader.Execute(_migrationPlanExecutor, _coreScopeProvider, _keyValueService);
+            upgrader.ExecuteAsync(_migrationPlanExecutor, _coreScopeProvider, _keyValueService).GetAwaiter().GetResult();
             scope.Complete();
         }
     }

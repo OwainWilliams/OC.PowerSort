@@ -2,13 +2,13 @@ using Umbraco.Cms.Infrastructure.Migrations;
 
 namespace OC.PowerSorting.Migrations
 {
-    public class CreateSortScheduleTableMigration : MigrationBase
+    public class CreateSortScheduleTableMigration : AsyncMigrationBase
     {
         public CreateSortScheduleTableMigration(IMigrationContext context) : base(context)
         {
         }
 
-        protected override void Migrate()
+        protected override async Task MigrateAsync()
         {
             if (!TableExists("ocPowerSortingSchedule"))
             {
@@ -52,6 +52,8 @@ namespace OC.PowerSorting.Migrations
                     .Ascending()
                     .Do();
             }
+
+            await Task.CompletedTask;
         }
     }
 }
