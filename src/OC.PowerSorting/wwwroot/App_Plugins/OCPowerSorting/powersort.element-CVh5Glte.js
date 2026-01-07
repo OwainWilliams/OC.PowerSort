@@ -1,109 +1,44 @@
-var h = (i) => {
-  throw TypeError(i);
+import { css as v, html as n, LitElement as h, property as d } from "@umbraco-cms/backoffice/external/lit";
+import { U as g, P as i, A as p } from "./api-response.utils-pb7E4RWv.js";
+import { UmbDocumentItemRepository as b } from "@umbraco-cms/backoffice/document";
+var I = Object.defineProperty, c = (u, e, t, o) => {
+  for (var s = void 0, r = u.length - 1, m; r >= 0; r--)
+    (m = u[r]) && (s = m(e, t, s) || s);
+  return s && I(e, t, s), s;
 };
-var p = (i, a, e) => a.has(i) || h("Cannot " + e);
-var v = (i, a, e) => (p(i, a, "read from private field"), e ? e.call(i) : a.get(i)), g = (i, a, e) => a.has(i) ? h("Cannot add the same private member more than once") : a instanceof WeakSet ? a.add(i) : a.set(i, e), b = (i, a, e, t) => (p(i, a, "write to private field"), t ? t.call(i, e) : a.set(i, e), e);
-import { LitElement as y, css as I, html as c, property as n } from "@umbraco-cms/backoffice/external/lit";
-import { UmbElementMixin as N } from "@umbraco-cms/backoffice/element-api";
-import { UmbDocumentItemRepository as S } from "@umbraco-cms/backoffice/document";
-import { UMB_AUTH_CONTEXT as f } from "@umbraco-cms/backoffice/auth";
-var k = Object.defineProperty, d = (i, a, e, t) => {
-  for (var o = void 0, s = i.length - 1, u; s >= 0; s--)
-    (u = i[s]) && (o = u(a, e, o) || o);
-  return o && k(a, e, o), o;
-}, l;
-const m = class m extends N(y) {
+const l = class l extends g(h) {
   constructor() {
-    super();
-    g(this, l);
-    this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.saveMessage = "", this.hasError = !1, this.errorMessage = "", this.authToken = "", b(this, l, new S(this)), this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.saveMessage = "";
+    super(), this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.saveMessage = "", this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.saveMessage = "";
   }
   async connectedCallback() {
-    super.connectedCallback(), this.setupContexts(), await this.loadMenuItemsFromDb();
-  }
-  async setupContexts() {
-    try {
-      await this.setupAuthContext();
-    } catch (e) {
-      console.error("Failed to setup contexts:", e), this.hasError = !0, this.errorMessage = "Failed to initialize editor contexts";
-    }
-  }
-  async setupAuthContext() {
-    return new Promise((e) => {
-      this.consumeContext(f, async (t) => {
-        try {
-          const o = t?.getOpenApiConfiguration?.();
-          o?.token && (this.authToken = await o.token()), e();
-        } catch (o) {
-          console.error("Failed to setup auth context:", o), this.hasError = !0, this.errorMessage = "Failed to authenticate", e();
-        }
-      }).asPromise({ preventTimeout: !0 }).catch(() => {
-        console.error("Auth context not available"), this.hasError = !0, this.errorMessage = "Failed to access authentication context", e();
-      });
-    });
-  }
-  async makeAuthenticatedRequest(e, t = {}) {
-    const o = await this.getAuthToken(), s = new Headers(t.headers);
-    return s.set("Content-Type", "application/json"), o && s.set("Authorization", `Bearer ${o}`), fetch(e, {
-      ...t,
-      headers: s
-    });
-  }
-  async getAuthToken() {
-    try {
-      let e = this.authToken;
-      if (!e) {
-        const t = await this.getContext(f);
-        if (t) {
-          const o = t.getOpenApiConfiguration?.();
-          o?.token && (e = await o.token() ?? "", e != "" && (this.authToken = e));
-        }
-      }
-      return e;
-    } catch (e) {
-      return console.error("Failed to get auth token:", e), "";
-    }
+    super.connectedCallback(), this.documentItemRepository = new b(this), await this.loadMenuItemsFromDb();
   }
   async loadMenuItemsFromDb() {
     try {
       const e = await this.makeAuthenticatedRequest(
-        "/umbraco/management/api/v1/oc/power-sorting/menu-items",
-        {
-          method: "GET"
-        }
-      );
-      if (!e.ok) {
-        console.error("Failed to load menu items:", e.status);
-        const o = localStorage.getItem("powerSortMenuItems");
-        this.menuItems = o ? JSON.parse(o) : [];
-        return;
-      }
-      const t = await e.json();
+        `${i.API_BASE}${i.ENDPOINTS.MENU_ITEMS}`
+      ), t = await p.handleResponse(e);
       this.menuItems = t.items || [];
     } catch (e) {
       console.error("Error loading menu items from database:", e);
-      const t = localStorage.getItem("powerSortMenuItems");
+      const t = localStorage.getItem(i.STORAGE_KEYS.MENU_ITEMS);
       this.menuItems = t ? JSON.parse(t) : [];
     }
   }
   async saveMenuItemsToDb() {
     try {
       const e = await this.makeAuthenticatedRequest(
-        "/umbraco/management/api/v1/oc/power-sorting/menu-items",
+        `${i.API_BASE}${i.ENDPOINTS.MENU_ITEMS}`,
         {
           method: "POST",
           body: JSON.stringify({ items: this.menuItems })
         }
       );
-      if (!e.ok) {
-        const t = await e.text();
-        throw console.error("API Error:", e.status, t), new Error(`Failed to save menu items: ${e.status}`);
-      }
-      localStorage.setItem("powerSortMenuItems", JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
+      await p.handleResponse(e), localStorage.setItem(i.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
         detail: { menuItems: this.menuItems }
       }));
     } catch (e) {
-      console.error("Error saving menu items to database:", e), localStorage.setItem("powerSortMenuItems", JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
+      console.error("Error saving menu items to database:", e), localStorage.setItem(i.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
         detail: { menuItems: this.menuItems }
       }));
     }
@@ -117,13 +52,17 @@ const m = class m extends N(y) {
     console.log("Picker element:", o), console.log("Picker selection:", o.selection), console.log("Picker value:", o.value);
     let s = t.detail?.selection || o.selection || o.value;
     if (console.log("Final selection:", s), s && Array.isArray(s) && s.length > 0) {
-      const u = typeof s[0] == "string" ? s[0] : s[0].unique || s[0].id;
-      console.log("Selected node ID:", u), await this.fetchNodeDetails(u);
+      const r = typeof s[0] == "string" ? s[0] : s[0].unique || s[0].id;
+      console.log("Selected node ID:", r), await this.fetchNodeDetails(r);
     } else typeof s == "string" ? await this.fetchNodeDetails(s) : s && Array.isArray(s) && s.length === 0 ? this.clearSelection() : console.warn("Could not extract selection from event");
   }
   async fetchNodeDetails(e) {
     try {
-      const { data: t } = await v(this, l).requestItems([e]);
+      if (!this.documentItemRepository) {
+        console.error("Document repository not initialized");
+        return;
+      }
+      const { data: t } = await this.documentItemRepository.requestItems([e]);
       if (t && t.length > 0) {
         const o = t[0];
         this.selectedNodeId = o.unique, this.selectedNodeName = o.variants?.[0]?.name || "Unnamed Node", console.log("Fetched node details:", o), this.saveSelection(), this.saveMessage = "";
@@ -171,7 +110,7 @@ const m = class m extends N(y) {
     e && t && (this.selectedNodeName = e, this.selectedNodeId = t, this.requestUpdate());
   }
   render() {
-    return c`
+    return n`
       <div class="dashboard-container">
         <div class="dashboard-header">
           <h1>Power Sort Dashboard</h1>
@@ -214,13 +153,13 @@ const m = class m extends N(y) {
             </div>
           </div>
 
-          ${this.saveMessage ? c`
+          ${this.saveMessage ? n`
             <div class="save-message">
               ${this.saveMessage}
             </div>
           ` : ""}
 
-          ${this.selectedNodeName ? c`
+          ${this.selectedNodeName ? n`
             <div class="selected-info">
               <uui-icon name="icon-check"></uui-icon>
               <div>
@@ -239,13 +178,13 @@ const m = class m extends N(y) {
         <div class="menu-items-section">
           <h2>Active Menu Items (${this.menuItems.length})</h2>
           
-          ${this.menuItems.length > 0 ? c`
+          ${this.menuItems.length > 0 ? n`
             <div class="info-box">
               <strong>💡 How to use:</strong>
               Click on any menu item in the sidebar (left panel) to view and sort its children.
             </div>
             <div class="menu-items-list">
-              ${this.menuItems.map((e) => c`
+              ${this.menuItems.map((e) => n`
                 <div class="menu-item">
                   <uui-icon name="${e.icon}"></uui-icon>
                   <div class="menu-item-content">
@@ -263,7 +202,7 @@ const m = class m extends N(y) {
                 </div>
               `)}
             </div>
-          ` : c`
+          ` : n`
             <div class="no-items">
               <p>No menu items added yet.</p>
               <p>Use the content picker above to select a node and click "Add to Menu".</p>
@@ -274,7 +213,7 @@ const m = class m extends N(y) {
     `;
   }
 };
-l = new WeakMap(), m.styles = I`
+l.styles = v`
     :host {
       display: block;
       padding: var(--uui-size-space-5);
@@ -432,30 +371,21 @@ l = new WeakMap(), m.styles = I`
       margin-bottom: var(--uui-size-space-2);
     }
   `;
-let r = m;
-d([
-  n({ type: String })
-], r.prototype, "selectedNodeId");
-d([
-  n({ type: String })
-], r.prototype, "selectedNodeName");
-d([
-  n({ type: Array })
-], r.prototype, "menuItems");
-d([
-  n({ type: String })
-], r.prototype, "saveMessage");
-d([
-  n({ type: Boolean })
-], r.prototype, "hasError");
-d([
-  n({ type: String })
-], r.prototype, "errorMessage");
-d([
-  n({ type: String })
-], r.prototype, "authToken");
-customElements.define("power-sort-dashboard", r);
+let a = l;
+c([
+  d({ type: String })
+], a.prototype, "selectedNodeId");
+c([
+  d({ type: String })
+], a.prototype, "selectedNodeName");
+c([
+  d({ type: Array })
+], a.prototype, "menuItems");
+c([
+  d({ type: String })
+], a.prototype, "saveMessage");
+customElements.define("power-sort-dashboard", a);
 export {
-  r as default
+  a as default
 };
-//# sourceMappingURL=powersort.element-ej0Xuua6.js.map
+//# sourceMappingURL=powersort.element-CVh5Glte.js.map

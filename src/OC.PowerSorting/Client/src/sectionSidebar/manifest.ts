@@ -1,19 +1,12 @@
+import { ManifestFactory } from '../utils/manifest.factory.js';
+
 export const manifests: Array<UmbExtensionManifest> = [
-  {
-    "type": "sectionSidebarApp",
-    "alias": "OC.PowerSorting.SectionSidebar",
-    "name": "My Section Sidebar App",
-    "element": () => import('./sidebar-app.element.js'),
-    "conditions": [{
-      "alias": "Umb.Condition.SectionAlias",
-      "match": "OC.PowerSorting.Section"
-    }],
-    meta: {
-      "label": "Power Sorting Sidebar",
-      "icon": "icon-sort",
-      "menus": ["OC.PowerSorting.Menu"]
-    }
-  },
- 
-  
+  ManifestFactory.createSidebarAppManifest({
+    name: "My Section Sidebar App",
+    alias: "OC.PowerSorting.SectionSidebar",
+    label: "Power Sorting Sidebar",
+    icon: "icon-sort",
+    jsImport: () => import('./sidebar-app.element.js'),
+    menus: ["OC.PowerSorting.Menu"]
+  })
 ];

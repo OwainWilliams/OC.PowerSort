@@ -1,10 +1,11 @@
 import { LitElement, html, css, property } from '@umbraco-cms/backoffice/external/lit';
-import { UmbElementMixin } from '@umbraco-cms/backoffice/element-api';
+import { UmbAuthMixin } from '../mixins/auth.mixin.js';
+import { PowerSortConstants } from '../utils/constants.js';
+import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import type { MenuItem } from '../types/index.js';
 import { UmbDocumentItemRepository } from '@umbraco-cms/backoffice/document';
-import { UMB_AUTH_CONTEXT } from '@umbraco-cms/backoffice/auth';
 
-export default class PowerSortDashboardElement extends UmbElementMixin(LitElement) {
+export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) {
   @property({ type: String })
   private selectedNodeId: string | null = null;
 
@@ -17,18 +18,7 @@ export default class PowerSortDashboardElement extends UmbElementMixin(LitElemen
   @property({ type: String })
   private saveMessage: string = '';
 
-  @property({ type: Boolean })
-  public hasError: boolean = false;
-
-  @property({ type: String })
-  public errorMessage: string = '';
-
-  @property({ type: String })
-  private authToken: string = '';
-
-  #documentItemRepository = new UmbDocumentItemRepository(this);
-
-
+  private documentItemRepository?: UmbDocumentItemRepository;
 
   constructor() {
     super();
@@ -36,113 +26,28 @@ export default class PowerSortDashboardElement extends UmbElementMixin(LitElemen
     this.selectedNodeName = '';
     this.menuItems = [];
     this.saveMessage = '';
-
-   }
+  }
 
   async connectedCallback() {
-    super.connectedCallback();
-    this.setupContexts();
+    super.connectedCallback(); // Auth setup handled by mixin
+    
+    // Initialize repository after element is connected
+    this.documentItemRepository = new UmbDocumentItemRepository(this);
+    
     await this.loadMenuItemsFromDb();
   }
-
-  private async setupContexts() {
-    try {
-      await this.setupAuthContext();
-    //  await this.setupWorkspaceContext();
-    } catch (error) {
-      console.error('Failed to setup contexts:', error);
-      this.hasError = true;
-      this.errorMessage = 'Failed to initialize editor contexts';
-    }
-  }
-  private async setupAuthContext(): Promise<void> {
-    return new Promise((resolve) => {
-      this.consumeContext(UMB_AUTH_CONTEXT, async (authContext: any) => {
-        try {
-          const config = authContext?.getOpenApiConfiguration?.();
-          if (config?.token) {
-            this.authToken = await config.token();
-          }
-          resolve();
-        } catch (error) {
-          console.error('Failed to setup auth context:', error);
-          this.hasError = true;
-          this.errorMessage = 'Failed to authenticate';
-          resolve();
-        }
-      })
-        .asPromise({ preventTimeout: true })
-        .catch(() => {
-          console.error('Auth context not available');
-          this.hasError = true;
-          this.errorMessage = 'Failed to access authentication context';
-          resolve();
-        });
-    });
-  }
-
- 
-  private async makeAuthenticatedRequest(url: string, options: RequestInit = {}): Promise<Response> {
-    const token = await this.getAuthToken();
-
-    const headers = new Headers(options.headers);
-    headers.set('Content-Type', 'application/json');
-    
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    return fetch(url as unknown as RequestInfo, { 
-      ...options,
-      headers 
-    });
-  }
-  private async getAuthToken(): Promise<string> {
-    try {
-      let token = this.authToken;
-
-      if (!token) {
-        const authContext = await this.getContext(UMB_AUTH_CONTEXT);
-        if (authContext) {
-          const config = authContext.getOpenApiConfiguration?.();
-          if (config?.token) {
-            token = await config.token() ?? '';
-            if (token != '') {
-              this.authToken = token;
-            }
-          }
-        }
-      }
-
-      return token;
-    } catch (error) {
-      console.error('Failed to get auth token:', error);
-      return '';
-    }
-  }
-
 
   async loadMenuItemsFromDb() {
     try {
       const response = await this.makeAuthenticatedRequest(
-        '/umbraco/management/api/v1/oc/power-sorting/menu-items',
-        {
-          method: 'GET'
-        }
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.MENU_ITEMS}`
       );
 
-      if (!response.ok) {
-        console.error('Failed to load menu items:', response.status);
-        const saved = localStorage.getItem('powerSortMenuItems');
-        this.menuItems = saved ? JSON.parse(saved) : [];
-        return;
-      }
-
-      const data = await response.json();
+      const data = await ApiResponseHandler.handleResponse<{items: MenuItem[]}>(response);
       this.menuItems = data.items || [];
     } catch (error) {
       console.error('Error loading menu items from database:', error);
-      const saved = localStorage.getItem('powerSortMenuItems');
+      const saved = localStorage.getItem(PowerSortConstants.STORAGE_KEYS.MENU_ITEMS);
       this.menuItems = saved ? JSON.parse(saved) : [];
     }
   }
@@ -150,27 +55,27 @@ export default class PowerSortDashboardElement extends UmbElementMixin(LitElemen
   async saveMenuItemsToDb() {
     try {
       const response = await this.makeAuthenticatedRequest(
-        '/umbraco/management/api/v1/oc/power-sorting/menu-items',
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.MENU_ITEMS}`,
         {
           method: 'POST',
           body: JSON.stringify({ items: this.menuItems })
         }
       );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', response.status, errorText);
-        throw new Error(`Failed to save menu items: ${response.status}`);
-      }
+      await ApiResponseHandler.handleResponse(response);
 
-      localStorage.setItem('powerSortMenuItems', JSON.stringify(this.menuItems));
+      // Save to localStorage as backup
+      localStorage.setItem(PowerSortConstants.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems));
 
+      // Dispatch update event
       window.dispatchEvent(new CustomEvent('powerSortMenuUpdated', {
         detail: { menuItems: this.menuItems }
       }));
     } catch (error) {
       console.error('Error saving menu items to database:', error);
-      localStorage.setItem('powerSortMenuItems', JSON.stringify(this.menuItems));
+      
+      // Fallback to localStorage
+      localStorage.setItem(PowerSortConstants.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems));
       window.dispatchEvent(new CustomEvent('powerSortMenuUpdated', {
         detail: { menuItems: this.menuItems }
       }));
@@ -378,8 +283,13 @@ export default class PowerSortDashboardElement extends UmbElementMixin(LitElemen
 
   async fetchNodeDetails(nodeId: string) {
     try {
+      if (!this.documentItemRepository) {
+        console.error('Document repository not initialized');
+        return;
+      }
+
       // Use Umbraco's document item repository to get the document details
-      const { data } = await this.#documentItemRepository.requestItems([nodeId]);
+      const { data } = await this.documentItemRepository.requestItems([nodeId]);
       
       if (data && data.length > 0) {
         const nodeData = data[0];

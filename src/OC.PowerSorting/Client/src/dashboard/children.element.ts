@@ -1,11 +1,15 @@
 import { LitElement, html, css, customElement, state, property } from '@umbraco-cms/backoffice/external/lit';
-import { UmbElementMixin } from '@umbraco-cms/backoffice/element-api';
+import { UmbAuthMixin } from '../mixins/auth.mixin.js';
+import { UmbUiMixin } from '../mixins/ui.mixin.js';
+import { ValidationUtils, RouteUtils } from '../utils/validation.utils.js';
+import { PowerSortConstants } from '../utils/constants.js';
+import { ApiResponseHandler } from '../utils/api-response.utils.js';
+import { powerSortSharedStyles } from '../styles/shared.styles.js';
 import type { NodeChild, ActiveScheduleInfo } from '../types/index.js';
-import { UMB_AUTH_CONTEXT } from '@umbraco-cms/backoffice/auth';
 import { ScheduleApiClient } from '../api/schedule-api.client.js';
 
 @customElement('power-sort-children-dashboard')
-export default class PowerSortChildrenDashboardElement extends UmbElementMixin(LitElement) {
+export default class PowerSortChildrenDashboardElement extends UmbUiMixin(UmbAuthMixin(LitElement)) {
   @property({ type: String, attribute: false, reflect: false })
   id: string = '';
 
@@ -30,40 +34,16 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
   @state()
   private error: string = '';
 
-  @property({ type: Boolean })
-  public hasError: boolean = false;
-
-  @property({ type: String })
-  public errorMessage: string = '';
-
-  @property({ type: String })
-  private authToken: string = '';
-
   private scheduleApi?: ScheduleApiClient;
 
-  constructor() {
-    super();
-  }
-
-  private isGuid(value: string): boolean {
-    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value);
-  }
-
   async connectedCallback() {
-    super.connectedCallback();
-    this.setupContexts();
-
+    super.connectedCallback(); // This now handles auth setup via mixin
+    
     // Initialize schedule API
     this.scheduleApi = new ScheduleApiClient(() => this.getAuthToken());
 
-    const path = window.location.pathname;
-    const segments = path.split('/').filter(Boolean);
-    const maybeGuid = segments[segments.length - 1];
-
-    if (this.isGuid(maybeGuid)) {
-      this.id = maybeGuid;
-      this.loadNodeChildren();
-    }
+    // Extract ID from route
+    this.id = ValidationUtils.extractGuidFromPath() || '';
 
     if (this.id) {
       await this.loadNodeChildren();
@@ -77,13 +57,12 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
 
     try {
       const response = await this.makeAuthenticatedRequest(
-        `/umbraco/management/api/v1/oc/power-sorting/default-sort-order/${this.id}`
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.DEFAULT_SORT_ORDER}/${this.id}`
       );
 
-      if (response.ok) {
-        this.defaultOrderInfo = await response.json();
-        this.hasDefaultOrder = this.defaultOrderInfo.isSet;
-      }
+      const data = await ApiResponseHandler.handleResponse(response) as any;
+      this.defaultOrderInfo = data;
+      this.hasDefaultOrder = data.isSet;
     } catch (error) {
       console.error('Error loading default order info:', error);
     }
@@ -92,83 +71,66 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
   private async saveAsDefaultOrder() {
     if (!this.id) return;
 
-    if (!confirm('Save the current sort order as the default? This will be restored when all schedules expire.')) {
+    if (!ApiResponseHandler.confirmAction(PowerSortConstants.MESSAGES.CONFIRM_SAVE_DEFAULT)) {
       return;
     }
 
     try {
       const response = await this.makeAuthenticatedRequest(
-        `/umbraco/management/api/v1/oc/power-sorting/default-sort-order/save`,
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.DEFAULT_SORT_ORDER_SAVE}`,
         {
           method: 'POST',
           body: JSON.stringify({ parentId: this.id })
         }
       );
 
-      if (response.ok) {
-        await this.loadDefaultOrderInfo();
-        alert('Current sort order saved as default!');
-      } else {
-        alert('Failed to save default order');
-      }
+      await ApiResponseHandler.handleResponse(response);
+      await this.loadDefaultOrderInfo();
+      ApiResponseHandler.showSuccess('Current sort order saved as default!');
     } catch (error) {
-      console.error('Error saving default order:', error);
-      alert('Error saving default order');
+      ApiResponseHandler.showError(error, 'Failed to save default order');
     }
   }
 
   private async restoreDefaultOrder() {
     if (!this.id) return;
 
-    if (!confirm('Restore the default sort order? This will override the current order.')) {
+    if (!ApiResponseHandler.confirmAction(PowerSortConstants.MESSAGES.CONFIRM_RESTORE_DEFAULT)) {
       return;
     }
 
     try {
       const response = await this.makeAuthenticatedRequest(
-        `/umbraco/management/api/v1/oc/power-sorting/default-sort-order/restore/${this.id}`,
-        {
-          method: 'POST'
-        }
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.DEFAULT_SORT_ORDER_RESTORE}/${this.id}`,
+        { method: 'POST' }
       );
 
-      if (response.ok) {
-        await this.loadNodeChildren();
-        alert('Default sort order restored!');
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to restore default order');
-      }
+      await ApiResponseHandler.handleResponse(response);
+      await this.loadNodeChildren();
+      ApiResponseHandler.showSuccess('Default sort order restored!');
     } catch (error) {
-      console.error('Error restoring default order:', error);
-      alert('Error restoring default order');
+      ApiResponseHandler.showError(error, 'Failed to restore default order');
     }
   }
 
   private async clearDefaultOrder() {
     if (!this.id) return;
 
-    if (!confirm('Clear the saved default sort order? You won\'t be able to restore it anymore.')) {
+    if (!ApiResponseHandler.confirmAction(PowerSortConstants.MESSAGES.CONFIRM_CLEAR_DEFAULT)) {
       return;
     }
 
     try {
       const response = await this.makeAuthenticatedRequest(
-        `/umbraco/management/api/v1/oc/power-sorting/default-sort-order/${this.id}`,
-        {
-          method: 'DELETE'
-        }
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.DEFAULT_SORT_ORDER}/${this.id}`,
+        { method: 'DELETE' }
       );
 
-      if (response.ok || response.status === 204) {
-        await this.loadDefaultOrderInfo();
-        alert('Default sort order cleared!');
-      } else {
-        alert('Failed to clear default order');
-      }
+      await ApiResponseHandler.handleResponse(response);
+      await this.loadDefaultOrderInfo();
+      ApiResponseHandler.showSuccess('Default sort order cleared!');
     } catch (error) {
-      console.error('Error clearing default order:', error);
-      alert('Error clearing default order');
+      ApiResponseHandler.showError(error, 'Failed to clear default order');
     }
   }
 
@@ -188,88 +150,8 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
   }
 
   private navigateToSchedules() {
-    const path = `/umbraco/section/power-sort/dashboard/power-sort-schedules/${this.id}`;
-    history.pushState(null, '', path);
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    RouteUtils.navigateTo(RouteUtils.getDashboardPath('schedules', this.id));
   }
-
-  private async setupContexts() {
-    try {
-      await this.setupAuthContext();
-      //  await this.setupWorkspaceContext();
-    } catch (error) {
-      console.error('Failed to setup contexts:', error);
-      this.hasError = true;
-      this.errorMessage = 'Failed to initialize editor contexts';
-    }
-  }
-
-  private async setupAuthContext(): Promise<void> {
-    return new Promise((resolve) => {
-      this.consumeContext(UMB_AUTH_CONTEXT, async (authContext: any) => {
-        try {
-          const config = authContext?.getOpenApiConfiguration?.();
-          if (config?.token) {
-            this.authToken = await config.token();
-          }
-          resolve();
-        } catch (error) {
-          console.error('Failed to setup auth context:', error);
-          this.hasError = true;
-          this.errorMessage = 'Failed to authenticate';
-          resolve();
-        }
-      })
-        .asPromise({ preventTimeout: true })
-        .catch(() => {
-          console.error('Auth context not available');
-          this.hasError = true;
-          this.errorMessage = 'Failed to access authentication context';
-          resolve();
-        });
-    });
-  }
-
-
-  private async makeAuthenticatedRequest(url: string, options: RequestInit = {}): Promise<Response> {
-    const token = await this.getAuthToken();
-
-    const headers = new Headers(options.headers);
-    headers.set('Content-Type', 'application/json');
-
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    return fetch(url as unknown as RequestInfo, {
-      ...options,
-      headers
-    });
-  }
-  private async getAuthToken(): Promise<string> {
-    try {
-      let token = this.authToken;
-
-      if (!token) {
-        const authContext = await this.getContext(UMB_AUTH_CONTEXT);
-        if (authContext) {
-          const config = authContext.getOpenApiConfiguration?.();
-          if (config?.token) {
-            token = await config.token() ?? '';
-            if (token != '') {
-              this.authToken = token;
-            }
-          }
-        }
-      }
-
-      return token;
-    } catch (error) {
-      console.error('Failed to get auth token:', error);
-      return '';
-    }
-  }
-
 
   async updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
@@ -287,14 +169,13 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
     this.error = '';
 
     try {
-      const response = await this.makeAuthenticatedRequest(`/umbraco/management/api/v1/oc/power-sorting/children/${this.id}`);
+      const response = await this.makeAuthenticatedRequest(
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.CHILDREN}/${this.id}`
+      );
 
-      if (!response.ok) {
-        throw new Error('Failed to load children');
-      }
+      const data = await ApiResponseHandler.handleResponse(response) as any;
 
-      const data = await response.json();
-
+      // Load parent info
       const parentResponse = await this.makeAuthenticatedRequest(`/umbraco/management/api/v1/document/${this.id}`);
       if (parentResponse.ok) {
         const parentData = await parentResponse.json();
@@ -306,15 +187,15 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
         name: item.name,
         sortOrder: item.sortOrder,
         contentTypeAlias: item.documentType?.id,
-        icon: item.documentType?.icon || 'icon-document'
+        icon: item.documentType?.icon || PowerSortConstants.ICONS.DOCUMENT
       })) || [];
 
       // Load active schedules after children are loaded
       await this.loadActiveSchedules();
 
-    } catch (err) {
-      this.error = err instanceof Error ? err.message : 'An error occurred';
-      console.error('Error loading children:', err);
+    } catch (error) {
+      this.error = error instanceof Error ? error.message : PowerSortConstants.MESSAGES.ERROR_GENERIC;
+      console.error('Error loading children:', error);
     } finally {
       this.loading = false;
     }
@@ -330,27 +211,22 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
         sortOrder: index
       }));
 
-      // Use the custom power-sorting endpoint
-      const response = await this.makeAuthenticatedRequest(`/umbraco/management/api/v1/oc/power-sorting/sort/document`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          parent: { id: this.id },
-          sorting: sorting
-        })
-      });
+      const response = await this.makeAuthenticatedRequest(
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.SORT_DOCUMENT}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            parent: { id: this.id },
+            sorting: sorting
+          })
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error('Failed to update sort order');
-      }
-
-      // Reload children to reflect changes
+      await ApiResponseHandler.handleResponse(response);
       await this.loadNodeChildren();
-    } catch (err) {
-      console.error('Error updating sort order:', err);
+    } catch (error) {
       this.error = 'Failed to update sort order';
+      ApiResponseHandler.showError(error, 'Sort order update failed');
     }
   }
 
@@ -399,213 +275,185 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
     await this.updateSortOrder();
   }
 
-  static styles = css`
-    :host {
-      display: block;
-      padding: var(--uui-size-space-5);
+  private renderDefaultOrderBanner() {
+    if (!this.hasDefaultOrder) return '';
+
+    const content = html`
+      <uui-icon class="icon" name="${PowerSortConstants.ICONS.BOOKMARK}"></uui-icon>
+      <div class="content">
+        <strong>Default Order Saved</strong>
+        <p style="margin: var(--uui-size-space-1) 0 0 0; font-size: var(--uui-type-small-size);">
+          ${this.defaultOrderInfo?.itemCount || 0} items • 
+          Last updated: ${new Date(this.defaultOrderInfo?.updated).toLocaleDateString()}
+          ${this.activeSchedules.length === 0 
+            ? ' • Will restore automatically when schedules expire'
+            : ''}
+        </p>
+      </div>
+    `;
+
+    const actions = html`
+      <uui-button
+        look="outline"
+        label="Clear"
+        compact
+        @click=${this.clearDefaultOrder}>
+        <uui-icon name="${PowerSortConstants.ICONS.DELETE}"></uui-icon>
+      </uui-button>
+    `;
+
+    return this.renderInfoBanner('default', content, actions);
+  }
+
+  private renderActiveScheduleBanner(hasActiveSchedules: boolean) {
+    if (!hasActiveSchedules) return '';
+
+    const content = html`
+      <uui-icon name="${PowerSortConstants.ICONS.CALENDAR}" style="color: var(--uui-color-positive); font-size: 24px;"></uui-icon>
+      <div class="content">
+        <strong>Active Schedules</strong>
+        <p style="margin: var(--uui-size-space-1) 0 0 0; font-size: var(--uui-type-small-size);">
+          ${this.activeSchedules.length} schedule${this.activeSchedules.length === 1 ? '' : 's'} currently active.
+          Some items are automatically sorted to specific positions.
+        </p>
+      </div>
+    `;
+
+    const actions = html`
+      <uui-button
+        look="outline"
+        label="View Schedules"
+        @click=${this.navigateToSchedules}>
+        View Details
+      </uui-button>
+    `;
+
+    return this.renderInfoBanner('positive', content, actions);
+  }
+
+  private renderChildrenTable() {
+    if (this.nodeChildren.length === 0) {
+      return this.renderEmptyState('This node has no children.', PowerSortConstants.ICONS.DOCUMENT);
     }
 
-    .dashboard-container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+    return html`
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th width="50"></th>
+            <th>Name</th>
+            <th>Content Type</th>
+            <th width="120">Sort Order</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${this.nodeChildren.map(child => {
+            const schedule = this.getScheduleForChild(child.id);
+            return html`
+              <tr 
+                draggable="true"
+                @dragstart=${(e: DragEvent) => this.handleDragStart(e, child)}
+                @dragend=${this.handleDragEnd}
+                @dragover=${this.handleDragOver}
+                @drop=${(e: DragEvent) => this.handleDrop(e, child)}>
+                <td>
+                  <uui-icon class="drag-handle" name="${PowerSortConstants.ICONS.NAVIGATION}"></uui-icon>
+                </td>
+                <td>
+                  <div class="node-icon">
+                    <uui-icon name="${child.icon || PowerSortConstants.ICONS.DOCUMENT}"></uui-icon>
+                    <strong>${child.name}</strong>
+                    ${schedule
+                      ? html`
+                          <span class="scheduled-badge" title="Boosted to position ${schedule.targetPosition} (Priority: ${schedule.priority})">
+                            <uui-icon name="icon-calendar-alt"></uui-icon>
+                            Scheduled
+                          </span>
+                        `
+                      : ''}
+                  </div>
+                </td>
+                <td>${child.contentTypeAlias || 'N/A'}</td>
+                <td>
+                  <span class="sort-order-badge">${child.sortOrder}</span>
+                </td>
+              </tr>
+            `;
+          })}
+        </tbody>
+      </table>
+    `;
+  }
 
-    .dashboard-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--uui-size-space-6);
-    }
+  static styles = [
+    powerSortSharedStyles,
+    css`
+      :host {
+        display: block;
+        padding: var(--uui-size-space-5);
+      }
 
-    .header-content h1 {
-      margin: 0 0 var(--uui-size-space-2) 0;
-      font-size: var(--uui-type-h3-size);
-    }
+      .children-table {
+        cursor: move;
+      }
 
-    .header-content p {
-      color: var(--uui-color-text-alt);
-      margin: 0;
-    }
+      .children-table tbody tr {
+        cursor: move;
+      }
 
-    .header-actions {
-      display: flex;
-      gap: var(--uui-size-space-3);
-    }
+      .children-table tbody tr:active {
+        opacity: 0.5;
+      }
 
-    .default-order-info {
-      background: var(--uui-color-default-emphasis);
-      border: 1px solid var(--uui-color-border);
-      border-radius: var(--uui-border-radius);
-      padding: var(--uui-size-space-3);
-      margin-bottom: var(--uui-size-space-4);
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-3);
-    }
+      .node-icon {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-3);
+      }
 
-    .default-order-info .icon {
-      color: var(--uui-color-default);
-      font-size: 20px;
-    }
+      .sort-order-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 32px;
+        padding: 0 var(--uui-size-space-2);
+        background: var(--uui-color-positive-emphasis);
+        border-radius: var(--uui-border-radius);
+        font-weight: 600;
+      }
 
-    .default-order-info .content {
-      flex: 1;
-    }
+      .drag-handle {
+        color: var(--uui-color-text-alt);
+        cursor: grab;
+      }
 
-    .default-order-actions {
-      display: flex;
-      gap: var(--uui-size-space-2);
-    }
+      .drag-handle:active {
+        cursor: grabbing;
+      }
 
-    .schedule-banner {
-      background: var(--uui-color-positive-emphasis);
-      border: 1px solid var(--uui-color-positive);
-      border-radius: var(--uui-border-radius);
-      padding: var(--uui-size-space-4);
-      margin-bottom: var(--uui-size-space-4);
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-3);
-    }
-
-    .schedule-banner-content {
-      flex: 1;
-    }
-
-    .schedule-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--uui-size-space-2);
-      padding: var(--uui-size-space-2) var(--uui-size-space-3);
-      background: var(--uui-color-positive);
-      color: white;
-      border-radius: var(--uui-border-radius);
-      font-size: var(--uui-type-small-size);
-      font-weight: 600;
-    }
-
-    .scheduled-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--uui-size-space-1);
-      padding: var(--uui-size-space-1) var(--uui-size-space-2);
-      background: var(--uui-color-positive);
-      color: white;
-      border-radius: var(--uui-border-radius);
-      font-size: var(--uui-type-small-size);
-      font-weight: 600;
-      margin-left: var(--uui-size-space-2);
-    }
-
-    .loading,
-    .error,
-    .no-children {
-      padding: var(--uui-size-space-6);
-      text-align: center;
-      background: var(--uui-color-surface);
-      border: 1px solid var(--uui-color-border);
-      border-radius: var(--uui-border-radius);
-    }
-
-    .error {
-      color: var(--uui-color-danger);
-      border-color: var(--uui-color-danger);
-    }
-
-    .children-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--uui-color-surface);
-      border-radius: var(--uui-border-radius);
-      overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .children-table thead {
-      background: var(--uui-color-surface-alt);
-    }
-
-    .children-table th {
-      padding: var(--uui-size-space-4);
-      text-align: left;
-      font-weight: 600;
-      border-bottom: 2px solid var(--uui-color-border);
-    }
-
-    .children-table td {
-      padding: var(--uui-size-space-4);
-      border-bottom: 1px solid var(--uui-color-border);
-    }
-
-    .children-table tbody tr {
-      cursor: move;
-      transition: all 0.2s;
-    }
-
-    .children-table tbody tr:hover {
-      background: var(--uui-color-surface-emphasis);
-    }
-
-    .children-table tbody tr:active {
-      opacity: 0.5;
-    }
-
-    .children-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    .node-icon {
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-3);
-    }
-
-    .sort-order-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 32px;
-      height: 32px;
-      padding: 0 var(--uui-size-space-2);
-      background: var(--uui-color-positive-emphasis);
-      border-radius: var(--uui-border-radius);
-      font-weight: 600;
-    }
-
-    .drag-handle {
-      color: var(--uui-color-text-alt);
-      cursor: grab;
-    }
-
-    .drag-handle:active {
-      cursor: grabbing;
-    }
-  `;
+      .scheduled-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--uui-size-space-1);
+        padding: var(--uui-size-space-1) var(--uui-size-space-2);
+        background: var(--uui-color-positive);
+        color: white;
+        border-radius: var(--uui-border-radius);
+        font-size: var(--uui-type-small-size);
+        font-weight: 600;
+        margin-left: var(--uui-size-space-2);
+      }
+    `
+  ];
 
   render() {
     if (this.loading) {
-      return html`
-        <div class="dashboard-container">
-          <div class="loading">
-            <uui-loader></uui-loader>
-            <p>Loading children...</p>
-          </div>
-        </div>
-      `;
+      return this.renderLoadingState('Loading children...');
     }
 
     if (this.error) {
-      return html`
-        <div class="dashboard-container">
-          <div class="error">
-            <uui-icon name="icon-alert"></uui-icon>
-            <p>${this.error}</p>
-            <uui-button @click=${this.loadNodeChildren}>
-              Retry
-            </uui-button>
-          </div>
-        </div>
-      `;
+      return this.renderErrorState(this.error, () => this.loadNodeChildren());
     }
 
     const hasActiveSchedules = this.activeSchedules.length > 0;
@@ -625,7 +473,7 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
                     color="default"
                     label="Restore Default Order"
                     @click=${this.restoreDefaultOrder}>
-                    <uui-icon name="icon-undo"></uui-icon>
+                    <uui-icon name="${PowerSortConstants.ICONS.UNDO}"></uui-icon>
                     Restore Default
                   </uui-button>
                 `
@@ -635,7 +483,7 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
               color="default"
               label="Save as Default"
               @click=${this.saveAsDefaultOrder}>
-              <uui-icon name="icon-save"></uui-icon>
+              <uui-icon name="${PowerSortConstants.ICONS.SAVE}"></uui-icon>
               Save as Default
             </uui-button>
             <uui-button
@@ -643,112 +491,15 @@ export default class PowerSortChildrenDashboardElement extends UmbElementMixin(L
               color="default"
               label="Manage Schedules"
               @click=${this.navigateToSchedules}>
-              <uui-icon name="icon-calendar"></uui-icon>
+              <uui-icon name="${PowerSortConstants.ICONS.CALENDAR}"></uui-icon>
               Manage Schedules
             </uui-button>
           </div>
         </div>
 
-        ${this.hasDefaultOrder
-          ? html`
-              <div class="default-order-info">
-                <uui-icon class="icon" name="icon-bookmark"></uui-icon>
-                <div class="content">
-                  <strong>Default Order Saved</strong>
-                  <p style="margin: var(--uui-size-space-1) 0 0 0; font-size: var(--uui-type-small-size);">
-                    ${this.defaultOrderInfo?.itemCount || 0} items • 
-                    Last updated: ${new Date(this.defaultOrderInfo?.updated).toLocaleDateString()}
-                    ${this.activeSchedules.length === 0 
-                      ? ' • Will restore automatically when schedules expire'
-                      : ''}
-                  </p>
-                </div>
-                <div class="default-order-actions">
-                  <uui-button
-                    look="outline"
-                    label="Clear"
-                    compact
-                    @click=${this.clearDefaultOrder}>
-                    <uui-icon name="icon-delete"></uui-icon>
-                  </uui-button>
-                </div>
-              </div>
-            `
-          : ''}
-
-        ${hasActiveSchedules
-          ? html`
-              <div class="schedule-banner">
-                <uui-icon name="icon-calendar" style="color: var(--uui-color-positive); font-size: 24px;"></uui-icon>
-                <div class="schedule-banner-content">
-                  <strong>Active Schedules</strong>
-                  <p style="margin: var(--uui-size-space-1) 0 0 0; font-size: var(--uui-type-small-size);">
-                    ${this.activeSchedules.length} schedule${this.activeSchedules.length === 1 ? '' : 's'} currently active.
-                    Some items are automatically sorted to specific positions.
-                  </p>
-                </div>
-                <uui-button
-                  look="outline"
-                  label="View Schedules"
-                  @click=${this.navigateToSchedules}>
-                  View Details
-                </uui-button>
-              </div>
-            `
-          : ''}
-
-        ${this.nodeChildren.length > 0 ? html`
-          <table class="children-table">
-            <thead>
-              <tr>
-                <th width="50"></th>
-                <th>Name</th>
-                <th>Content Type</th>
-                <th width="120">Sort Order</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${this.nodeChildren.map(child => {
-                const schedule = this.getScheduleForChild(child.id);
-                return html`
-                  <tr 
-                    draggable="true"
-                    @dragstart=${(e: DragEvent) => this.handleDragStart(e, child)}
-                    @dragend=${this.handleDragEnd}
-                    @dragover=${this.handleDragOver}
-                    @drop=${(e: DragEvent) => this.handleDrop(e, child)}>
-                    <td>
-                      <uui-icon class="drag-handle" name="icon-navigation"></uui-icon>
-                    </td>
-                    <td>
-                      <div class="node-icon">
-                        <uui-icon name="${child.icon || 'icon-document'}"></uui-icon>
-                        <strong>${child.name}</strong>
-                        ${schedule
-                          ? html`
-                              <span class="scheduled-badge" title="Boosted to position ${schedule.targetPosition} (Priority: ${schedule.priority})">
-                                <uui-icon name="icon-calendar-alt"></uui-icon>
-                                Scheduled
-                              </span>
-                            `
-                          : ''}
-                      </div>
-                    </td>
-                    <td>${child.contentTypeAlias || 'N/A'}</td>
-                    <td>
-                      <span class="sort-order-badge">${child.sortOrder}</span>
-                    </td>
-                  </tr>
-                `;
-              })}
-            </tbody>
-          </table>
-        ` : html`
-          <div class="no-children">
-            <uui-icon name="icon-folder"></uui-icon>
-            <p>This node has no children.</p>
-          </div>
-        `}
+        ${this.renderDefaultOrderBanner()}
+        ${this.renderActiveScheduleBanner(hasActiveSchedules)}
+        ${this.renderChildrenTable()}
       </div>
     `;
   }

@@ -45,7 +45,8 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Folder Include="DTO\" />
+    <Folder Include="Client\src\signs\" />
+    <Folder Include="FlagProvider\" />
   </ItemGroup>
 
 </Project>

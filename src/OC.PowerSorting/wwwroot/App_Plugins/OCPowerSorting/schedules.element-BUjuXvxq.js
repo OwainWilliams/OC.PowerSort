@@ -1,49 +1,50 @@
-var f = (o) => {
+var b = (o) => {
   throw TypeError(o);
 };
-var y = (o, e, t) => e.has(o) || f("Cannot " + t);
-var b = (o, e, t) => (y(o, e, "read from private field"), t ? t.call(o) : e.get(o)), D = (o, e, t) => e.has(o) ? f("Cannot add the same private member more than once") : e instanceof WeakSet ? e.add(o) : e.set(o, t), S = (o, e, t, i) => (y(o, e, "write to private field"), i ? i.call(o, t) : e.set(o, t), t);
-import { LitElement as w, css as k, html as r, property as s } from "@umbraco-cms/backoffice/external/lit";
-import { UmbElementMixin as C } from "@umbraco-cms/backoffice/element-api";
-import { UMB_AUTH_CONTEXT as T } from "@umbraco-cms/backoffice/auth";
-import { S as $ } from "./schedule-api.client-CYpzemIY.js";
-import { UmbDocumentItemRepository as z } from "@umbraco-cms/backoffice/document";
-var x = Object.defineProperty, l = (o, e, t, i) => {
-  for (var a = void 0, d = o.length - 1, u; d >= 0; d--)
-    (u = o[d]) && (a = u(e, t, a) || a);
-  return a && x(e, t, a), a;
+var D = (o, t, e) => t.has(o) || b("Cannot " + e);
+var S = (o, t, e) => (D(o, t, "read from private field"), e ? e.call(o) : t.get(o)), T = (o, t, e) => t.has(o) ? b("Cannot add the same private member more than once") : t instanceof WeakSet ? t.add(o) : t.set(o, e), w = (o, t, e, a) => (D(o, t, "write to private field"), a ? a.call(o, e) : t.set(o, e), e);
+import { LitElement as C, css as $, html as s, property as r } from "@umbraco-cms/backoffice/external/lit";
+import { U as z, A as m, P as g } from "./api-response.utils-pb7E4RWv.js";
+import { V as I, D as k } from "./validation.utils-BWAQMB43.js";
+import { S as x } from "./schedule-api.client-CYpzemIY.js";
+import { UmbElementMixin as P } from "@umbraco-cms/backoffice/element-api";
+import { UmbDocumentItemRepository as N } from "@umbraco-cms/backoffice/document";
+var E = Object.defineProperty, l = (o, t, e, a) => {
+  for (var i = void 0, d = o.length - 1, u; d >= 0; d--)
+    (u = o[d]) && (i = u(t, e, i) || i);
+  return i && E(t, e, i), i;
 }, p;
-const m = class m extends C(w) {
+const v = class v extends P(C) {
   constructor() {
     super(...arguments);
-    D(this, p);
-    this.parentId = "", this.schedule = null, this.selectedContentId = "", this.selectedContentName = "", this.targetPosition = 0, this.startDateTime = "", this.endDateTime = "", this.priority = 0, this.error = "", S(this, p, new z(this));
+    T(this, p);
+    this.parentId = "", this.schedule = null, this.selectedContentId = "", this.selectedContentName = "", this.targetPosition = 0, this.startDateTime = "", this.endDateTime = "", this.priority = 0, this.error = "", w(this, p, new N(this));
   }
   connectedCallback() {
     if (super.connectedCallback(), this.schedule)
       this.selectedContentId = this.schedule.contentId, this.selectedContentName = this.schedule.contentName, this.targetPosition = this.schedule.targetPosition, this.startDateTime = this.toLocalDateTimeString(this.schedule.startDateTime), this.endDateTime = this.toLocalDateTimeString(this.schedule.endDateTime), this.priority = this.schedule.priority;
     else {
-      const t = /* @__PURE__ */ new Date(), i = new Date(t);
-      i.setDate(i.getDate() + 1), this.startDateTime = this.toLocalDateTimeString(t.toISOString()), this.endDateTime = this.toLocalDateTimeString(i.toISOString()), this.targetPosition = 0, this.priority = 0;
+      const e = /* @__PURE__ */ new Date(), a = new Date(e);
+      a.setDate(a.getDate() + 1), this.startDateTime = this.toLocalDateTimeString(e.toISOString()), this.endDateTime = this.toLocalDateTimeString(a.toISOString()), this.targetPosition = 0, this.priority = 0;
     }
   }
-  toLocalDateTimeString(t) {
-    const i = new Date(t), a = i.getTimezoneOffset();
-    return new Date(i.getTime() - a * 60 * 1e3).toISOString().slice(0, 16);
+  toLocalDateTimeString(e) {
+    const a = new Date(e), i = a.getTimezoneOffset();
+    return new Date(a.getTime() - i * 60 * 1e3).toISOString().slice(0, 16);
   }
-  toISOString(t) {
-    return new Date(t).toISOString();
+  toISOString(e) {
+    return new Date(e).toISOString();
   }
-  async handleContentSelected(t) {
-    const i = t.target;
-    let a = i.selection || i.value;
-    if (a && Array.isArray(a) && a.length > 0) {
-      const d = typeof a[0] == "string" ? a[0] : a[0].unique || a[0].id;
+  async handleContentSelected(e) {
+    const a = e.target;
+    let i = a.selection || a.value;
+    if (i && Array.isArray(i) && i.length > 0) {
+      const d = typeof i[0] == "string" ? i[0] : i[0].unique || i[0].id;
       try {
-        const { data: u } = await b(this, p).requestItems([d]);
+        const { data: u } = await S(this, p).requestItems([d]);
         if (u && u.length > 0) {
-          const v = u[0];
-          this.selectedContentId = v.unique, this.selectedContentName = v.variants?.[0]?.name || "Unnamed Node";
+          const y = u[0];
+          this.selectedContentId = y.unique, this.selectedContentName = y.variants?.[0]?.name || "Unnamed Node";
         }
       } catch (u) {
         console.error("Error fetching node details:", u), this.error = "Error loading content details";
@@ -63,8 +64,8 @@ const m = class m extends C(w) {
       this.error = "Start and end dates are required";
       return;
     }
-    const t = new Date(this.startDateTime), i = new Date(this.endDateTime);
-    if (t >= i) {
+    const e = new Date(this.startDateTime), a = new Date(this.endDateTime);
+    if (e >= a) {
       this.error = "End date must be after start date";
       return;
     }
@@ -91,8 +92,8 @@ const m = class m extends C(w) {
     );
   }
   render() {
-    return r`
-      <div class="dialog" @click=${(t) => t.stopPropagation()}>
+    return s`
+      <div class="dialog" @click=${(e) => e.stopPropagation()}>
         <div class="dialog-header">
           <h3>
             <uui-icon name="icon-calendar"></uui-icon>
@@ -107,7 +108,7 @@ const m = class m extends C(w) {
           </uui-button>
         </div>
 
-        ${this.error ? r`
+        ${this.error ? s`
               <div class="error-message">
                 <uui-icon name="icon-alert"></uui-icon>
                 ${this.error}
@@ -119,18 +120,18 @@ const m = class m extends C(w) {
             <uui-icon name="icon-document"></uui-icon>
             Content to Boost
           </label>
-          ${this.schedule ? r`
+          ${this.schedule ? s`
                 <div class="selected-content">
                   <strong>${this.selectedContentName}</strong>
                   <div class="description">Cannot change content when editing</div>
                 </div>
-              ` : r`
+              ` : s`
                 <umb-input-document
                   @change=${this.handleContentSelected}
                   max="1"
                   min="0">
                 </umb-input-document>
-                ${this.selectedContentName ? r`
+                ${this.selectedContentName ? s`
                       <div class="selected-content">
                         <uui-icon name="icon-check"></uui-icon>
                         Selected: <strong>${this.selectedContentName}</strong>
@@ -148,7 +149,7 @@ const m = class m extends C(w) {
           <uui-input
             type="number"
             .value=${this.targetPosition.toString()}
-            @change=${(t) => this.targetPosition = parseInt(t.target.value) || 0}
+            @change=${(e) => this.targetPosition = parseInt(e.target.value) || 0}
             min="0">
           </uui-input>
           <div class="description">Position to boost the content to (0 = first)</div>
@@ -163,7 +164,7 @@ const m = class m extends C(w) {
             <input
               type="datetime-local"
               .value=${this.startDateTime}
-              @change=${(t) => this.startDateTime = t.target.value} />
+              @change=${(e) => this.startDateTime = e.target.value} />
             <div class="description">When the schedule becomes active</div>
           </div>
 
@@ -175,7 +176,7 @@ const m = class m extends C(w) {
             <input
               type="datetime-local"
               .value=${this.endDateTime}
-              @change=${(t) => this.endDateTime = t.target.value} />
+              @change=${(e) => this.endDateTime = e.target.value} />
             <div class="description">When the schedule expires</div>
           </div>
         </div>
@@ -188,7 +189,7 @@ const m = class m extends C(w) {
           <uui-input
             type="number"
             .value=${this.priority.toString()}
-            @change=${(t) => this.priority = parseInt(t.target.value) || 0}
+            @change=${(e) => this.priority = parseInt(e.target.value) || 0}
             min="0">
           </uui-input>
           <div class="description">
@@ -213,7 +214,7 @@ const m = class m extends C(w) {
     `;
   }
 };
-p = new WeakMap(), m.styles = k`
+p = new WeakMap(), v.styles = $`
     :host {
       display: block;
       position: fixed;
@@ -299,108 +300,66 @@ p = new WeakMap(), m.styles = k`
       margin-top: var(--uui-size-space-2);
     }
   `;
-let n = m;
+let n = v;
 l([
-  s({ type: String })
+  r({ type: String })
 ], n.prototype, "parentId");
 l([
-  s({ type: Object })
+  r({ type: Object })
 ], n.prototype, "schedule");
 l([
-  s({ type: String })
+  r({ type: String })
 ], n.prototype, "selectedContentId");
 l([
-  s({ type: String })
+  r({ type: String })
 ], n.prototype, "selectedContentName");
 l([
-  s({ type: Number })
+  r({ type: Number })
 ], n.prototype, "targetPosition");
 l([
-  s({ type: String })
+  r({ type: String })
 ], n.prototype, "startDateTime");
 l([
-  s({ type: String })
+  r({ type: String })
 ], n.prototype, "endDateTime");
 l([
-  s({ type: Number })
+  r({ type: Number })
 ], n.prototype, "priority");
 l([
-  s({ type: String })
+  r({ type: String })
 ], n.prototype, "error");
 customElements.define("schedule-dialog", n);
-var I = Object.defineProperty, h = (o, e, t, i) => {
-  for (var a = void 0, d = o.length - 1, u; d >= 0; d--)
-    (u = o[d]) && (a = u(e, t, a) || a);
-  return a && I(e, t, a), a;
+var A = Object.defineProperty, h = (o, t, e, a) => {
+  for (var i = void 0, d = o.length - 1, u; d >= 0; d--)
+    (u = o[d]) && (i = u(t, e, i) || i);
+  return i && A(t, e, i), i;
 };
-const g = class g extends C(w) {
+const f = class f extends z(C) {
   constructor() {
-    super(...arguments), this.parentId = "", this.parentNodeName = "", this.schedules = [], this.loading = !1, this.error = "", this.authToken = "", this.showCreateDialog = !1, this.editingSchedule = null;
+    super(...arguments), this.parentId = "", this.parentNodeName = "", this.schedules = [], this.loading = !1, this.error = "", this.showCreateDialog = !1, this.editingSchedule = null;
   }
   async connectedCallback() {
-    super.connectedCallback();
-    const t = window.location.pathname.split("/").filter(Boolean), i = t[t.length - 1];
-    this.isGuid(i) && (this.parentId = i), await this.setupAuthContext(), this.scheduleApi = new $(() => this.getAuthToken()), this.parentId && (await this.loadParentInfo(), await this.loadSchedules());
-  }
-  isGuid(e) {
-    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(e);
+    super.connectedCallback(), this.parentId = I.extractGuidFromPath() || "", this.scheduleApi = new x(() => this.getAuthToken()), this.parentId && (await this.loadParentInfo(), await this.loadSchedules());
   }
   async loadParentInfo() {
     if (this.parentId)
       try {
-        const e = await this.makeAuthenticatedRequest(
+        const t = await this.makeAuthenticatedRequest(
           `/umbraco/management/api/v1/document/${this.parentId}`
-        );
-        if (e.ok) {
-          const t = await e.json();
-          this.parentNodeName = t.variants?.[0]?.name || "Unknown Node";
-        }
-      } catch (e) {
-        console.error("Error loading parent info:", e);
+        ), e = await m.handleResponse(t);
+        this.parentNodeName = e.variants?.[0]?.name || "Unknown Node";
+      } catch (t) {
+        console.error("Error loading parent info:", t);
       }
-  }
-  async makeAuthenticatedRequest(e, t = {}) {
-    const i = await this.getAuthToken(), a = new Headers(t.headers);
-    return a.set("Content-Type", "application/json"), i && a.set("Authorization", `Bearer ${i}`), fetch(e, { ...t, headers: a });
-  }
-  async setupAuthContext() {
-    return new Promise((e) => {
-      this.consumeContext(T, async (t) => {
-        try {
-          const i = t?.getOpenApiConfiguration?.();
-          i?.token && (this.authToken = await i.token()), e();
-        } catch (i) {
-          console.error("Failed to setup auth context:", i), e();
-        }
-      }).asPromise({ preventTimeout: !0 }).catch(() => e());
-    });
-  }
-  async getAuthToken() {
-    if (this.authToken)
-      return this.authToken;
-    try {
-      const e = await this.getContext(T);
-      if (e) {
-        const t = e.getOpenApiConfiguration?.();
-        if (t?.token) {
-          const i = await t.token();
-          if (i)
-            return this.authToken = i, i;
-        }
-      }
-    } catch (e) {
-      console.error("Failed to get auth token:", e);
-    }
-    return "";
   }
   async loadSchedules() {
     if (!(!this.scheduleApi || !this.parentId)) {
       this.loading = !0, this.error = "";
       try {
-        const e = await this.scheduleApi.getSchedules(this.parentId);
-        this.schedules = e.items;
-      } catch (e) {
-        console.error("Error loading schedules:", e), this.error = "Failed to load schedules";
+        const t = await this.scheduleApi.getSchedules(this.parentId);
+        this.schedules = t.items;
+      } catch (t) {
+        console.error("Error loading schedules:", t), this.error = "Failed to load schedules";
       } finally {
         this.loading = !1;
       }
@@ -409,71 +368,71 @@ const g = class g extends C(w) {
   openCreateDialog() {
     this.showCreateDialog = !0, this.editingSchedule = null;
   }
-  openEditDialog(e) {
-    this.editingSchedule = e, this.showCreateDialog = !0;
+  openEditDialog(t) {
+    this.editingSchedule = t, this.showCreateDialog = !0;
   }
   closeDialog() {
     this.showCreateDialog = !1, this.editingSchedule = null;
   }
-  async handleSaveSchedule(e) {
+  async handleSaveSchedule(t) {
     if (!this.scheduleApi) return;
-    const t = e.detail;
+    const e = t.detail;
     try {
       if (this.editingSchedule) {
-        const i = {
-          targetPosition: t.targetPosition,
-          startDateTime: t.startDateTime,
-          endDateTime: t.endDateTime,
-          priority: t.priority || 0
+        const a = {
+          targetPosition: e.targetPosition,
+          startDateTime: e.startDateTime,
+          endDateTime: e.endDateTime,
+          priority: e.priority || g.DEFAULTS.PRIORITY
         };
-        await this.scheduleApi.updateSchedule(this.editingSchedule.id, i);
+        await this.scheduleApi.updateSchedule(this.editingSchedule.id, a);
       } else {
-        const i = {
-          contentId: t.contentId,
+        const a = {
+          contentId: e.contentId,
           parentId: this.parentId,
-          targetPosition: t.targetPosition,
-          startDateTime: t.startDateTime,
-          endDateTime: t.endDateTime,
-          priority: t.priority || 0
+          targetPosition: e.targetPosition,
+          startDateTime: e.startDateTime,
+          endDateTime: e.endDateTime,
+          priority: e.priority || g.DEFAULTS.PRIORITY
         };
-        await this.scheduleApi.createSchedule(i);
+        await this.scheduleApi.createSchedule(a);
       }
       this.closeDialog(), await this.loadSchedules();
-    } catch (i) {
-      console.error("Error saving schedule:", i), this.error = "Failed to save schedule";
+    } catch (a) {
+      console.error("Error saving schedule:", a), this.error = "Failed to save schedule";
     }
   }
-  async handleDeleteSchedule(e) {
-    if (this.scheduleApi && confirm("Are you sure you want to delete this schedule?"))
+  async handleDeleteSchedule(t) {
+    if (this.scheduleApi && m.confirmAction(g.MESSAGES.CONFIRM_DELETE))
       try {
-        await this.scheduleApi.deleteSchedule(e), await this.loadSchedules();
-      } catch (t) {
-        console.error("Error deleting schedule:", t), this.error = "Failed to delete schedule";
+        await this.scheduleApi.deleteSchedule(t), await this.loadSchedules();
+      } catch (e) {
+        m.showError(e, "Failed to delete schedule");
       }
   }
-  formatDateTime(e) {
-    return new Date(e).toLocaleString();
+  formatDateTime(t) {
+    return k.formatDateTime(t);
   }
-  getStatusBadge(e) {
-    if (e.isCurrentlyActive)
-      return r`
+  getStatusBadge(t) {
+    if (t.isCurrentlyActive)
+      return s`
         <uui-badge color="positive" look="primary">
           <uui-icon name="icon-check"></uui-icon>
           Active Now
         </uui-badge>
       `;
-    const t = /* @__PURE__ */ new Date(), i = new Date(e.startDateTime), a = new Date(e.endDateTime);
-    return t < i ? r`
+    const e = /* @__PURE__ */ new Date(), a = new Date(t.startDateTime), i = new Date(t.endDateTime);
+    return e < a ? s`
         <uui-badge color="default" look="secondary">
           <uui-icon name="icon-time"></uui-icon>
           Scheduled
         </uui-badge>
-      ` : t >= a ? r`
+      ` : e >= i ? s`
         <uui-badge color="default" look="outline">
           <uui-icon name="icon-delete"></uui-icon>
           Expired
         </uui-badge>
-      ` : r`
+      ` : s`
       <uui-badge color="warning" look="secondary">
         <uui-icon name="icon-calendar"></uui-icon>
         Pending
@@ -481,13 +440,13 @@ const g = class g extends C(w) {
     `;
   }
   render() {
-    return r`
+    return s`
       <div class="schedule-container">
         <div class="header">
           <h2>
             <uui-icon name="icon-calendar"></uui-icon>
             Sorting Schedules
-            ${this.parentNodeName ? r` - ${this.parentNodeName}` : ""}
+            ${this.parentNodeName ? s` - ${this.parentNodeName}` : ""}
           </h2>
           <uui-button
             look="primary"
@@ -499,56 +458,56 @@ const g = class g extends C(w) {
           </uui-button>
         </div>
 
-        ${this.error ? r`
+        ${this.error ? s`
               <div class="error-message">
                 <uui-icon name="icon-alert"></uui-icon>
                 ${this.error}
               </div>
             ` : ""}
 
-        ${this.loading ? r`
+        ${this.loading ? s`
               <div class="loading-spinner">
                 <uui-loader></uui-loader>
               </div>
-            ` : this.schedules.length === 0 ? r`
+            ` : this.schedules.length === 0 ? s`
               <div class="empty-state">
                 <uui-icon name="icon-calendar" style="font-size: 48px; opacity: 0.3;"></uui-icon>
                 <p>No schedules configured yet.</p>
                 <p>Create a schedule to boost content to a specific position during a time period.</p>
               </div>
-            ` : r`
+            ` : s`
               <div class="schedule-list">
                 ${this.schedules.map(
-      (e) => r`
+      (t) => s`
                     <div
-                      class="schedule-card ${e.isCurrentlyActive ? "active" : ""}">
-                      ${this.getStatusBadge(e)}
+                      class="schedule-card ${t.isCurrentlyActive ? "active" : ""}">
+                      ${this.getStatusBadge(t)}
 
                       <div class="schedule-info">
-                        <div class="schedule-title">${e.contentName}</div>
+                        <div class="schedule-title">${t.contentName}</div>
                         <div class="schedule-details">
-                          Position: <strong>${e.targetPosition}</strong>
-                          ${e.priority > 0 ? r`
+                          Position: <strong>${t.targetPosition}</strong>
+                          ${t.priority > 0 ? s`
                                 <span class="priority-badge">
                                   <uui-icon name="icon-navigation-up"></uui-icon>
-                                  Priority: ${e.priority}
+                                  Priority: ${t.priority}
                                 </span>
                               ` : ""}
                         </div>
                         <div class="schedule-details">
-                          Created by ${e.createdByName} on
-                          ${this.formatDateTime(e.created)}
+                          Created by ${t.createdByName} on
+                          ${this.formatDateTime(t.created)}
                         </div>
                       </div>
 
                       <div class="schedule-dates">
                         <div>
                           <uui-icon name="icon-calendar-alt"></uui-icon>
-                          Start: ${this.formatDateTime(e.startDateTime)}
+                          Start: ${this.formatDateTime(t.startDateTime)}
                         </div>
                         <div>
                           <uui-icon name="icon-calendar-alt"></uui-icon>
-                          End: ${this.formatDateTime(e.endDateTime)}
+                          End: ${this.formatDateTime(t.endDateTime)}
                         </div>
                       </div>
 
@@ -556,14 +515,14 @@ const g = class g extends C(w) {
                         <uui-button
                           look="outline"
                           label="Edit"
-                          @click=${() => this.openEditDialog(e)}>
+                          @click=${() => this.openEditDialog(t)}>
                           <uui-icon name="icon-edit"></uui-icon>
                         </uui-button>
                         <uui-button
                           look="outline"
                           color="danger"
                           label="Delete"
-                          @click=${() => this.handleDeleteSchedule(e.id)}>
+                          @click=${() => this.handleDeleteSchedule(t.id)}>
                           <uui-icon name="icon-trash"></uui-icon>
                         </uui-button>
                       </div>
@@ -574,7 +533,7 @@ const g = class g extends C(w) {
             `}
       </div>
 
-      ${this.showCreateDialog ? r`
+      ${this.showCreateDialog ? s`
             <schedule-dialog
               .parentId=${this.parentId}
               .schedule=${this.editingSchedule}
@@ -585,7 +544,7 @@ const g = class g extends C(w) {
     `;
   }
 };
-g.styles = k`
+f.styles = $`
     :host {
       display: block;
       padding: var(--uui-size-space-5);
@@ -687,33 +646,30 @@ g.styles = k`
       font-size: var(--uui-type-small-size);
     }
   `;
-let c = g;
+let c = f;
 h([
-  s({ type: String, attribute: !1, reflect: !1 })
+  r({ type: String, attribute: !1, reflect: !1 })
 ], c.prototype, "parentId");
 h([
-  s({ type: String })
+  r({ type: String })
 ], c.prototype, "parentNodeName");
 h([
-  s({ type: Array })
+  r({ type: Array })
 ], c.prototype, "schedules");
 h([
-  s({ type: Boolean })
+  r({ type: Boolean })
 ], c.prototype, "loading");
 h([
-  s({ type: String })
+  r({ type: String })
 ], c.prototype, "error");
 h([
-  s({ type: String })
-], c.prototype, "authToken");
-h([
-  s({ type: Boolean })
+  r({ type: Boolean })
 ], c.prototype, "showCreateDialog");
 h([
-  s({ type: Object })
+  r({ type: Object })
 ], c.prototype, "editingSchedule");
 customElements.define("power-sort-schedules", c);
 export {
   c as default
 };
-//# sourceMappingURL=schedules.element-FLbLgS07.js.map
+//# sourceMappingURL=schedules.element-BUjuXvxq.js.map

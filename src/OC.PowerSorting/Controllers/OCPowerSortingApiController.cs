@@ -3,11 +3,11 @@ using System.Text.Json;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OC.PowerSorting.Controllers.Base;
 using OC.PowerSorting.DTOs;
 using OC.PowerSorting.Models;
 using OC.PowerSorting.Models.Requests;
 using OC.PowerSorting.Models.Responses;
-using Umbraco.Cms.Api.Management.Controllers;
 using Umbraco.Cms.Api.Management.Routing;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Security;
@@ -20,15 +20,10 @@ namespace OC.PowerSorting.Controllers
     [ApiVersion("1.0")]
     [VersionedApiBackOfficeRoute("oc/power-sorting")]
     [ApiExplorerSettings(GroupName = Constants.ApiName)]
-    public class OCPowerSortingApiController : ManagementApiControllerBase
+    public class OCPowerSortingApiController : PowerSortingControllerBase
     {
-        private readonly IBackOfficeSecurityAccessor _backOfficeSecurityAccessor;
-        private readonly IUmbracoDatabaseFactory _databaseFactory;
         private readonly IEntityService _entityService;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IContentService _contentService;
-        private readonly IUserService _userService;
-
         private const string MENU_ITEMS_KEY = "PowerSortMenuItems_";
 
         public OCPowerSortingApiController(
@@ -38,13 +33,10 @@ namespace OC.PowerSorting.Controllers
             IEntityService entityService,
             IContentService contentService,
             IUserService userService)
+            : base(backOfficeSecurityAccessor, databaseFactory, contentService, userService)
         {
-            _backOfficeSecurityAccessor = backOfficeSecurityAccessor;
-            _databaseFactory = databaseFactory;
-            _httpClientFactory = httpClientFactory;
             _entityService = entityService;
-            _contentService = contentService;
-            _userService = userService;
+            _httpClientFactory = httpClientFactory;
         }
 
         #region Menu Items Endpoints
@@ -53,50 +45,36 @@ namespace OC.PowerSorting.Controllers
         [ProducesResponseType<MenuItemsResponse>(StatusCodes.Status200OK)]
         public IActionResult GetMenuItems()
         {
-            try
+            return ExecuteDatabaseOperation(database =>
             {
-                var currentUser = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (currentUser == null)
-                {
-                    return Unauthorized();
-                }
+                var authResult = ValidateUserAccess(out var userId);
+                if (authResult != null) throw new UnauthorizedAccessException();
 
-                var key = MENU_ITEMS_KEY + currentUser.Id;
-
-                using var database = _databaseFactory.CreateDatabase();
+                var key = MENU_ITEMS_KEY + userId;
                 var keyValueRow = database.SingleOrDefault<KeyValueDto>(
                     "SELECT * FROM umbracoKeyValue WHERE [key] = @0", key);
 
                 if (keyValueRow == null || string.IsNullOrEmpty(keyValueRow.Value))
                 {
-                    return Ok(new MenuItemsResponse { Items = new List<MenuItemModel>() });
+                    return new MenuItemsResponse { Items = new List<MenuItemModel>() };
                 }
 
                 var items = JsonSerializer.Deserialize<List<MenuItemModel>>(keyValueRow.Value);
-                return Ok(new MenuItemsResponse { Items = items ?? new List<MenuItemModel>() });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+                return new MenuItemsResponse { Items = items ?? new List<MenuItemModel>() };
+            });
         }
 
         [HttpPost("menu-items")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult SaveMenuItems([FromBody] MenuItemsResponse request)
         {
-            try
+            return ExecuteDatabaseOperation(database =>
             {
-                var currentUser = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (currentUser == null)
-                {
-                    return Unauthorized();
-                }
+                var authResult = ValidateUserAccess(out var userId);
+                if (authResult != null) throw new UnauthorizedAccessException();
 
-                var key = MENU_ITEMS_KEY + currentUser.Id;
+                var key = MENU_ITEMS_KEY + userId;
                 var value = JsonSerializer.Serialize(request.Items);
-
-                using var database = _databaseFactory.CreateDatabase();
 
                 // Check if key exists
                 var existing = database.SingleOrDefault<KeyValueDto>(
@@ -120,12 +98,8 @@ namespace OC.PowerSorting.Controllers
                     });
                 }
 
-                return Ok(new { success = true, itemCount = request.Items.Count });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+                return new { success = true, itemCount = request.Items.Count };
+            });
         }
 
         #endregion
@@ -135,39 +109,42 @@ namespace OC.PowerSorting.Controllers
         [HttpGet("children/{id:guid}")]
         public IActionResult GetChildren(Guid id)
         {
-            var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-            if (user == null)
-            {
-                return Unauthorized();
-            }
-            
+            var authResult = ValidateUserAccess(out _);
+            if (authResult != null) return authResult;
 
-            // Get child entities in correct sort order
-            var children = _entityService.GetChildren(id, UmbracoObjectTypes.Document);
-
-            var result = children.Select((child, index) =>
+            try
             {
-                var content = _contentService.GetById(child.Id);
-                return new
+                // Get child entities in correct sort order
+                var children = _entityService.GetChildren(id, UmbracoObjectTypes.Document);
+
+                var result = children.Select((child, index) =>
                 {
-                    Id = child.Key,
-                    Name = content?.Name ?? "Unnamed",
-                    SortOrder = index,
-                    DocumentType = new
+                    var content = _contentService.GetById(child.Id);
+                    return new
                     {
-                        Id = content?.ContentType.Key,
-                        content?.ContentType.Icon
-                    },
-                    child.HasChildren,
-                    content?.CreateDate
-                };
-            });
+                        Id = child.Key,
+                        Name = content?.Name ?? "Unnamed",
+                        SortOrder = index,
+                        DocumentType = new
+                        {
+                            Id = content?.ContentType.Key,
+                            content?.ContentType.Icon
+                        },
+                        child.HasChildren,
+                        content?.CreateDate
+                    };
+                });
 
-            return Ok(new
+                return Ok(new
+                {
+                    Total = result.Count(),
+                    Items = result
+                });
+            }
+            catch (Exception ex)
             {
-                Total = result.Count(),
-                Items = result
-            });
+                return HandleException(ex);
+            }
         }
 
         [HttpPut("sort/document")]
@@ -175,47 +152,41 @@ namespace OC.PowerSorting.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public IActionResult SortDocument([FromBody] SortDocumentRequest request)
         {
+            var authResult = ValidateUserAccess(out _);
+            if (authResult != null) return authResult;
+
+            if (request.Parent?.Id == null)
+            {
+                return BadRequest(new { error = "Parent ID is required" });
+            }
+
+            if (request.Sorting == null || !request.Sorting.Any())
+            {
+                return BadRequest(new { error = "Sorting array is required" });
+            }
+
             try
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
-                if (request.Parent?.Id == null)
-                {
-                    return BadRequest(new { error = "Parent ID is required" });
-                }
-
-                if (request.Sorting == null || !request.Sorting.Any())
-                {
-                    return BadRequest(new { error = "Sorting array is required" });
-                }
-
-                // Get parent content
-                var parentContent = _contentService.GetById(request.Parent.Id);
-                if (parentContent == null)
-                {
-                    return NotFound(new { error = "Parent document not found" });
-                }
+                // Validate parent exists
+                var validationResult = ValidateContentExists(request.Parent.Id, out var parentContent);
+                if (validationResult != null) return validationResult;
 
                 // Update sort order for each child
                 foreach (var sortItem in request.Sorting)
                 {
                     var childContent = _contentService.GetById(sortItem.Id);
-                    if (childContent != null && childContent.ParentId == parentContent.Id)
+                    if (childContent != null && childContent.ParentId == parentContent!.Id)
                     {
                         childContent.SortOrder = sortItem.SortOrder;
                         _contentService.Save(childContent);
                     }
                 }
 
-                return Ok(new { success = true, message = "Sort order updated successfully" });
+                return SuccessResult("Sort order updated successfully");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+                return HandleException(ex);
             }
         }
 
@@ -227,16 +198,8 @@ namespace OC.PowerSorting.Controllers
         [ProducesResponseType<ScheduleListResponse>(StatusCodes.Status200OK)]
         public IActionResult GetSchedules([FromQuery] Guid? parentId = null, [FromQuery] bool activeOnly = false)
         {
-            try
+            return ExecuteDatabaseOperation(database =>
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
-                using var database = _databaseFactory.CreateDatabase();
-                
                 var sql = "SELECT * FROM ocPowerSortingSchedule WHERE 1=1";
                 var args = new List<object>();
 
@@ -256,40 +219,14 @@ namespace OC.PowerSorting.Controllers
                 var schedules = database.Fetch<SortScheduleDto>(sql, args.ToArray());
                 var now = DateTime.UtcNow;
 
-                var items = schedules.Select(s =>
-                {
-                    var content = _contentService.GetById(s.ContentId);
-                    var parent = _contentService.GetById(s.ParentId);
-                    var creator = _userService.GetUserById(s.CreatedBy);
+                var items = schedules.Select(s => BuildScheduleResponse(s, now)).ToList();
 
-                    return new ScheduleResponse
-                    {
-                        Id = s.Id,
-                        ContentId = s.ContentId,
-                        ContentName = content?.Name ?? "Unknown",
-                        ParentId = s.ParentId,
-                        ParentName = parent?.Name ?? "Unknown",
-                        TargetPosition = s.TargetPosition,
-                        StartDateTime = s.StartDateTime,
-                        EndDateTime = s.EndDateTime,
-                        IsActive = s.IsActive,
-                        IsCurrentlyActive = s.IsActive && now >= s.StartDateTime && now < s.EndDateTime,
-                        Priority = s.Priority,
-                        Created = s.Created,
-                        CreatedByName = creator?.Name ?? "Unknown"
-                    };
-                }).ToList();
-
-                return Ok(new ScheduleListResponse
+                return new ScheduleListResponse
                 {
                     Total = items.Count,
                     Items = items
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+                };
+            });
         }
 
         [HttpGet("schedules/{id:guid}")]
@@ -297,51 +234,18 @@ namespace OC.PowerSorting.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetSchedule(Guid id)
         {
-            try
+            return ExecuteDatabaseOperation(database =>
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
-                using var database = _databaseFactory.CreateDatabase();
                 var schedule = database.SingleOrDefault<SortScheduleDto>(
                     "SELECT * FROM ocPowerSortingSchedule WHERE Id = @0", id);
 
                 if (schedule == null)
                 {
-                    return NotFound(new { error = "Schedule not found" });
+                    throw new KeyNotFoundException("Schedule not found");
                 }
 
-                var content = _contentService.GetById(schedule.ContentId);
-                var parent = _contentService.GetById(schedule.ParentId);
-                var creator = _userService.GetUserById(schedule.CreatedBy);
-                var now = DateTime.UtcNow;
-
-                var response = new ScheduleResponse
-                {
-                    Id = schedule.Id,
-                    ContentId = schedule.ContentId,
-                    ContentName = content?.Name ?? "Unknown",
-                    ParentId = schedule.ParentId,
-                    ParentName = parent?.Name ?? "Unknown",
-                    TargetPosition = schedule.TargetPosition,
-                    StartDateTime = schedule.StartDateTime,
-                    EndDateTime = schedule.EndDateTime,
-                    IsActive = schedule.IsActive,
-                    IsCurrentlyActive = schedule.IsActive && now >= schedule.StartDateTime && now < schedule.EndDateTime,
-                    Priority = schedule.Priority,
-                    Created = schedule.Created,
-                    CreatedByName = creator?.Name ?? "Unknown"
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+                return BuildScheduleResponse(schedule, DateTime.UtcNow);
+            });
         }
 
         [HttpPost("schedules")]
@@ -349,44 +253,28 @@ namespace OC.PowerSorting.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public IActionResult CreateSchedule([FromBody] CreateScheduleRequest request)
         {
+            var authResult = ValidateUserAccess(out var userId);
+            if (authResult != null) return authResult;
+
+            // Validation
+            var dateValidation = ValidateDateRange(request.StartDateTime, request.EndDateTime);
+            if (dateValidation != null) return dateValidation;
+
+            var positionValidation = ValidateTargetPosition(request.TargetPosition);
+            if (positionValidation != null) return positionValidation;
+
+            // Verify content exists and relationship
+            var contentValidation = ValidateContentExists(request.ContentId, out var content);
+            if (contentValidation != null) return contentValidation;
+
+            var parentValidation = ValidateContentExists(request.ParentId, out var parent, "Parent not found");
+            if (parentValidation != null) return parentValidation;
+
+            var relationshipValidation = ValidateParentChildRelationship(content!, request.ParentId);
+            if (relationshipValidation != null) return relationshipValidation;
+
             try
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
-                // Validation
-                if (request.StartDateTime >= request.EndDateTime)
-                {
-                    return BadRequest(new { error = "End date must be after start date" });
-                }
-
-                if (request.TargetPosition < 0)
-                {
-                    return BadRequest(new { error = "Target position must be non-negative" });
-                }
-
-                // Verify content exists
-                var content = _contentService.GetById(request.ContentId);
-                if (content == null)
-                {
-                    return BadRequest(new { error = "Content not found" });
-                }
-
-                var parent = _contentService.GetById(request.ParentId);
-                if (parent == null)
-                {
-                    return BadRequest(new { error = "Parent not found" });
-                }
-
-                // Verify content is child of parent
-                if (content.ParentId != parent.Id)
-                {
-                    return BadRequest(new { error = "Content is not a child of the specified parent" });
-                }
-
                 using var database = _databaseFactory.CreateDatabase();
                 var schedule = new SortScheduleDto
                 {
@@ -396,37 +284,48 @@ namespace OC.PowerSorting.Controllers
                     TargetPosition = request.TargetPosition,
                     StartDateTime = request.StartDateTime,
                     EndDateTime = request.EndDateTime,
-                    IsActive = false, // Will be activated by background service
+                    IsActive = false,
                     Priority = request.Priority,
                     Created = DateTime.UtcNow,
-                    CreatedBy = user.Id
+                    CreatedBy = userId
                 };
 
                 database.Insert(schedule);
 
-                var response = new ScheduleResponse
-                {
-                    Id = schedule.Id,
-                    ContentId = schedule.ContentId,
-                    ContentName = content.Name ?? "Unknown",
-                    ParentId = schedule.ParentId,
-                    ParentName = parent.Name ?? "Unknown",
-                    TargetPosition = schedule.TargetPosition,
-                    StartDateTime = schedule.StartDateTime,
-                    EndDateTime = schedule.EndDateTime,
-                    IsActive = schedule.IsActive,
-                    IsCurrentlyActive = false,
-                    Priority = schedule.Priority,
-                    Created = schedule.Created,
-                    CreatedByName = user.Name?? "Unknown"
-                };
-
+                var response = BuildScheduleResponse(schedule, DateTime.UtcNow);
                 return CreatedAtAction(nameof(GetSchedule), new { id = schedule.Id }, response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+                return HandleException(ex);
             }
+        }
+
+        /// <summary>
+        /// Helper method to build schedule response from DTO
+        /// </summary>
+        private ScheduleResponse BuildScheduleResponse(SortScheduleDto schedule, DateTime now)
+        {
+            var content = _contentService.GetById(schedule.ContentId);
+            var parent = _contentService.GetById(schedule.ParentId);
+            var creator = _userService.GetUserById(schedule.CreatedBy);
+
+            return new ScheduleResponse
+            {
+                Id = schedule.Id,
+                ContentId = schedule.ContentId,
+                ContentName = content?.Name ?? "Unknown",
+                ParentId = schedule.ParentId,
+                ParentName = parent?.Name ?? "Unknown",
+                TargetPosition = schedule.TargetPosition,
+                StartDateTime = schedule.StartDateTime,
+                EndDateTime = schedule.EndDateTime,
+                IsActive = schedule.IsActive,
+                IsCurrentlyActive = schedule.IsActive && now >= schedule.StartDateTime && now < schedule.EndDateTime,
+                Priority = schedule.Priority,
+                Created = schedule.Created,
+                CreatedByName = creator?.Name ?? "Unknown"
+            };
         }
 
         [HttpPut("schedules/{id:guid}")]
@@ -434,32 +333,24 @@ namespace OC.PowerSorting.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult UpdateSchedule(Guid id, [FromBody] UpdateScheduleRequest request)
         {
-            try
+            var authResult = ValidateUserAccess(out _);
+            if (authResult != null) return authResult;
+
+            // Validation
+            var dateValidation = ValidateDateRange(request.StartDateTime, request.EndDateTime);
+            if (dateValidation != null) return dateValidation;
+
+            var positionValidation = ValidateTargetPosition(request.TargetPosition);
+            if (positionValidation != null) return positionValidation;
+
+            return ExecuteDatabaseOperation(database =>
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
-                // Validation
-                if (request.StartDateTime >= request.EndDateTime)
-                {
-                    return BadRequest(new { error = "End date must be after start date" });
-                }
-
-                if (request.TargetPosition < 0)
-                {
-                    return BadRequest(new { error = "Target position must be non-negative" });
-                }
-
-                using var database = _databaseFactory.CreateDatabase();
                 var schedule = database.SingleOrDefault<SortScheduleDto>(
                     "SELECT * FROM ocPowerSortingSchedule WHERE Id = @0", id);
 
                 if (schedule == null)
                 {
-                    return NotFound(new { error = "Schedule not found" });
+                    throw new KeyNotFoundException("Schedule not found");
                 }
 
                 schedule.TargetPosition = request.TargetPosition;
@@ -469,34 +360,8 @@ namespace OC.PowerSorting.Controllers
 
                 database.Update(schedule);
 
-                var content = _contentService.GetById(schedule.ContentId);
-                var parent = _contentService.GetById(schedule.ParentId);
-                var creator = _userService.GetUserById(schedule.CreatedBy);
-                var now = DateTime.UtcNow;
-
-                var response = new ScheduleResponse
-                {
-                    Id = schedule.Id,
-                    ContentId = schedule.ContentId,
-                    ContentName = content?.Name ?? "Unknown",
-                    ParentId = schedule.ParentId,
-                    ParentName = parent?.Name ?? "Unknown",
-                    TargetPosition = schedule.TargetPosition,
-                    StartDateTime = schedule.StartDateTime,
-                    EndDateTime = schedule.EndDateTime,
-                    IsActive = schedule.IsActive,
-                    IsCurrentlyActive = schedule.IsActive && now >= schedule.StartDateTime && now < schedule.EndDateTime,
-                    Priority = schedule.Priority,
-                    Created = schedule.Created,
-                    CreatedByName = creator?.Name ?? "Unknown"
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+                return BuildScheduleResponse(schedule, DateTime.UtcNow);
+            });
         }
 
         [HttpDelete("schedules/{id:guid}")]
@@ -504,46 +369,27 @@ namespace OC.PowerSorting.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult DeleteSchedule(Guid id)
         {
-            try
+            return ExecuteDatabaseOperation(database =>
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
-                using var database = _databaseFactory.CreateDatabase();
                 var schedule = database.SingleOrDefault<SortScheduleDto>(
                     "SELECT * FROM ocPowerSortingSchedule WHERE Id = @0", id);
 
                 if (schedule == null)
                 {
-                    return NotFound(new { error = "Schedule not found" });
+                    throw new KeyNotFoundException("Schedule not found");
                 }
 
                 database.Delete(schedule);
-
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+                return new { success = true };
+            });
         }
 
         [HttpGet("schedules/active/{parentId:guid}")]
         [ProducesResponseType<List<ActiveScheduleInfo>>(StatusCodes.Status200OK)]
         public IActionResult GetActiveSchedules(Guid parentId)
         {
-            try
+            return ExecuteDatabaseOperation(database =>
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
-                using var database = _databaseFactory.CreateDatabase();
                 var now = DateTime.UtcNow;
 
                 var activeSchedules = database.Fetch<SortScheduleDto>(
@@ -555,7 +401,7 @@ namespace OC.PowerSorting.Controllers
                       ORDER BY Priority DESC, StartDateTime ASC",
                     parentId, now);
 
-                var result = activeSchedules.Select(s => new ActiveScheduleInfo
+                return activeSchedules.Select(s => new ActiveScheduleInfo
                 {
                     ScheduleId = s.Id,
                     ContentId = s.ContentId,
@@ -563,13 +409,7 @@ namespace OC.PowerSorting.Controllers
                     EndDateTime = s.EndDateTime,
                     Priority = s.Priority
                 }).ToList();
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+            });
         }
 
         #endregion
@@ -580,16 +420,8 @@ namespace OC.PowerSorting.Controllers
         [ProducesResponseType<DefaultSortOrderResponse>(StatusCodes.Status200OK)]
         public IActionResult GetDefaultSortOrder(Guid parentId)
         {
-            try
+            return ExecuteDatabaseOperation(database =>
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
-                using var database = _databaseFactory.CreateDatabase();
-                
                 var defaultOrders = database.Fetch<DefaultSortOrderDto>(
                     "SELECT * FROM ocPowerSortingDefaultOrder WHERE ParentId = @0 ORDER BY SortOrder",
                     parentId);
@@ -599,7 +431,7 @@ namespace OC.PowerSorting.Controllers
                 if (defaultOrders.Any())
                 {
                     var first = defaultOrders.First();
-                    return Ok(new DefaultSortOrderResponse
+                    return new DefaultSortOrderResponse
                     {
                         ParentId = parentId,
                         ParentName = parent?.Name ?? "Unknown",
@@ -607,10 +439,10 @@ namespace OC.PowerSorting.Controllers
                         Created = first.Created,
                         Updated = defaultOrders.Max(d => d.Updated),
                         IsSet = true
-                    });
+                    };
                 }
 
-                return Ok(new DefaultSortOrderResponse
+                return new DefaultSortOrderResponse
                 {
                     ParentId = parentId,
                     ParentName = parent?.Name ?? "Unknown",
@@ -618,38 +450,29 @@ namespace OC.PowerSorting.Controllers
                     Created = DateTime.MinValue,
                     Updated = DateTime.MinValue,
                     IsSet = false
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+                };
+            });
         }
 
         [HttpPost("default-sort-order/save")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult SaveCurrentAsDefault([FromBody] SaveDefaultSortOrderRequest request)
         {
-            try
+            return ExecuteDatabaseOperation(database =>
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
+                var authResult = ValidateUserAccess(out var userId);
+                if (authResult != null) throw new UnauthorizedAccessException();
 
                 var parent = _contentService.GetById(request.ParentId);
                 if (parent == null)
                 {
-                    return NotFound(new { error = "Parent not found" });
+                    throw new ArgumentException("Parent not found");
                 }
 
                 // Get current children in their current sort order
                 var children = _contentService.GetPagedChildren(parent.Id, 0, int.MaxValue, out _)
                     .OrderBy(c => c.SortOrder)
                     .ToList();
-
-                using var database = _databaseFactory.CreateDatabase();
 
                 // Delete existing default order for this parent
                 database.Execute(
@@ -667,40 +490,33 @@ namespace OC.PowerSorting.Controllers
                         ContentId = child.Key,
                         SortOrder = child.SortOrder,
                         Created = now,
-                        CreatedBy = user.Id,
+                        CreatedBy = userId,
                         Updated = now
                     });
                 }
 
-                return Ok(new
+                return new
                 {
                     success = true,
                     message = $"Saved default sort order for {children.Count} items",
                     itemCount = children.Count
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+                };
+            });
         }
 
         [HttpPost("default-sort-order/restore/{parentId:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public IActionResult RestoreDefaultSortOrder(Guid parentId)
+        public async Task<IActionResult> RestoreDefaultSortOrder(Guid parentId)
         {
+            var authResult = ValidateUserAccess(out var userId);
+            if (authResult != null) return authResult;
+
             try
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
                 var parent = _contentService.GetById(parentId);
                 if (parent == null)
                 {
-                    return NotFound(new { error = "Parent not found" });
+                    return BadRequest(new { error = "Parent not found" });
                 }
 
                 using var database = _databaseFactory.CreateDatabase();
@@ -738,14 +554,14 @@ namespace OC.PowerSorting.Controllers
                 return Ok(new
                 {
                     success = true,
-                    message = $"Restored default sort order",
+                    message = "Restored default sort order",
                     totalItems = defaultOrders.Count,
                     updatedItems = updatedCount
                 });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+                return HandleException(ex);
             }
         }
 
@@ -753,25 +569,14 @@ namespace OC.PowerSorting.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public IActionResult ClearDefaultSortOrder(Guid parentId)
         {
-            try
+            return ExecuteDatabaseOperation(database =>
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-
-                using var database = _databaseFactory.CreateDatabase();
                 database.Execute(
                     "DELETE FROM ocPowerSortingDefaultOrder WHERE ParentId = @0",
                     parentId);
 
                 return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+            });
         }
 
         #endregion

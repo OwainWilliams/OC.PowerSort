@@ -1,6 +1,8 @@
 import { LitElement, html, css, property } from '@umbraco-cms/backoffice/external/lit';
-import { UmbElementMixin } from '@umbraco-cms/backoffice/element-api';
-import { UMB_AUTH_CONTEXT } from '@umbraco-cms/backoffice/auth';
+import { UmbAuthMixin } from '../mixins/auth.mixin.js';
+import { ValidationUtils, DateUtils } from '../utils/validation.utils.js';
+import { PowerSortConstants } from '../utils/constants.js';
+import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import type {
   ScheduleResponse,
   CreateScheduleRequest,
@@ -9,7 +11,7 @@ import type {
 import { ScheduleApiClient } from '../api/schedule-api.client.js';
 import './schedule-dialog.element.js';
 
-export default class ScheduleManagementElement extends UmbElementMixin(LitElement) {
+export default class ScheduleManagementElement extends UmbAuthMixin(LitElement) {
   @property({ type: String, attribute: false, reflect: false })
   public parentId: string = '';
 
@@ -25,9 +27,6 @@ export default class ScheduleManagementElement extends UmbElementMixin(LitElemen
   @property({ type: String })
   private error: string = '';
 
-  @property({ type: String })
-  private authToken: string = '';
-
   @property({ type: Boolean })
   private showCreateDialog: boolean = false;
 
@@ -37,28 +36,17 @@ export default class ScheduleManagementElement extends UmbElementMixin(LitElemen
   private scheduleApi?: ScheduleApiClient;
 
   async connectedCallback() {
-    super.connectedCallback();
+    super.connectedCallback(); // Auth setup handled by mixin
     
     // Extract parent ID from route
-    const path = window.location.pathname;
-    const segments = path.split('/').filter(Boolean);
-    const maybeGuid = segments[segments.length - 1];
+    this.parentId = ValidationUtils.extractGuidFromPath() || '';
     
-    if (this.isGuid(maybeGuid)) {
-      this.parentId = maybeGuid;
-    }
-    
-    await this.setupAuthContext();
     this.scheduleApi = new ScheduleApiClient(() => this.getAuthToken());
     
     if (this.parentId) {
       await this.loadParentInfo();
       await this.loadSchedules();
     }
-  }
-
-  private isGuid(value: string): boolean {
-    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value);
   }
 
   private async loadParentInfo() {
@@ -69,68 +57,11 @@ export default class ScheduleManagementElement extends UmbElementMixin(LitElemen
         `/umbraco/management/api/v1/document/${this.parentId}`
       );
       
-      if (response.ok) {
-        const data = await response.json();
-        this.parentNodeName = data.variants?.[0]?.name || 'Unknown Node';
-      }
+      const data = await ApiResponseHandler.handleResponse(response) as any;
+      this.parentNodeName = data.variants?.[0]?.name || 'Unknown Node';
     } catch (error) {
       console.error('Error loading parent info:', error);
     }
-  }
-
-  private async makeAuthenticatedRequest(url: string, options: RequestInit = {}): Promise<Response> {
-    const token = await this.getAuthToken();
-    const headers = new Headers(options.headers);
-    headers.set('Content-Type', 'application/json');
-    
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    return fetch(url, { ...options, headers });
-  }
-
-  private async setupAuthContext(): Promise<void> {
-    return new Promise((resolve) => {
-      this.consumeContext(UMB_AUTH_CONTEXT, async (authContext: any) => {
-        try {
-          const config = authContext?.getOpenApiConfiguration?.();
-          if (config?.token) {
-            this.authToken = await config.token();
-          }
-          resolve();
-        } catch (error) {
-          console.error('Failed to setup auth context:', error);
-          resolve();
-        }
-      })
-        .asPromise({ preventTimeout: true })
-        .catch(() => resolve());
-    });
-  }
-
-  private async getAuthToken(): Promise<string> {
-    if (this.authToken) {
-      return this.authToken;
-    }
-
-    try {
-      const authContext = await this.getContext(UMB_AUTH_CONTEXT);
-      if (authContext) {
-        const config = authContext.getOpenApiConfiguration?.();
-        if (config?.token) {
-          const token = await config.token();
-          if (token) {
-            this.authToken = token;
-            return token;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to get auth token:', error);
-    }
-
-    return '';
   }
 
   private async loadSchedules() {
@@ -177,7 +108,7 @@ export default class ScheduleManagementElement extends UmbElementMixin(LitElemen
           targetPosition: formData.targetPosition,
           startDateTime: formData.startDateTime,
           endDateTime: formData.endDateTime,
-          priority: formData.priority || 0
+          priority: formData.priority || PowerSortConstants.DEFAULTS.PRIORITY
         };
 
         await this.scheduleApi.updateSchedule(this.editingSchedule.id, request);
@@ -189,7 +120,7 @@ export default class ScheduleManagementElement extends UmbElementMixin(LitElemen
           targetPosition: formData.targetPosition,
           startDateTime: formData.startDateTime,
           endDateTime: formData.endDateTime,
-          priority: formData.priority || 0
+          priority: formData.priority || PowerSortConstants.DEFAULTS.PRIORITY
         };
 
         await this.scheduleApi.createSchedule(request);
@@ -206,7 +137,7 @@ export default class ScheduleManagementElement extends UmbElementMixin(LitElemen
   private async handleDeleteSchedule(scheduleId: string) {
     if (!this.scheduleApi) return;
 
-    if (!confirm('Are you sure you want to delete this schedule?')) {
+    if (!ApiResponseHandler.confirmAction(PowerSortConstants.MESSAGES.CONFIRM_DELETE)) {
       return;
     }
 
@@ -214,14 +145,12 @@ export default class ScheduleManagementElement extends UmbElementMixin(LitElemen
       await this.scheduleApi.deleteSchedule(scheduleId);
       await this.loadSchedules();
     } catch (error) {
-      console.error('Error deleting schedule:', error);
-      this.error = 'Failed to delete schedule';
+      ApiResponseHandler.showError(error, 'Failed to delete schedule');
     }
   }
 
   private formatDateTime(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleString();
+    return DateUtils.formatDateTime(dateString);
   }
 
   private getStatusBadge(schedule: ScheduleResponse) {

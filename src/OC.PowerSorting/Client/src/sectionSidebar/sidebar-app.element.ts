@@ -1,21 +1,15 @@
 import { LitElement, html, customElement, css, state } from '@umbraco-cms/backoffice/external/lit';
-import { UmbElementMixin } from '@umbraco-cms/backoffice/element-api';
+import { UmbAuthMixin } from '../mixins/auth.mixin.js';
+import { RouteUtils } from '../utils/validation.utils.js';
+import { PowerSortConstants } from '../utils/constants.js';
+import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import type { MenuItem } from '../types/index.js';
-import { UMB_AUTH_CONTEXT } from '@umbraco-cms/backoffice/auth';
 import { UMB_SECTION_CONTEXT } from '@umbraco-cms/backoffice/section';
 
 @customElement('oc-powersorting-sidebar-app')
-export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement) {
+export class OcPowersortingSidebarAppElement extends UmbAuthMixin(LitElement) {
   @state()
   private menuItems: MenuItem[] = [];
-
-  @state()
-  private hasError: boolean = false;
-
-  @state()
-  private errorMessage: string = '';
-
-  private authToken: string = '';
 
   // @ts-expect-error TS6133: stored for future use
   #sectionContext?: typeof UMB_SECTION_CONTEXT.TYPE;
@@ -26,52 +20,15 @@ export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement)
     window.addEventListener('powerSortMenuUpdated', this.handleMenuUpdate.bind(this));
   }
 
-  connectedCallback() {
-    super.connectedCallback();
-    this.setupContexts();
+  async connectedCallback() {
+    super.connectedCallback(); // Auth setup handled by mixin
+    await this.setupSectionContext();
+    await this.loadMenuItemsFromDb();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener('powerSortMenuUpdated', this.handleMenuUpdate.bind(this));
-  }
-
-  private async setupContexts() {
-    try {
-      await this.setupAuthContext();
-      await this.setupSectionContext();
-      await this.loadMenuItemsFromDb();
-    } catch (error) {
-      console.error('Failed to setup contexts:', error);
-      this.hasError = true;
-      this.errorMessage = 'Failed to initialize sidebar';
-    }
-  }
-
-  private async setupAuthContext(): Promise<void> {
-    return new Promise((resolve) => {
-      this.consumeContext(UMB_AUTH_CONTEXT, async (authContext: any) => {
-        try {
-          const config = authContext?.getOpenApiConfiguration?.();
-          if (config?.token) {
-            this.authToken = await config.token();
-          }
-          resolve();
-        } catch (error) {
-          console.error('Failed to setup auth context:', error);
-          this.hasError = true;
-          this.errorMessage = 'Failed to authenticate';
-          resolve();
-        }
-      })
-        .asPromise({ preventTimeout: true })
-        .catch(() => {
-          console.error('Auth context not available');
-          this.hasError = true;
-          this.errorMessage = 'Failed to access authentication context';
-          resolve();
-        });
-    });
   }
 
   private async setupSectionContext(): Promise<void> {
@@ -88,46 +45,6 @@ export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement)
     });
   }
 
-  private async getAuthToken(): Promise<string> {
-    try {
-      let token = this.authToken;
-      
-      if (!token) {
-        const authContext = await this.getContext(UMB_AUTH_CONTEXT);
-        if (authContext) {
-          const config = authContext.getOpenApiConfiguration?.();
-          if (config?.token) {
-            token = await config.token() ?? '';
-            if (token !== '') {
-              this.authToken = token;
-            }
-          }
-        }
-      }
-      
-      return token;
-    } catch (error) {
-      console.error('Failed to get auth token:', error);
-      return '';
-    }
-  }
-
-  private async makeAuthenticatedRequest(url: string, options: RequestInit = {}): Promise<Response> {
-    const token = await this.getAuthToken();
-    
-    const headers = new Headers(options.headers);
-    headers.set('Content-Type', 'application/json');
-    
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    return fetch(url, {
-      ...options,
-      headers,
-    });
-  }
-
   private handleMenuUpdate(event: Event) {
     const customEvent = event as CustomEvent;
     if (customEvent.detail?.menuItems) {
@@ -137,17 +54,11 @@ export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement)
 
   private async loadMenuItemsFromDb() {
     try {
-      const response = await this.makeAuthenticatedRequest('/umbraco/management/api/v1/oc/power-sorting/menu-items', {
-        method: 'GET',
-      });
-      
-      if (!response.ok) {
-        console.error('Failed to load menu items:', response.status);
-        this.loadMenuItems();
-        return;
-      }
+      const response = await this.makeAuthenticatedRequest(
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.MENU_ITEMS}`
+      );
 
-      const data = await response.json();
+      const data = await ApiResponseHandler.handleResponse<{items: MenuItem[]}>(response);
       this.menuItems = data.items || [];
     } catch (error) {
       console.error('Error loading menu items from database:', error);
@@ -156,19 +67,12 @@ export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement)
   }
 
   private loadMenuItems() {
-    const saved = localStorage.getItem('powerSortMenuItems');
+    const saved = localStorage.getItem(PowerSortConstants.STORAGE_KEYS.MENU_ITEMS);
     this.menuItems = saved ? JSON.parse(saved) : [];
   }
 
   private handleMenuItemClick(nodeId: string) {
-    // Navigate to the children dashboard for this node using the router
-    const path = `/umbraco/section/power-sort/dashboard/power-sort-children/${nodeId}`;
-    
-    // Use history API to navigate properly
-    history.pushState(null, '', path);
-    
-    // Dispatch a popstate event to trigger Umbraco's router
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    RouteUtils.navigateTo(RouteUtils.getDashboardPath('children', nodeId));
   }
 
   static styles = css`
@@ -211,10 +115,6 @@ export class OcPowersortingSidebarAppElement extends UmbElementMixin(LitElement)
 
   render() {
     return html`
-      ${this.hasError ? html`
-        <div class="error-alert">${this.errorMessage}</div>
-      ` : ''}
-      
       <div class="sidebar-header">
         <h3>Power Sort Nodes</h3>
       </div>

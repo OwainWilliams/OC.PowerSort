@@ -1,18 +1,11 @@
+import { ManifestFactory } from '../utils/manifest.factory.js';
+
 export const manifests: Array<UmbExtensionManifest> = [
-  {
+  ManifestFactory.createDashboardManifest({
     name: "OCPower Sorting Children Dashboard",
     alias: "OC.PowerSorting-Children-Dashboard",
-    type: "dashboard",
-    js: () => import("./children.element.js"),
-    meta: {
-      label: "Sort Children",
-      pathname: "power-sort-children/:id",
-    },
-    conditions: [
-      {
-        alias: "Umb.Condition.SectionAlias",
-        match: "OC.PowerSorting.Section",
-      },
-    ],
-  },
+    label: "Sort Children",
+    pathname: "power-sort-children/:id",
+    jsImport: () => import("./children.element.js"),
+  }),
 ];
