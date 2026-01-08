@@ -57,3 +57,29 @@ export interface ActiveScheduleInfo {
   endDateTime: string; // ISO 8601 date string
   priority: number;
 }
+
+// Enum Priority interfaces
+export interface CreateEnumPriorityRequest {
+  name: string;
+  sortPriority: number;
+}
+
+export interface UpdateEnumPriorityRequest {
+  name: string;
+  sortPriority: number;
+}
+
+export interface EnumPriorityResponse {
+  id: string;
+  name: string;
+  sortPriority: number;
+  created: string; // ISO 8601 date string
+  createdByName: string;
+  updated: string; // ISO 8601 date string
+  updatedByName: string;
+}
+
+export interface EnumPriorityListResponse {
+  total: number;
+  items: EnumPriorityResponse[];
+}

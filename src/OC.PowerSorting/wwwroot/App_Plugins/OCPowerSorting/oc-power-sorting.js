@@ -1,5 +1,5 @@
-import { UMB_DOCUMENT_ENTITY_TYPE as i } from "@umbraco-cms/backoffice/document";
-const t = class t {
+import { UMB_DOCUMENT_ENTITY_TYPE as a } from "@umbraco-cms/backoffice/document";
+const n = class n {
   /**
    * Create dashboard manifest with consistent structure
    */
@@ -93,90 +93,122 @@ const t = class t {
     };
   }
 };
-t.SECTION_ALIAS = "OC.PowerSorting.Section";
-let a = t;
-const n = [
-  a.createEntrypointManifest({
+n.SECTION_ALIAS = "OC.PowerSorting.Section";
+let t = n;
+const o = [
+  t.createEntrypointManifest({
     name: "OCPower Sorting Entrypoint",
     alias: "OC.PowerSorting.Entrypoint",
     jsImport: () => import("./entrypoint-CUHy5R0W.js")
   })
-], o = [
-  a.createSectionManifest({
+], r = [
+  t.createSectionManifest({
     name: "Power Sort Section",
     alias: "OC.PowerSorting.Section",
     label: "Power Sort",
     pathname: "power-sort"
   }),
-  a.createSectionViewManifest({
+  t.createSectionViewManifest({
     name: "Power Sort Section View",
     alias: "OC.PowerSorting.SectionView",
-    label: "Power Sort",
+    label: "Settings",
     pathname: "view",
-    icon: "icon-sort",
-    jsImport: () => import("./section-view.element-B1ICiDDx.js")
-  }),
-  {
-    type: "entitySign",
-    kind: "icon",
-    alias: "Umb.EntitySign.Document.My.Locked",
-    name: "Is Locked Document Entity Sign",
-    // Specifying which enties can show this sign, documents
-    forEntityTypes: [i],
-    // Specify what entities should be "flagged" with to make the sign show
-    forEntityFlags: ["Umb.My.Locked"],
-    // Can only show 2 icons at once, so the weighting matters. `-1000` means this one is really unimportant!
-    weight: -1e3,
-    meta: {
-      // Specifying what the sign looks like
-      iconName: "icon-lock",
-      label: "Locked",
-      iconColorAlias: "red"
-    }
-    // You'll notice we don't link to a TS file! Flagging is purely a C# concern
-  }
-], r = [
-  a.createDashboardManifest({
+    icon: "icon-settings",
+    jsImport: () => import("./section-view.element-4dw6PJgR.js")
+  })
+], s = [
+  t.createDashboardManifest({
     name: "OCPower Sorting Dashboard",
     alias: "OC.PowerSorting-Dashboard",
     label: "Power Sort Dashboard",
     pathname: "power-sort-dashboard",
-    jsImport: () => import("./powersort.element-CVh5Glte.js")
+    jsImport: () => import("./powersort.element-BTLQhpA1.js")
   })
-], s = [
-  a.createDashboardManifest({
+], l = [
+  t.createDashboardManifest({
     name: "OCPower Sorting Children Dashboard",
     alias: "OC.PowerSorting-Children-Dashboard",
     label: "Sort Children",
     pathname: "power-sort-children/:id",
-    jsImport: () => import("./children.element-BSwuSelv.js")
+    jsImport: () => import("./children.element-dUQ578vp.js")
   })
 ], m = [
-  a.createDashboardManifest({
+  t.createDashboardManifest({
     name: "OCPower Sorting Schedules Dashboard",
     alias: "OC.PowerSorting-Schedules-Dashboard",
     label: "Manage Schedules",
     pathname: "power-sort-schedules/:id",
-    jsImport: () => import("./schedules.element-BUjuXvxq.js")
+    jsImport: () => import("./schedules.element-BMNdcyWy.js")
   })
-], l = [
-  a.createSidebarAppManifest({
+], S = [
+  t.createSidebarAppManifest({
     name: "My Section Sidebar App",
     alias: "OC.PowerSorting.SectionSidebar",
     label: "Power Sorting Sidebar",
     icon: "icon-sort",
-    jsImport: () => import("./sidebar-app.element-8f7FsdQx.js"),
+    jsImport: () => import("./sidebar-app.element-Bn37fnKH.js"),
     menus: ["OC.PowerSorting.Menu"]
   })
-], c = [
-  ...n,
-  ...r,
-  ...s,
-  ...m,
+], i = "Umb.", c = [
+  // Custom Sorted Flag - Shows when document has been manually sorted
+  {
+    type: "entitySign",
+    kind: "icon",
+    alias: "OC.PowerSort.EntitySign.CustomSorted",
+    name: "Custom Sorted Document Entity Sign",
+    // Specifying which entities can show this sign
+    forEntityTypes: [a],
+    // Specify what entities should be "flagged" to make the sign show
+    // Must match the flag added by the server-side IFlagProvider
+    forEntityFlags: [`${i}OC.PowerSort.CustomSorted`],
+    weight: 100,
+    meta: {
+      // Specifying what the sign looks like
+      iconName: "icon-lab",
+      label: "Custom Sorted",
+      iconColorAlias: "blue"
+    }
+  },
+  // Active Schedule Flag - Shows when document has active schedules
+  {
+    type: "entitySign",
+    kind: "icon",
+    alias: "OC.PowerSort.EntitySign.HasSchedule",
+    name: "Has Active Schedule Entity Sign",
+    forEntityTypes: [a],
+    forEntityFlags: [`${i}OC.PowerSort.HasSchedule`],
+    weight: 200,
+    meta: {
+      iconName: "icon-calendar",
+      label: "Scheduled",
+      iconColorAlias: "green"
+    }
+  },
+  // Has Default Order Flag - Shows when document is parent with default order
+  {
+    type: "entitySign",
+    kind: "icon",
+    alias: "OC.PowerSort.EntitySign.HasDefaultOrder",
+    name: "Has Default Order Entity Sign",
+    forEntityTypes: [a],
+    forEntityFlags: [`${i}OC.PowerSort.HasDefaultOrder`],
+    weight: 150,
+    meta: {
+      iconName: "icon-bookmark",
+      label: "Default Order Saved",
+      iconColorAlias: "orange"
+    }
+  }
+], d = [
   ...o,
-  ...l
+  ...s,
+  ...l,
+  ...m,
+  ...r,
+  ...S,
+  ...c
 ];
 export {
-  c as manifests
+  d as manifests
 };
 //# sourceMappingURL=oc-power-sorting.js.map

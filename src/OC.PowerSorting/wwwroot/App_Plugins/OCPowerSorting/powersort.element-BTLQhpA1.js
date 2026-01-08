@@ -1,12 +1,12 @@
-import { css as v, html as n, LitElement as h, property as d } from "@umbraco-cms/backoffice/external/lit";
-import { U as g, P as i, A as p } from "./api-response.utils-pb7E4RWv.js";
+import { LitElement as v, css as h, html as n, property as d } from "@umbraco-cms/backoffice/external/lit";
+import { U as g, P as i, A as p } from "./api-response.utils-UvM8kS4m.js";
 import { UmbDocumentItemRepository as b } from "@umbraco-cms/backoffice/document";
 var I = Object.defineProperty, c = (u, e, t, o) => {
   for (var s = void 0, r = u.length - 1, m; r >= 0; r--)
     (m = u[r]) && (s = m(e, t, s) || s);
   return s && I(e, t, s), s;
 };
-const l = class l extends g(h) {
+const l = class l extends g(v) {
   constructor() {
     super(), this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.saveMessage = "", this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.saveMessage = "";
   }
@@ -213,7 +213,7 @@ const l = class l extends g(h) {
     `;
   }
 };
-l.styles = v`
+l.styles = h`
     :host {
       display: block;
       padding: var(--uui-size-space-5);
@@ -388,4 +388,4 @@ customElements.define("power-sort-dashboard", a);
 export {
   a as default
 };
-//# sourceMappingURL=powersort.element-CVh5Glte.js.map
+//# sourceMappingURL=powersort.element-BTLQhpA1.js.map

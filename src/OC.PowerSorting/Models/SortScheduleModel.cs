@@ -63,6 +63,32 @@ namespace OC.PowerSorting.Models
         public DateTime Updated { get; set; }
     }
 
+    [TableName("ocPowerSortingEnumPriority")]
+    [PrimaryKey("Id", AutoIncrement = false)]
+    public class EnumPriorityDto
+    {
+        [Column("Id")]
+        public Guid Id { get; set; }
+
+        [Column("Name")]
+        public string Name { get; set; } = string.Empty;
+
+        [Column("SortPriority")]
+        public int SortPriority { get; set; }
+
+        [Column("Created")]
+        public DateTime Created { get; set; }
+
+        [Column("CreatedBy")]
+        public int CreatedBy { get; set; }
+
+        [Column("Updated")]
+        public DateTime Updated { get; set; }
+
+        [Column("UpdatedBy")]
+        public int UpdatedBy { get; set; }
+    }
+
     // Request/Response models for API
     public class CreateScheduleRequest
     {
@@ -127,5 +153,35 @@ namespace OC.PowerSorting.Models
     public class SaveDefaultSortOrderRequest
     {
         public required Guid ParentId { get; set; }
+    }
+
+    // Enum Priority Request/Response models
+    public class CreateEnumPriorityRequest
+    {
+        public required string Name { get; set; }
+        public required int SortPriority { get; set; }
+    }
+
+    public class UpdateEnumPriorityRequest
+    {
+        public required string Name { get; set; }
+        public required int SortPriority { get; set; }
+    }
+
+    public class EnumPriorityResponse
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int SortPriority { get; set; }
+        public DateTime Created { get; set; }
+        public string CreatedByName { get; set; } = string.Empty;
+        public DateTime Updated { get; set; }
+        public string UpdatedByName { get; set; } = string.Empty;
+    }
+
+    public class EnumPriorityListResponse
+    {
+        public int Total { get; set; }
+        public required List<EnumPriorityResponse> Items { get; set; }
     }
 }

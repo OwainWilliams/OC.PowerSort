@@ -44,10 +44,10 @@ const l = (c) => {
      * Make an authenticated HTTP request
      */
     async makeAuthenticatedRequest(e, r = {}) {
-      const o = await this.getAuthToken(), i = new Headers(r.headers);
-      return i.set("Content-Type", "application/json"), o && i.set("Authorization", `Bearer ${o}`), fetch(e, {
+      const o = await this.getAuthToken(), a = new Headers(r.headers);
+      return a.set("Content-Type", "application/json"), o && a.set("Authorization", `Bearer ${o}`), fetch(e, {
         ...r,
-        headers: i
+        headers: a
       });
     }
     /**
@@ -69,7 +69,8 @@ s.API_BASE = "/umbraco/management/api/v1/oc/power-sorting", s.ENDPOINTS = {
   DEFAULT_SORT_ORDER: "/default-sort-order",
   DEFAULT_SORT_ORDER_SAVE: "/default-sort-order/save",
   DEFAULT_SORT_ORDER_RESTORE: "/default-sort-order/restore",
-  PROCESS_NOW: "/schedules/process-now"
+  PROCESS_NOW: "/schedules/process-now",
+  ENUM_PRIORITIES: "/enum-priorities"
 }, s.MESSAGES = {
   LOADING: "Loading...",
   ERROR_GENERIC: "An error occurred",
@@ -107,7 +108,8 @@ s.API_BASE = "/umbraco/management/api/v1/oc/power-sorting", s.ENDPOINTS = {
   UNDO: "icon-undo",
   NAVIGATION: "icon-navigation",
   BOOKMARK: "icon-bookmark",
-  LOCK: "icon-lock"
+  LOCK: "icon-lock",
+  SETTINGS: "icon-settings"
 }, s.CSS_CLASSES = {
   LOADING: "power-sort-loading",
   ERROR: "power-sort-error",
@@ -126,22 +128,22 @@ class T {
    */
   static async handleResponse(t) {
     if (!t.ok) {
-      let a = `API Error (${t.status})`;
+      let i = `API Error (${t.status})`;
       try {
         const e = await t.json();
-        a = e.error || e.message || a;
+        i = e.error || e.message || i;
       } catch {
-        a = await t.text() || a;
+        i = await t.text() || i;
       }
-      throw new Error(a);
+      throw new Error(i);
     }
     return t.status === 204 ? {} : t.json();
   }
   /**
    * Show user-friendly error message
    */
-  static showError(t, a = "") {
-    const e = t instanceof Error ? t.message : "An unexpected error occurred", r = a ? `${a}: ${e}` : e;
+  static showError(t, i = "") {
+    const e = t instanceof Error ? t.message : "An unexpected error occurred", r = i ? `${i}: ${e}` : e;
     console.error(r, t), alert(r);
   }
   /**
@@ -162,4 +164,4 @@ export {
   E as P,
   l as U
 };
-//# sourceMappingURL=api-response.utils-pb7E4RWv.js.map
+//# sourceMappingURL=api-response.utils-UvM8kS4m.js.map

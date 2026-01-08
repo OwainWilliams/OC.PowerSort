@@ -1,9 +1,8 @@
 import { LitElement, html, css, property } from '@umbraco-cms/backoffice/external/lit';
-import { UmbElementMixin } from '@umbraco-cms/backoffice/element-api';
-import { UmbDocumentItemRepository } from '@umbraco-cms/backoffice/document';
+import { UmbAuthMixin } from '../mixins/auth.mixin.js';
 import type { ScheduleResponse } from '../types/index.js';
 
-export default class ScheduleDialogElement extends UmbElementMixin(LitElement) {
+export default class ScheduleDialogElement extends UmbAuthMixin(LitElement) {
   @property({ type: String })
   public parentId: string = '';
 
@@ -31,10 +30,8 @@ export default class ScheduleDialogElement extends UmbElementMixin(LitElement) {
   @property({ type: String })
   private error: string = '';
 
-  #documentItemRepository = new UmbDocumentItemRepository(this);
-
-  connectedCallback() {
-    super.connectedCallback();
+  async connectedCallback() {
+    super.connectedCallback(); // Auth setup handled by mixin
 
     if (this.schedule) {
       // Editing existing schedule
@@ -78,22 +75,21 @@ export default class ScheduleDialogElement extends UmbElementMixin(LitElement) {
           ? selection[0]
           : selection[0].unique || selection[0].id;
 
-      try {
-        const { data } = await this.#documentItemRepository.requestItems([nodeId]);
-
-        if (data && data.length > 0) {
-          const nodeData = data[0];
-          this.selectedContentId = nodeData.unique;
-          this.selectedContentName = nodeData.variants?.[0]?.name || 'Unnamed Node';
-        }
-      } catch (error) {
-        console.error('Error fetching node details:', error);
-        this.error = 'Error loading content details';
-      }
+      // Since we're using a filter, the selected content should be valid
+      this.selectedContentId = nodeId;
+      this.selectedContentName = selection[0].name || selection[0].variants?.[0]?.name || 'Selected Content';
+      
+      // Debug: Log the selected content details
+      console.log('[PowerSort Debug] Content selected:', {
+        contentId: this.selectedContentId,
+        contentName: this.selectedContentName,
+        expectedParentId: this.parentId,
+        selection: selection[0]
+      });
     }
   }
 
-  private handleSave() {
+  private async handleSave() {
     this.error = '';
 
     // Validation
@@ -119,6 +115,10 @@ export default class ScheduleDialogElement extends UmbElementMixin(LitElement) {
       this.error = 'End date must be after start date';
       return;
     }
+
+    // Since we're using a filter, the selected content should be a child of parentId
+    // No need to fetch the actual parent ID
+    console.log('[PowerSort Debug] Saving schedule with parent ID:', this.parentId);
 
     // Dispatch save event
     this.dispatchEvent(
@@ -274,7 +274,8 @@ export default class ScheduleDialogElement extends UmbElementMixin(LitElement) {
                 <umb-input-document
                   @change=${this.handleContentSelected}
                   max="1"
-                  min="0">
+                  min="0"
+                  .filter=${`parent:${this.parentId}`}>
                 </umb-input-document>
                 ${this.selectedContentName
                   ? html`

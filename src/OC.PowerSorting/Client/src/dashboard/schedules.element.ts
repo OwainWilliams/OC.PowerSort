@@ -101,6 +101,14 @@ export default class ScheduleManagementElement extends UmbAuthMixin(LitElement) 
 
     const formData = event.detail;
 
+    // Add debugging to understand the IDs being used
+    console.log('[PowerSort Debug] Schedule save attempt:', {
+      isEditing: !!this.editingSchedule,
+      formData: formData,
+      parentIdFromRoute: this.parentId,
+      parentNodeName: this.parentNodeName
+    });
+
     try {
       if (this.editingSchedule) {
         // Update existing
@@ -111,9 +119,10 @@ export default class ScheduleManagementElement extends UmbAuthMixin(LitElement) 
           priority: formData.priority || PowerSortConstants.DEFAULTS.PRIORITY
         };
 
+        console.log('[PowerSort Debug] Update request:', request);
         await this.scheduleApi.updateSchedule(this.editingSchedule.id, request);
       } else {
-        // Create new
+        // Create new - use route parent ID since filter ensures content is a child
         const request: CreateScheduleRequest = {
           contentId: formData.contentId,
           parentId: this.parentId,
@@ -123,14 +132,21 @@ export default class ScheduleManagementElement extends UmbAuthMixin(LitElement) 
           priority: formData.priority || PowerSortConstants.DEFAULTS.PRIORITY
         };
 
+        console.log('[PowerSort Debug] Create request:', request);
         await this.scheduleApi.createSchedule(request);
       }
 
       this.closeDialog();
       await this.loadSchedules();
     } catch (error) {
-      console.error('Error saving schedule:', error);
-      this.error = 'Failed to save schedule';
+      console.error('[PowerSort Debug] Error saving schedule:', error);
+      
+      // Show more detailed error message
+      if (error instanceof Error && error.message.includes('API Error')) {
+        this.error = `Failed to save schedule: ${error.message}`;
+      } else {
+        this.error = 'Failed to save schedule';
+      }
     }
   }
 

@@ -3,12 +3,16 @@ using System.Text.Json;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using OC.PowerSorting.Controllers.Base;
 using OC.PowerSorting.DTOs;
+using OC.PowerSorting.FlagProvider;
 using OC.PowerSorting.Models;
 using OC.PowerSorting.Models.Requests;
 using OC.PowerSorting.Models.Responses;
+using OC.PowerSorting.Services;
 using Umbraco.Cms.Api.Management.Routing;
+using Umbraco.Cms.Api.Management.Services.Flags;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;
@@ -119,7 +123,7 @@ namespace OC.PowerSorting.Controllers
 
                 var result = children.Select((child, index) =>
                 {
-                    var content = _contentService.GetById(child.Id);
+                    var content = contentService.GetById(child.Id);
                     return new
                     {
                         Id = child.Key,
@@ -174,11 +178,11 @@ namespace OC.PowerSorting.Controllers
                 // Update sort order for each child
                 foreach (var sortItem in request.Sorting)
                 {
-                    var childContent = _contentService.GetById(sortItem.Id);
+                    var childContent = contentService.GetById(sortItem.Id);
                     if (childContent != null && childContent.ParentId == parentContent!.Id)
                     {
                         childContent.SortOrder = sortItem.SortOrder;
-                        _contentService.Save(childContent);
+                        contentService.Save(childContent);
                     }
                 }
 
@@ -275,7 +279,7 @@ namespace OC.PowerSorting.Controllers
 
             try
             {
-                using var database = _databaseFactory.CreateDatabase();
+                using var database = databaseFactory.CreateDatabase();
                 var schedule = new SortScheduleDto
                 {
                     Id = Guid.NewGuid(),
@@ -306,9 +310,9 @@ namespace OC.PowerSorting.Controllers
         /// </summary>
         private ScheduleResponse BuildScheduleResponse(SortScheduleDto schedule, DateTime now)
         {
-            var content = _contentService.GetById(schedule.ContentId);
-            var parent = _contentService.GetById(schedule.ParentId);
-            var creator = _userService.GetUserById(schedule.CreatedBy);
+            var content = contentService.GetById(schedule.ContentId);
+            var parent = contentService.GetById(schedule.ParentId);
+            var creator = userService.GetUserById(schedule.CreatedBy);
 
             return new ScheduleResponse
             {
@@ -426,7 +430,7 @@ namespace OC.PowerSorting.Controllers
                     "SELECT * FROM ocPowerSortingDefaultOrder WHERE ParentId = @0 ORDER BY SortOrder",
                     parentId);
 
-                var parent = _contentService.GetById(parentId);
+                var parent = contentService.GetById(parentId);
 
                 if (defaultOrders.Any())
                 {
@@ -463,14 +467,14 @@ namespace OC.PowerSorting.Controllers
                 var authResult = ValidateUserAccess(out var userId);
                 if (authResult != null) throw new UnauthorizedAccessException();
 
-                var parent = _contentService.GetById(request.ParentId);
+                var parent = contentService.GetById(request.ParentId);
                 if (parent == null)
                 {
                     throw new ArgumentException("Parent not found");
                 }
 
                 // Get current children in their current sort order
-                var children = _contentService.GetPagedChildren(parent.Id, 0, int.MaxValue, out _)
+                var children = contentService.GetPagedChildren(parent.Id, 0, int.MaxValue, out _)
                     .OrderBy(c => c.SortOrder)
                     .ToList();
 
@@ -513,13 +517,13 @@ namespace OC.PowerSorting.Controllers
 
             try
             {
-                var parent = _contentService.GetById(parentId);
+                var parent = contentService.GetById(parentId);
                 if (parent == null)
                 {
                     return BadRequest(new { error = "Parent not found" });
                 }
 
-                using var database = _databaseFactory.CreateDatabase();
+                using var database = databaseFactory.CreateDatabase();
 
                 // Get default order
                 var defaultOrders = database.Fetch<DefaultSortOrderDto>(
@@ -532,7 +536,7 @@ namespace OC.PowerSorting.Controllers
                 }
 
                 // Get current children
-                var children = _contentService.GetPagedChildren(parent.Id, 0, int.MaxValue, out _)
+                var children = contentService.GetPagedChildren(parent.Id, 0, int.MaxValue, out _)
                     .ToDictionary(c => c.Key, c => c);
 
                 var updatedCount = 0;
@@ -545,7 +549,7 @@ namespace OC.PowerSorting.Controllers
                         if (child.SortOrder != defaultOrder.SortOrder)
                         {
                             child.SortOrder = defaultOrder.SortOrder;
-                            _contentService.Save(child);
+                            contentService.Save(child);
                             updatedCount++;
                         }
                     }
@@ -581,6 +585,240 @@ namespace OC.PowerSorting.Controllers
 
         #endregion
 
+        #region Enum Priority Endpoints
+
+        [HttpGet("enum-priorities")]
+        [ProducesResponseType<EnumPriorityListResponse>(StatusCodes.Status200OK)]
+        public IActionResult GetEnumPriorities([FromQuery] int skip = 0, [FromQuery] int take = 100)
+        {
+            return ExecuteDatabaseOperation(database =>
+            {
+                var authResult = ValidateUserAccess(out _);
+                if (authResult != null) throw new UnauthorizedAccessException();
+
+                var sql = "SELECT * FROM ocPowerSortingEnumPriority ORDER BY SortPriority ASC, Name ASC";
+                var enumPriorities = database.Fetch<EnumPriorityDto>(sql);
+
+                var items = enumPriorities.Skip(skip).Take(take).Select(ep => new EnumPriorityResponse
+                {
+                    Id = ep.Id,
+                    Name = ep.Name,
+                    SortPriority = ep.SortPriority,
+                    Created = ep.Created,
+                    CreatedByName = GetUserName(ep.CreatedBy),
+                    Updated = ep.Updated,
+                    UpdatedByName = GetUserName(ep.UpdatedBy)
+                }).ToList();
+
+                return new EnumPriorityListResponse
+                {
+                    Total = enumPriorities.Count,
+                    Items = items
+                };
+            });
+        }
+
+        [HttpGet("enum-priorities/{id:guid}")]
+        [ProducesResponseType<EnumPriorityResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult GetEnumPriority(Guid id)
+        {
+            return ExecuteDatabaseOperation(database =>
+            {
+                var authResult = ValidateUserAccess(out _);
+                if (authResult != null) throw new UnauthorizedAccessException();
+
+                var enumPriority = database.SingleOrDefault<EnumPriorityDto>(
+                    "SELECT * FROM ocPowerSortingEnumPriority WHERE Id = @0", id);
+
+                if (enumPriority == null)
+                {
+                    throw new KeyNotFoundException("Enum priority not found");
+                }
+
+                return new EnumPriorityResponse
+                {
+                    Id = enumPriority.Id,
+                    Name = enumPriority.Name,
+                    SortPriority = enumPriority.SortPriority,
+                    Created = enumPriority.Created,
+                    CreatedByName = GetUserName(enumPriority.CreatedBy),
+                    Updated = enumPriority.Updated,
+                    UpdatedByName = GetUserName(enumPriority.UpdatedBy)
+                };
+            });
+        }
+
+        [HttpPost("enum-priorities")]
+        [ProducesResponseType<EnumPriorityResponse>(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public IActionResult CreateEnumPriority([FromBody] CreateEnumPriorityRequest request)
+        {
+            return ExecuteDatabaseOperation(database =>
+            {
+                var authResult = ValidateUserAccess(out var userId);
+                if (authResult != null) throw new UnauthorizedAccessException();
+
+                // Validation
+                if (string.IsNullOrWhiteSpace(request.Name))
+                {
+                    throw new ArgumentException("Name is required");
+                }
+
+                if (request.SortPriority < 0)
+                {
+                    throw new ArgumentException("Sort priority must be 0 or greater");
+                }
+
+                // Check if weight already exists
+                var existingWithSamePriority = database.SingleOrDefault<EnumPriorityDto>(
+                    "SELECT * FROM ocPowerSortingEnumPriority WHERE SortPriority = @0", request.SortPriority);
+
+                if (existingWithSamePriority != null)
+                {
+                    throw new ArgumentException($"Sort priority {request.SortPriority} is already in use by '{existingWithSamePriority.Name}'");
+                }
+
+                // Check if name already exists
+                var existingWithSameName = database.SingleOrDefault<EnumPriorityDto>(
+                    "SELECT * FROM ocPowerSortingEnumPriority WHERE Name = @0", request.Name.Trim());
+
+                if (existingWithSameName != null)
+                {
+                    throw new ArgumentException($"Name '{request.Name.Trim()}' is already in use");
+                }
+
+                var now = DateTime.UtcNow;
+                var enumPriority = new EnumPriorityDto
+                {
+                    Id = Guid.NewGuid(),
+                    Name = request.Name.Trim(),
+                    SortPriority = request.SortPriority,
+                    Created = now,
+                    CreatedBy = userId,
+                    Updated = now,
+                    UpdatedBy = userId
+                };
+
+                database.Insert(enumPriority);
+
+                return new EnumPriorityResponse
+                {
+                    Id = enumPriority.Id,
+                    Name = enumPriority.Name,
+                    SortPriority = enumPriority.SortPriority,
+                    Created = enumPriority.Created,
+                    CreatedByName = GetUserName(enumPriority.CreatedBy),
+                    Updated = enumPriority.Updated,
+                    UpdatedByName = GetUserName(enumPriority.UpdatedBy)
+                };
+            });
+        }
+
+        [HttpPut("enum-priorities/{id:guid}")]
+        [ProducesResponseType<EnumPriorityResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public IActionResult UpdateEnumPriority(Guid id, [FromBody] UpdateEnumPriorityRequest request)
+        {
+            return ExecuteDatabaseOperation(database =>
+            {
+                var authResult = ValidateUserAccess(out var userId);
+                if (authResult != null) throw new UnauthorizedAccessException();
+
+                var enumPriority = database.SingleOrDefault<EnumPriorityDto>(
+                    "SELECT * FROM ocPowerSortingEnumPriority WHERE Id = @0", id);
+
+                if (enumPriority == null)
+                {
+                    throw new KeyNotFoundException("Enum priority not found");
+                }
+
+                // Validation
+                if (string.IsNullOrWhiteSpace(request.Name))
+                {
+                    throw new ArgumentException("Name is required");
+                }
+
+                if (request.SortPriority < 0)
+                {
+                    throw new ArgumentException("Sort priority must be 0 or greater");
+                }
+
+                // Check if weight already exists (excluding current record)
+                var existingWithSamePriority = database.SingleOrDefault<EnumPriorityDto>(
+                    "SELECT * FROM ocPowerSortingEnumPriority WHERE SortPriority = @0 AND Id != @1", 
+                    request.SortPriority, id);
+
+                if (existingWithSamePriority != null)
+                {
+                    throw new ArgumentException($"Sort priority {request.SortPriority} is already in use by '{existingWithSamePriority.Name}'");
+                }
+
+                // Check if name already exists (excluding current record)
+                var existingWithSameName = database.SingleOrDefault<EnumPriorityDto>(
+                    "SELECT * FROM ocPowerSortingEnumPriority WHERE Name = @0 AND Id != @1", 
+                    request.Name.Trim(), id);
+
+                if (existingWithSameName != null)
+                {
+                    throw new ArgumentException($"Name '{request.Name.Trim()}' is already in use");
+                }
+
+                enumPriority.Name = request.Name.Trim();
+                enumPriority.SortPriority = request.SortPriority;
+                enumPriority.Updated = DateTime.UtcNow;
+                enumPriority.UpdatedBy = userId;
+
+                database.Update(enumPriority);
+
+                return new EnumPriorityResponse
+                {
+                    Id = enumPriority.Id,
+                    Name = enumPriority.Name,
+                    SortPriority = enumPriority.SortPriority,
+                    Created = enumPriority.Created,
+                    CreatedByName = GetUserName(enumPriority.CreatedBy),
+                    Updated = enumPriority.Updated,
+                    UpdatedByName = GetUserName(enumPriority.UpdatedBy)
+                };
+            });
+        }
+
+        [HttpDelete("enum-priorities/{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult DeleteEnumPriority(Guid id)
+        {
+            return ExecuteDatabaseOperation(database =>
+            {
+                var authResult = ValidateUserAccess(out _);
+                if (authResult != null) throw new UnauthorizedAccessException();
+
+                var enumPriority = database.SingleOrDefault<EnumPriorityDto>(
+                    "SELECT * FROM ocPowerSortingEnumPriority WHERE Id = @0", id);
+
+                if (enumPriority == null)
+                {
+                    throw new KeyNotFoundException("Enum priority not found");
+                }
+
+                database.Delete(enumPriority);
+                return NoContent();
+            });
+        }
+
+        /// <summary>
+        /// Helper method to get user name by ID
+        /// </summary>
+        private string GetUserName(int userId)
+        {
+            var user = userService.GetUserById(userId);
+            return user?.Name ?? "Unknown";
+        }
+
+        #endregion
+
         #region Manual Schedule Processing (for testing)
 
         [HttpPost("schedules/process-now")]
@@ -589,13 +827,13 @@ namespace OC.PowerSorting.Controllers
         {
             try
             {
-                var user = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
+                var user = backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
                 if (user == null)
                 {
                     return Unauthorized();
                 }
 
-                using var database = _databaseFactory.CreateDatabase();
+                using var database = databaseFactory.CreateDatabase();
                 var now = DateTime.UtcNow;
 
                 // Get all schedules that should be active
@@ -612,7 +850,7 @@ namespace OC.PowerSorting.Controllers
                 foreach (var parentGroup in schedulesByParent)
                 {
                     var parentId = parentGroup.Key;
-                    var parent = _contentService.GetById(parentId);
+                    var parent = contentService.GetById(parentId);
                     
                     if (parent == null)
                     {
@@ -625,7 +863,7 @@ namespace OC.PowerSorting.Controllers
                         continue;
                     }
 
-                    var children = _contentService.GetPagedChildren(parent.Id, 0, int.MaxValue, out _)
+                    var children = contentService.GetPagedChildren(parent.Id, 0, int.MaxValue, out _)
                         .OrderBy(c => c.SortOrder)
                         .ToList();
 
@@ -674,6 +912,410 @@ namespace OC.PowerSorting.Controllers
 
         #endregion
 
-    }
+        #region Flag Testing (Remove in production)
 
+        [HttpGet("test-flags/{documentId:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> TestFlags(Guid documentId)
+        {
+            try
+            {
+                using var database = databaseFactory.CreateDatabase();
+                
+                // Test flag service directly
+                var flagService = HttpContext.RequestServices.GetRequiredService<ISortingFlagService>();
+                
+                var flagInfo = await flagService.GetFlagInfoBatchAsync(new[] { documentId });
+                var singleInfo = flagInfo.ContainsKey(documentId) ? flagInfo[documentId] : null;
+
+                return Ok(new
+                {
+                    documentId = documentId,
+                    flagInfo = singleInfo,
+                    serviceRegistered = true,
+                    message = "Flag service test completed"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+            }
+        }
+
+        [HttpPost("test-create-flags/{parentId:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> CreateTestFlags(Guid parentId)
+        {
+            try
+            {
+                var authResult = ValidateUserAccess(out var userId);
+                if (authResult != null) return authResult;
+
+                using var database = databaseFactory.CreateDatabase();
+
+                // Create a test schedule to trigger the HasSchedule flag
+                var testSchedule = new SortScheduleDto
+                {
+                    Id = Guid.NewGuid(),
+                    ContentId = parentId, // Use parent as test content
+                    ParentId = parentId,
+                    TargetPosition = 0,
+                    StartDateTime = DateTime.UtcNow.AddMinutes(-5), // Started 5 minutes ago
+                    EndDateTime = DateTime.UtcNow.AddHours(1), // Ends in 1 hour
+                    IsActive = true,
+                    Priority = 1,
+                    Created = DateTime.UtcNow,
+                    CreatedBy = userId
+                };
+
+                database.Insert(testSchedule);
+
+                // Create test default order to trigger HasDefaultOrder flag
+                var children = contentService.GetPagedChildren(contentService.GetById(parentId)?.Id ?? -1, 0, 5, out _);
+                foreach (var child in children.Take(3))
+                {
+                    database.Insert(new DefaultSortOrderDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ParentId = parentId,
+                        ContentId = child.Key,
+                        SortOrder = child.SortOrder,
+                        Created = DateTime.UtcNow,
+                        CreatedBy = userId,
+                        Updated = DateTime.UtcNow
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Test flags created",
+                    testScheduleId = testSchedule.Id,
+                    testChildrenWithDefaultOrder = children.Count(),
+                    instructions = "Now refresh the Umbraco backoffice tree to see if flags appear"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+            }
+        }
+
+        #endregion
+
+        #region Flag Diagnostics (Remove in production)
+
+        [HttpGet("diagnostics/flag-provider")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult DiagnoseFlagProvider()
+        {
+            try
+            {
+                // Get all registered IFlagProvider implementations
+                var flagProviders = HttpContext.RequestServices.GetServices<IFlagProvider>().ToList();
+                var sortingFlagProvider = flagProviders.OfType<SortingFlagProvider>().FirstOrDefault();
+                
+                // Get flag service
+                var flagService = HttpContext.RequestServices.GetService<ISortingFlagService>();
+                
+                // Get static diagnostics from the provider
+                var diagnostics = SortingFlagProvider.GetDiagnostics();
+                
+                // Get the expected flag values
+                var expectedFlags = new
+                {
+                    CustomSorted = Constants.Conventions.Flags.CustomSorted,
+                    HasSchedule = Constants.Conventions.Flags.HasSchedule,
+                    HasDefaultOrder = Constants.Conventions.Flags.HasDefaultOrder
+                };
+
+                return Ok(new
+                {
+                    flagProviderDiagnostics = new
+                    {
+                        totalFlagProvidersRegistered = flagProviders.Count,
+                        flagProviderTypes = flagProviders.Select(fp => fp.GetType().FullName).ToList(),
+                        sortingFlagProviderFound = sortingFlagProvider != null,
+                        instancesCreated = diagnostics.instances,
+                        canProvideFlagsCalls = diagnostics.canProvideFlags,
+                        populateFlagsCalls = diagnostics.populateFlags
+                    },
+                    flagServiceDiagnostics = new
+                    {
+                        serviceRegistered = flagService != null,
+                        serviceType = flagService?.GetType().FullName
+                    },
+                    expectedFlagValues = expectedFlags,
+                    timestamp = DateTime.UtcNow,
+                    instructions = new[]
+                    {
+                        "1. If sortingFlagProviderFound is false, the provider is not registered correctly",
+                        "2. If instancesCreated is 0, the provider was never instantiated by DI",
+                        "3. If canProvideFlagsCalls is 0, Umbraco never asked this provider if it can provide flags",
+                        "4. If populateFlagsCalls is 0, Umbraco never asked this provider to populate flags",
+                        "5. Navigate in the Content tree to trigger flag population, then call this endpoint again",
+                        "6. Check Umbraco logs for [PowerSort] entries with LogLevel Warning"
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+            }
+        }
+
+        [HttpGet("diagnostics/test-flag-population/{documentId:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> TestFlagPopulation(Guid documentId)
+        {
+            try
+            {
+                // Get the flag provider directly
+                var flagProviders = HttpContext.RequestServices.GetServices<IFlagProvider>().ToList();
+                var sortingFlagProvider = flagProviders.OfType<SortingFlagProvider>().FirstOrDefault();
+                
+                if (sortingFlagProvider == null)
+                {
+                    return Ok(new
+                    {
+                        error = "SortingFlagProvider not found in DI container",
+                        registeredProviders = flagProviders.Select(fp => fp.GetType().FullName).ToList()
+                    });
+                }
+
+                // Get flag service for comparison
+                var flagService = HttpContext.RequestServices.GetRequiredService<ISortingFlagService>();
+                var flagInfo = await flagService.GetFlagInfoBatchAsync(new[] { documentId });
+                var singleInfo = flagInfo.ContainsKey(documentId) ? flagInfo[documentId] : null;
+
+                // Test CanProvideFlags for different types
+                var canProvideForTreeItem = sortingFlagProvider.CanProvideFlags<Umbraco.Cms.Api.Management.ViewModels.Tree.DocumentTreeItemResponseModel>();
+                var canProvideForCollectionItem = sortingFlagProvider.CanProvideFlags<Umbraco.Cms.Api.Management.ViewModels.Document.Collection.DocumentCollectionResponseModel>();
+                var canProvideForDocumentItem = sortingFlagProvider.CanProvideFlags<Umbraco.Cms.Api.Management.ViewModels.Document.Item.DocumentItemResponseModel>();
+
+                return Ok(new
+                {
+                    documentId = documentId,
+                    flagServiceResults = singleInfo,
+                    canProvideFlags = new
+                    {
+                        DocumentTreeItemResponseModel = canProvideForTreeItem,
+                        DocumentCollectionResponseModel = canProvideForCollectionItem,
+                        DocumentItemResponseModel = canProvideForDocumentItem
+                    },
+                    expectedFlagStrings = new
+                    {
+                        CustomSorted = Constants.Conventions.Flags.CustomSorted,
+                        HasSchedule = Constants.Conventions.Flags.HasSchedule,
+                        HasDefaultOrder = Constants.Conventions.Flags.HasDefaultOrder
+                    },
+                    diagnosticCounters = SortingFlagProvider.GetDiagnostics(),
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+            }
+        }
+
+        #endregion
+
+        #region Recent Flags Diagnostics (Remove in production)
+
+        [HttpGet("diagnostics/recent-flags")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult GetRecentFlags()
+        {
+            try
+            {
+                var recentFlags = SortingFlagProvider.GetRecentFlagsAdded();
+                var diagnostics = SortingFlagProvider.GetDiagnostics();
+                
+                return Ok(new
+                {
+                    diagnosticCounters = new
+                    {
+                        instancesCreated = diagnostics.instances,
+                        canProvideFlagsCalls = diagnostics.canProvideFlags,
+                        populateFlagsCalls = diagnostics.populateFlags
+                    },
+                    recentFlagsAdded = recentFlags,
+                    expectedFlagStrings = new
+                    {
+                        CustomSorted = Constants.Conventions.Flags.CustomSorted,
+                        HasSchedule = Constants.Conventions.Flags.HasSchedule,
+                        HasDefaultOrder = Constants.Conventions.Flags.HasDefaultOrder
+                    },
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+            }
+        }
+
+        #endregion
+
+        #region Schedule Diagnostics
+
+        [HttpGet("diagnostics/schedule-check/{documentId:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult DiagnoseScheduleForDocument(Guid documentId)
+        {
+            try
+            {
+                using var database = databaseFactory.CreateDatabase();
+                var now = DateTime.UtcNow;
+
+                // Get all schedules for this document using the typed DTO
+                var allSchedules = database.Fetch<SortScheduleDto>(
+                    @"SELECT * FROM ocPowerSortingSchedule 
+                      WHERE ContentId = @0 OR ParentId = @0
+                      ORDER BY Created DESC",
+                    documentId);
+
+                // Get active schedules specifically
+                var activeSchedules = database.Fetch<SortScheduleDto>(
+                    @"SELECT * FROM ocPowerSortingSchedule 
+                      WHERE (ContentId = @0 OR ParentId = @0)
+                      AND IsActive = 1 
+                      AND StartDateTime <= @1 
+                      AND EndDateTime > @1",
+                    documentId, now);
+
+                // Also get ALL schedules in the table for debugging
+                var totalScheduleCount = database.ExecuteScalar<int>("SELECT COUNT(*) FROM ocPowerSortingSchedule");
+                var activeScheduleCount = database.ExecuteScalar<int>(
+                    "SELECT COUNT(*) FROM ocPowerSortingSchedule WHERE IsActive = 1");
+
+                return Ok(new
+                {
+                    documentId = documentId,
+                    currentUtcTime = now,
+                    tableStats = new
+                    {
+                        totalSchedulesInTable = totalScheduleCount,
+                        activeSchedulesInTable = activeScheduleCount
+                    },
+                    schedulesForDocument = new
+                    {
+                        totalFound = allSchedules.Count,
+                        activeFound = activeSchedules.Count,
+                        allSchedules = allSchedules.Select(s => new
+                        {
+                            id = s.Id,
+                            contentId = s.ContentId,
+                            parentId = s.ParentId,
+                            targetPosition = s.TargetPosition,
+                            startDateTime = s.StartDateTime,
+                            endDateTime = s.EndDateTime,
+                            isActive = s.IsActive,
+                            priority = s.Priority,
+                            isCurrentlyInRange = s.StartDateTime <= now && s.EndDateTime > now,
+                            documentIsContentId = s.ContentId == documentId,
+                            documentIsParentId = s.ParentId == documentId
+                        }).ToList(),
+                        activeSchedules = activeSchedules.Select(s => new
+                        {
+                            id = s.Id,
+                            contentId = s.ContentId,
+                            parentId = s.ParentId
+                        }).ToList()
+                    },
+                    expectedFlagResult = activeSchedules.Count > 0
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+            }
+        }
+
+        [HttpGet("diagnostics/parent-child-relationship/{contentId:guid}/{parentId:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult DiagnoseParentChildRelationship(Guid contentId, Guid parentId)
+        {
+            try
+            {
+                var content = contentService.GetById(contentId);
+                var parent = contentService.GetById(parentId);
+
+                if (content == null)
+                {
+                    return Ok(new
+                    {
+                        contentId = contentId,
+                        parentId = parentId,
+                        error = "Content not found",
+                        contentExists = false
+                    });
+                }
+
+                if (parent == null)
+                {
+                    return Ok(new
+                    {
+                        contentId = contentId,
+                        parentId = parentId,
+                        error = "Parent not found",
+                        parentExists = false,
+                        content = new
+                        {
+                            id = content.Id,
+                            key = content.Key,
+                            name = content.Name,
+                            parentId = content.ParentId
+                        }
+                    });
+                }
+
+                // Get actual parent if content has one
+                var actualParent = content.ParentId > 0 ? contentService.GetById(content.ParentId) : null;
+
+                return Ok(new
+                {
+                    contentId = contentId,
+                    parentId = parentId,
+                    content = new
+                    {
+                        id = content.Id,
+                        key = content.Key,
+                        name = content.Name,
+                        parentId = content.ParentId,
+                        isAtRoot = content.ParentId == -1
+                    },
+                    expectedParent = new
+                    {
+                        id = parent.Id,
+                        key = parent.Key,
+                        name = parent.Name
+                    },
+                    actualParent = actualParent == null ? null : new
+                    {
+                        id = actualParent.Id,
+                        key = actualParent.Key,
+                        name = actualParent.Name
+                    },
+                    validation = new
+                    {
+                        isValidRelationship = content.ParentId == parent.Id,
+                        contentParentMatches = content.ParentId == parent.Id,
+                        reasonIfInvalid = content.ParentId == -1 ? 
+                            "Content is at root level" : 
+                            content.ParentId != parent.Id ? 
+                                $"Content parent ID {content.ParentId} does not match expected parent ID {parent.Id}" :
+                                "Valid relationship"
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+            }
+        }
+
+        #endregion
+    }
 }

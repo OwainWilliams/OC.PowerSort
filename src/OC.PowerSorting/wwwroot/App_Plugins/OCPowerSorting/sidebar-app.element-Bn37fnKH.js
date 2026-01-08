@@ -1,5 +1,5 @@
 import { LitElement as h, html as o, css as v, state as b, customElement as w } from "@umbraco-cms/backoffice/external/lit";
-import { U as _, P as c, A as f } from "./api-response.utils-pb7E4RWv.js";
+import { U as _, P as c, A as f } from "./api-response.utils-UvM8kS4m.js";
 import { R as u } from "./validation.utils-BWAQMB43.js";
 import { UMB_SECTION_CONTEXT as I } from "@umbraco-cms/backoffice/section";
 var E = Object.defineProperty, S = Object.getOwnPropertyDescriptor, m = (e) => {
@@ -122,4 +122,4 @@ export {
   n as OcPowersortingSidebarAppElement,
   O as default
 };
-//# sourceMappingURL=sidebar-app.element-8f7FsdQx.js.map
+//# sourceMappingURL=sidebar-app.element-Bn37fnKH.js.map

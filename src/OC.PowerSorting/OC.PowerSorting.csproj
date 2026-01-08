@@ -43,10 +43,5 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Client\src\signs\" />
-    <Folder Include="FlagProvider\" />
-  </ItemGroup>
 
 </Project>

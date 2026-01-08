@@ -1,57 +1,45 @@
-var b = (o) => {
-  throw TypeError(o);
+import { LitElement as f, css as y, html as o, property as s } from "@umbraco-cms/backoffice/external/lit";
+import { U as b, A as p, P as m } from "./api-response.utils-UvM8kS4m.js";
+import { V as D, D as S } from "./validation.utils-BWAQMB43.js";
+import { S as T } from "./schedule-api.client-DzFC1bFz.js";
+var w = Object.defineProperty, d = (l, e, t, i) => {
+  for (var a = void 0, u = l.length - 1, h; u >= 0; u--)
+    (h = l[u]) && (a = h(e, t, a) || a);
+  return a && w(e, t, a), a;
 };
-var D = (o, t, e) => t.has(o) || b("Cannot " + e);
-var S = (o, t, e) => (D(o, t, "read from private field"), e ? e.call(o) : t.get(o)), T = (o, t, e) => t.has(o) ? b("Cannot add the same private member more than once") : t instanceof WeakSet ? t.add(o) : t.set(o, e), w = (o, t, e, a) => (D(o, t, "write to private field"), a ? a.call(o, e) : t.set(o, e), e);
-import { LitElement as C, css as $, html as s, property as r } from "@umbraco-cms/backoffice/external/lit";
-import { U as z, A as m, P as g } from "./api-response.utils-pb7E4RWv.js";
-import { V as I, D as k } from "./validation.utils-BWAQMB43.js";
-import { S as x } from "./schedule-api.client-CYpzemIY.js";
-import { UmbElementMixin as P } from "@umbraco-cms/backoffice/element-api";
-import { UmbDocumentItemRepository as N } from "@umbraco-cms/backoffice/document";
-var E = Object.defineProperty, l = (o, t, e, a) => {
-  for (var i = void 0, d = o.length - 1, u; d >= 0; d--)
-    (u = o[d]) && (i = u(t, e, i) || i);
-  return i && E(t, e, i), i;
-}, p;
-const v = class v extends P(C) {
+const g = class g extends b(f) {
   constructor() {
-    super(...arguments);
-    T(this, p);
-    this.parentId = "", this.schedule = null, this.selectedContentId = "", this.selectedContentName = "", this.targetPosition = 0, this.startDateTime = "", this.endDateTime = "", this.priority = 0, this.error = "", w(this, p, new N(this));
+    super(...arguments), this.parentId = "", this.schedule = null, this.selectedContentId = "", this.selectedContentName = "", this.targetPosition = 0, this.startDateTime = "", this.endDateTime = "", this.priority = 0, this.error = "";
   }
-  connectedCallback() {
+  async connectedCallback() {
     if (super.connectedCallback(), this.schedule)
       this.selectedContentId = this.schedule.contentId, this.selectedContentName = this.schedule.contentName, this.targetPosition = this.schedule.targetPosition, this.startDateTime = this.toLocalDateTimeString(this.schedule.startDateTime), this.endDateTime = this.toLocalDateTimeString(this.schedule.endDateTime), this.priority = this.schedule.priority;
     else {
-      const e = /* @__PURE__ */ new Date(), a = new Date(e);
-      a.setDate(a.getDate() + 1), this.startDateTime = this.toLocalDateTimeString(e.toISOString()), this.endDateTime = this.toLocalDateTimeString(a.toISOString()), this.targetPosition = 0, this.priority = 0;
+      const e = /* @__PURE__ */ new Date(), t = new Date(e);
+      t.setDate(t.getDate() + 1), this.startDateTime = this.toLocalDateTimeString(e.toISOString()), this.endDateTime = this.toLocalDateTimeString(t.toISOString()), this.targetPosition = 0, this.priority = 0;
     }
   }
   toLocalDateTimeString(e) {
-    const a = new Date(e), i = a.getTimezoneOffset();
-    return new Date(a.getTime() - i * 60 * 1e3).toISOString().slice(0, 16);
+    const t = new Date(e), i = t.getTimezoneOffset();
+    return new Date(t.getTime() - i * 60 * 1e3).toISOString().slice(0, 16);
   }
   toISOString(e) {
     return new Date(e).toISOString();
   }
   async handleContentSelected(e) {
-    const a = e.target;
-    let i = a.selection || a.value;
+    const t = e.target;
+    let i = t.selection || t.value;
     if (i && Array.isArray(i) && i.length > 0) {
-      const d = typeof i[0] == "string" ? i[0] : i[0].unique || i[0].id;
-      try {
-        const { data: u } = await S(this, p).requestItems([d]);
-        if (u && u.length > 0) {
-          const y = u[0];
-          this.selectedContentId = y.unique, this.selectedContentName = y.variants?.[0]?.name || "Unnamed Node";
-        }
-      } catch (u) {
-        console.error("Error fetching node details:", u), this.error = "Error loading content details";
-      }
+      const a = typeof i[0] == "string" ? i[0] : i[0].unique || i[0].id;
+      this.selectedContentId = a, this.selectedContentName = i[0].name || i[0].variants?.[0]?.name || "Selected Content", console.log("[PowerSort Debug] Content selected:", {
+        contentId: this.selectedContentId,
+        contentName: this.selectedContentName,
+        expectedParentId: this.parentId,
+        selection: i[0]
+      });
     }
   }
-  handleSave() {
+  async handleSave() {
     if (this.error = "", !this.schedule && !this.selectedContentId) {
       this.error = "Please select a content item";
       return;
@@ -64,12 +52,12 @@ const v = class v extends P(C) {
       this.error = "Start and end dates are required";
       return;
     }
-    const e = new Date(this.startDateTime), a = new Date(this.endDateTime);
-    if (e >= a) {
+    const e = new Date(this.startDateTime), t = new Date(this.endDateTime);
+    if (e >= t) {
       this.error = "End date must be after start date";
       return;
     }
-    this.dispatchEvent(
+    console.log("[PowerSort Debug] Saving schedule with parent ID:", this.parentId), this.dispatchEvent(
       new CustomEvent("save", {
         detail: {
           contentId: this.selectedContentId,
@@ -92,7 +80,7 @@ const v = class v extends P(C) {
     );
   }
   render() {
-    return s`
+    return o`
       <div class="dialog" @click=${(e) => e.stopPropagation()}>
         <div class="dialog-header">
           <h3>
@@ -108,7 +96,7 @@ const v = class v extends P(C) {
           </uui-button>
         </div>
 
-        ${this.error ? s`
+        ${this.error ? o`
               <div class="error-message">
                 <uui-icon name="icon-alert"></uui-icon>
                 ${this.error}
@@ -120,18 +108,19 @@ const v = class v extends P(C) {
             <uui-icon name="icon-document"></uui-icon>
             Content to Boost
           </label>
-          ${this.schedule ? s`
+          ${this.schedule ? o`
                 <div class="selected-content">
                   <strong>${this.selectedContentName}</strong>
                   <div class="description">Cannot change content when editing</div>
                 </div>
-              ` : s`
+              ` : o`
                 <umb-input-document
                   @change=${this.handleContentSelected}
                   max="1"
-                  min="0">
+                  min="0"
+                  .filter=${`parent:${this.parentId}`}>
                 </umb-input-document>
-                ${this.selectedContentName ? s`
+                ${this.selectedContentName ? o`
                       <div class="selected-content">
                         <uui-icon name="icon-check"></uui-icon>
                         Selected: <strong>${this.selectedContentName}</strong>
@@ -214,7 +203,7 @@ const v = class v extends P(C) {
     `;
   }
 };
-p = new WeakMap(), v.styles = $`
+g.styles = y`
     :host {
       display: block;
       position: fixed;
@@ -300,66 +289,66 @@ p = new WeakMap(), v.styles = $`
       margin-top: var(--uui-size-space-2);
     }
   `;
-let n = v;
-l([
-  r({ type: String })
-], n.prototype, "parentId");
-l([
-  r({ type: Object })
-], n.prototype, "schedule");
-l([
-  r({ type: String })
-], n.prototype, "selectedContentId");
-l([
-  r({ type: String })
-], n.prototype, "selectedContentName");
-l([
-  r({ type: Number })
-], n.prototype, "targetPosition");
-l([
-  r({ type: String })
-], n.prototype, "startDateTime");
-l([
-  r({ type: String })
-], n.prototype, "endDateTime");
-l([
-  r({ type: Number })
-], n.prototype, "priority");
-l([
-  r({ type: String })
-], n.prototype, "error");
-customElements.define("schedule-dialog", n);
-var A = Object.defineProperty, h = (o, t, e, a) => {
-  for (var i = void 0, d = o.length - 1, u; d >= 0; d--)
-    (u = o[d]) && (i = u(t, e, i) || i);
-  return i && A(t, e, i), i;
+let r = g;
+d([
+  s({ type: String })
+], r.prototype, "parentId");
+d([
+  s({ type: Object })
+], r.prototype, "schedule");
+d([
+  s({ type: String })
+], r.prototype, "selectedContentId");
+d([
+  s({ type: String })
+], r.prototype, "selectedContentName");
+d([
+  s({ type: Number })
+], r.prototype, "targetPosition");
+d([
+  s({ type: String })
+], r.prototype, "startDateTime");
+d([
+  s({ type: String })
+], r.prototype, "endDateTime");
+d([
+  s({ type: Number })
+], r.prototype, "priority");
+d([
+  s({ type: String })
+], r.prototype, "error");
+customElements.define("schedule-dialog", r);
+var C = Object.defineProperty, c = (l, e, t, i) => {
+  for (var a = void 0, u = l.length - 1, h; u >= 0; u--)
+    (h = l[u]) && (a = h(e, t, a) || a);
+  return a && C(e, t, a), a;
 };
-const f = class f extends z(C) {
+const v = class v extends b(f) {
   constructor() {
     super(...arguments), this.parentId = "", this.parentNodeName = "", this.schedules = [], this.loading = !1, this.error = "", this.showCreateDialog = !1, this.editingSchedule = null;
   }
   async connectedCallback() {
-    super.connectedCallback(), this.parentId = I.extractGuidFromPath() || "", this.scheduleApi = new x(() => this.getAuthToken()), this.parentId && (await this.loadParentInfo(), await this.loadSchedules());
+    super.connectedCallback(), this.parentId = D.extractGuidFromPath() || "", this.scheduleApi = new T(() => this.getAuthToken()), this.parentId && (await this.loadParentInfo(), await this.loadSchedules());
   }
   async loadParentInfo() {
     if (this.parentId)
       try {
-        const t = await this.makeAuthenticatedRequest(
+        const e = await this.makeAuthenticatedRequest(
           `/umbraco/management/api/v1/document/${this.parentId}`
-        ), e = await m.handleResponse(t);
-        this.parentNodeName = e.variants?.[0]?.name || "Unknown Node";
-      } catch (t) {
-        console.error("Error loading parent info:", t);
+        ), t = await p.handleResponse(e);
+        this.parentNodeName = t.variants?.[0]?.name || "Unknown Node";
+      } catch (e) {
+        console.error("Error loading parent info:", e);
       }
   }
   async loadSchedules() {
     if (!(!this.scheduleApi || !this.parentId)) {
       this.loading = !0, this.error = "";
       try {
-        const t = await this.scheduleApi.getSchedules(this.parentId);
-        this.schedules = t.items;
-      } catch (t) {
-        console.error("Error loading schedules:", t), this.error = "Failed to load schedules";
+        const e = await this.scheduleApi.getSchedules(this.parentId);
+        this.schedules = e.items;
+      } catch (e) {
+        console.error("Error loading schedules:", e), this.error = "Failed to load schedules";
       } finally {
         this.loading = !1;
       }
@@ -368,71 +357,77 @@ const f = class f extends z(C) {
   openCreateDialog() {
     this.showCreateDialog = !0, this.editingSchedule = null;
   }
-  openEditDialog(t) {
-    this.editingSchedule = t, this.showCreateDialog = !0;
+  openEditDialog(e) {
+    this.editingSchedule = e, this.showCreateDialog = !0;
   }
   closeDialog() {
     this.showCreateDialog = !1, this.editingSchedule = null;
   }
-  async handleSaveSchedule(t) {
+  async handleSaveSchedule(e) {
     if (!this.scheduleApi) return;
-    const e = t.detail;
+    const t = e.detail;
+    console.log("[PowerSort Debug] Schedule save attempt:", {
+      isEditing: !!this.editingSchedule,
+      formData: t,
+      parentIdFromRoute: this.parentId,
+      parentNodeName: this.parentNodeName
+    });
     try {
       if (this.editingSchedule) {
-        const a = {
-          targetPosition: e.targetPosition,
-          startDateTime: e.startDateTime,
-          endDateTime: e.endDateTime,
-          priority: e.priority || g.DEFAULTS.PRIORITY
+        const i = {
+          targetPosition: t.targetPosition,
+          startDateTime: t.startDateTime,
+          endDateTime: t.endDateTime,
+          priority: t.priority || m.DEFAULTS.PRIORITY
         };
-        await this.scheduleApi.updateSchedule(this.editingSchedule.id, a);
+        console.log("[PowerSort Debug] Update request:", i), await this.scheduleApi.updateSchedule(this.editingSchedule.id, i);
       } else {
-        const a = {
-          contentId: e.contentId,
+        const i = {
+          contentId: t.contentId,
           parentId: this.parentId,
-          targetPosition: e.targetPosition,
-          startDateTime: e.startDateTime,
-          endDateTime: e.endDateTime,
-          priority: e.priority || g.DEFAULTS.PRIORITY
+          targetPosition: t.targetPosition,
+          startDateTime: t.startDateTime,
+          endDateTime: t.endDateTime,
+          priority: t.priority || m.DEFAULTS.PRIORITY
         };
-        await this.scheduleApi.createSchedule(a);
+        console.log("[PowerSort Debug] Create request:", i), await this.scheduleApi.createSchedule(i);
       }
       this.closeDialog(), await this.loadSchedules();
-    } catch (a) {
-      console.error("Error saving schedule:", a), this.error = "Failed to save schedule";
+    } catch (i) {
+      console.error("[PowerSort Debug] Error saving schedule:", i), i instanceof Error && i.message.includes("API Error") ? this.error = `Failed to save schedule: ${i.message}` : this.error = "Failed to save schedule";
     }
   }
-  async handleDeleteSchedule(t) {
-    if (this.scheduleApi && m.confirmAction(g.MESSAGES.CONFIRM_DELETE))
+  async handleDeleteSchedule(e) {
+    if (this.scheduleApi && p.confirmAction(m.MESSAGES.CONFIRM_DELETE))
       try {
-        await this.scheduleApi.deleteSchedule(t), await this.loadSchedules();
-      } catch (e) {
-        m.showError(e, "Failed to delete schedule");
+        await this.scheduleApi.deleteSchedule(e), await this.loadSchedules();
+      } catch (t) {
+        p.showError(t, "Failed to delete schedule");
       }
   }
-  formatDateTime(t) {
-    return k.formatDateTime(t);
+  formatDateTime(e) {
+    return S.formatDateTime(e);
   }
-  getStatusBadge(t) {
-    if (t.isCurrentlyActive)
-      return s`
+  getStatusBadge(e) {
+    if (e.isCurrentlyActive)
+      return o`
         <uui-badge color="positive" look="primary">
           <uui-icon name="icon-check"></uui-icon>
           Active Now
         </uui-badge>
       `;
-    const e = /* @__PURE__ */ new Date(), a = new Date(t.startDateTime), i = new Date(t.endDateTime);
-    return e < a ? s`
+    const t = /* @__PURE__ */ new Date(), i = new Date(e.startDateTime), a = new Date(e.endDateTime);
+    return t < i ? o`
         <uui-badge color="default" look="secondary">
           <uui-icon name="icon-time"></uui-icon>
           Scheduled
         </uui-badge>
-      ` : e >= i ? s`
+      ` : t >= a ? o`
         <uui-badge color="default" look="outline">
           <uui-icon name="icon-delete"></uui-icon>
           Expired
         </uui-badge>
-      ` : s`
+      ` : o`
       <uui-badge color="warning" look="secondary">
         <uui-icon name="icon-calendar"></uui-icon>
         Pending
@@ -440,13 +435,13 @@ const f = class f extends z(C) {
     `;
   }
   render() {
-    return s`
+    return o`
       <div class="schedule-container">
         <div class="header">
           <h2>
             <uui-icon name="icon-calendar"></uui-icon>
             Sorting Schedules
-            ${this.parentNodeName ? s` - ${this.parentNodeName}` : ""}
+            ${this.parentNodeName ? o` - ${this.parentNodeName}` : ""}
           </h2>
           <uui-button
             look="primary"
@@ -458,56 +453,56 @@ const f = class f extends z(C) {
           </uui-button>
         </div>
 
-        ${this.error ? s`
+        ${this.error ? o`
               <div class="error-message">
                 <uui-icon name="icon-alert"></uui-icon>
                 ${this.error}
               </div>
             ` : ""}
 
-        ${this.loading ? s`
+        ${this.loading ? o`
               <div class="loading-spinner">
                 <uui-loader></uui-loader>
               </div>
-            ` : this.schedules.length === 0 ? s`
+            ` : this.schedules.length === 0 ? o`
               <div class="empty-state">
                 <uui-icon name="icon-calendar" style="font-size: 48px; opacity: 0.3;"></uui-icon>
                 <p>No schedules configured yet.</p>
                 <p>Create a schedule to boost content to a specific position during a time period.</p>
               </div>
-            ` : s`
+            ` : o`
               <div class="schedule-list">
                 ${this.schedules.map(
-      (t) => s`
+      (e) => o`
                     <div
-                      class="schedule-card ${t.isCurrentlyActive ? "active" : ""}">
-                      ${this.getStatusBadge(t)}
+                      class="schedule-card ${e.isCurrentlyActive ? "active" : ""}">
+                      ${this.getStatusBadge(e)}
 
                       <div class="schedule-info">
-                        <div class="schedule-title">${t.contentName}</div>
+                        <div class="schedule-title">${e.contentName}</div>
                         <div class="schedule-details">
-                          Position: <strong>${t.targetPosition}</strong>
-                          ${t.priority > 0 ? s`
+                          Position: <strong>${e.targetPosition}</strong>
+                          ${e.priority > 0 ? o`
                                 <span class="priority-badge">
                                   <uui-icon name="icon-navigation-up"></uui-icon>
-                                  Priority: ${t.priority}
+                                  Priority: ${e.priority}
                                 </span>
                               ` : ""}
                         </div>
                         <div class="schedule-details">
-                          Created by ${t.createdByName} on
-                          ${this.formatDateTime(t.created)}
+                          Created by ${e.createdByName} on
+                          ${this.formatDateTime(e.created)}
                         </div>
                       </div>
 
                       <div class="schedule-dates">
                         <div>
                           <uui-icon name="icon-calendar-alt"></uui-icon>
-                          Start: ${this.formatDateTime(t.startDateTime)}
+                          Start: ${this.formatDateTime(e.startDateTime)}
                         </div>
                         <div>
                           <uui-icon name="icon-calendar-alt"></uui-icon>
-                          End: ${this.formatDateTime(t.endDateTime)}
+                          End: ${this.formatDateTime(e.endDateTime)}
                         </div>
                       </div>
 
@@ -515,14 +510,14 @@ const f = class f extends z(C) {
                         <uui-button
                           look="outline"
                           label="Edit"
-                          @click=${() => this.openEditDialog(t)}>
+                          @click=${() => this.openEditDialog(e)}>
                           <uui-icon name="icon-edit"></uui-icon>
                         </uui-button>
                         <uui-button
                           look="outline"
                           color="danger"
                           label="Delete"
-                          @click=${() => this.handleDeleteSchedule(t.id)}>
+                          @click=${() => this.handleDeleteSchedule(e.id)}>
                           <uui-icon name="icon-trash"></uui-icon>
                         </uui-button>
                       </div>
@@ -533,7 +528,7 @@ const f = class f extends z(C) {
             `}
       </div>
 
-      ${this.showCreateDialog ? s`
+      ${this.showCreateDialog ? o`
             <schedule-dialog
               .parentId=${this.parentId}
               .schedule=${this.editingSchedule}
@@ -544,7 +539,7 @@ const f = class f extends z(C) {
     `;
   }
 };
-f.styles = $`
+v.styles = y`
     :host {
       display: block;
       padding: var(--uui-size-space-5);
@@ -646,30 +641,30 @@ f.styles = $`
       font-size: var(--uui-type-small-size);
     }
   `;
-let c = f;
-h([
-  r({ type: String, attribute: !1, reflect: !1 })
-], c.prototype, "parentId");
-h([
-  r({ type: String })
-], c.prototype, "parentNodeName");
-h([
-  r({ type: Array })
-], c.prototype, "schedules");
-h([
-  r({ type: Boolean })
-], c.prototype, "loading");
-h([
-  r({ type: String })
-], c.prototype, "error");
-h([
-  r({ type: Boolean })
-], c.prototype, "showCreateDialog");
-h([
-  r({ type: Object })
-], c.prototype, "editingSchedule");
-customElements.define("power-sort-schedules", c);
+let n = v;
+c([
+  s({ type: String, attribute: !1, reflect: !1 })
+], n.prototype, "parentId");
+c([
+  s({ type: String })
+], n.prototype, "parentNodeName");
+c([
+  s({ type: Array })
+], n.prototype, "schedules");
+c([
+  s({ type: Boolean })
+], n.prototype, "loading");
+c([
+  s({ type: String })
+], n.prototype, "error");
+c([
+  s({ type: Boolean })
+], n.prototype, "showCreateDialog");
+c([
+  s({ type: Object })
+], n.prototype, "editingSchedule");
+customElements.define("power-sort-schedules", n);
 export {
-  c as default
+  n as default
 };
-//# sourceMappingURL=schedules.element-BUjuXvxq.js.map
+//# sourceMappingURL=schedules.element-BMNdcyWy.js.map

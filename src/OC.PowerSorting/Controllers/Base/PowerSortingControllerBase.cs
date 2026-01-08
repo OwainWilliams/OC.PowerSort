@@ -14,10 +14,10 @@ namespace OC.PowerSorting.Controllers.Base
     /// </summary>
     public abstract class PowerSortingControllerBase : ManagementApiControllerBase
     {
-        private readonly IBackOfficeSecurityAccessor _backOfficeSecurityAccessor;
-        private readonly IUmbracoDatabaseFactory _databaseFactory;
-        private readonly IContentService _contentService;
-        private readonly IUserService _userService;
+        protected readonly IBackOfficeSecurityAccessor backOfficeSecurityAccessor;
+        protected readonly IUmbracoDatabaseFactory databaseFactory;
+        protected readonly IContentService contentService;
+        protected readonly IUserService userService;
 
         protected PowerSortingControllerBase(
             IBackOfficeSecurityAccessor backOfficeSecurityAccessor,
@@ -25,10 +25,10 @@ namespace OC.PowerSorting.Controllers.Base
             IContentService contentService,
             IUserService userService)
         {
-            _backOfficeSecurityAccessor = backOfficeSecurityAccessor;
-            _databaseFactory = databaseFactory;
-            _contentService = contentService;
-            _userService = userService;
+            this.backOfficeSecurityAccessor = backOfficeSecurityAccessor;
+            this.databaseFactory = databaseFactory;
+            this.contentService = contentService;
+            this.userService = userService;
         }
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace OC.PowerSorting.Controllers.Base
         protected IActionResult? ValidateUserAccess(out int userId)
         {
             userId = 0;
-            var currentUser = _backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
+            var currentUser = backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
             
             if (currentUser == null)
             {
@@ -63,7 +63,7 @@ namespace OC.PowerSorting.Controllers.Base
 
             try
             {
-                using var database = _databaseFactory.CreateDatabase();
+                using var database = databaseFactory.CreateDatabase();
                 var result = await operation(database);
                 
                 return successMessage != null 
@@ -91,7 +91,7 @@ namespace OC.PowerSorting.Controllers.Base
 
             try
             {
-                using var database = _databaseFactory.CreateDatabase();
+                using var database = databaseFactory.CreateDatabase();
                 var result = operation(database);
                 
                 return successMessage != null 
@@ -136,7 +136,7 @@ namespace OC.PowerSorting.Controllers.Base
         /// </summary>
         protected IActionResult? ValidateContentExists(Guid contentId, out IContent? content, string errorMessage = "Content not found")
         {
-            content = _contentService.GetById(contentId);
+            content = contentService.GetById(contentId);
             if (content == null)
             {
                 return BadRequest(new { error = errorMessage });
@@ -149,12 +149,49 @@ namespace OC.PowerSorting.Controllers.Base
         /// </summary>
         protected IActionResult? ValidateParentChildRelationship(IContent content, Guid expectedParentId)
         {
-            var expectedParent = _contentService.GetById(expectedParentId);
-            if (content.ParentId != expectedParent?.Id)
+            try
             {
-                return BadRequest(new { error = "Content is not a child of the specified parent" });
+                var expectedParent = contentService.GetById(expectedParentId);
+                if (expectedParent == null)
+                {
+                    Console.WriteLine($"[PowerSort] ValidateParentChildRelationship: Expected parent {expectedParentId} not found");
+                    return BadRequest(new { error = "Parent not found" });
+                }
+
+                // Check if content has a parent (ParentId -1 means root level)
+                if (content.ParentId == -1)
+                {
+                    Console.WriteLine($"[PowerSort] ValidateParentChildRelationship: Content {content.Key} is at root level, expected parent {expectedParent.Key}");
+                    return BadRequest(new { error = "Content is at root level and cannot be a child of the specified parent" });
+                }
+
+                if (content.ParentId != expectedParent.Id)
+                {
+                    // Get the actual parent for better error reporting
+                    var actualParent = contentService.GetById(content.ParentId);
+                    Console.WriteLine($"[PowerSort] ValidateParentChildRelationship: Content {content.Key} ('{content.Name}') has parent {content.ParentId} ({actualParent?.Key}:'{actualParent?.Name}'), expected parent {expectedParent.Id} ({expectedParent.Key}:'{expectedParent.Name}')");
+                    
+                    return BadRequest(new { 
+                        error = "Content is not a child of the specified parent",
+                        details = new {
+                            contentId = content.Key,
+                            contentName = content.Name,
+                            actualParentId = actualParent?.Key,
+                            actualParentName = actualParent?.Name,
+                            expectedParentId = expectedParent.Key,
+                            expectedParentName = expectedParent.Name
+                        }
+                    });
+                }
+
+                Console.WriteLine($"[PowerSort] ValidateParentChildRelationship: Content {content.Key} is correctly a child of parent {expectedParent.Key}");
+                return null;
             }
-            return null;
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PowerSort] ValidateParentChildRelationship exception: {ex.Message}");
+                return StatusCode(500, new { error = "Failed to validate parent-child relationship", details = ex.Message });
+            }
         }
 
         /// <summary>
@@ -230,7 +267,7 @@ namespace OC.PowerSorting.Controllers.Base
 
             try
             {
-                var children = _contentService.GetPagedChildren(parent!.Id, 0, int.MaxValue, out _)
+                var children = contentService.GetPagedChildren(parent!.Id, 0, int.MaxValue, out _)
                     .OrderBy(c => c.SortOrder)
                     .ToList();
                 

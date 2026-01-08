@@ -15,7 +15,8 @@ export class PowerSortConstants {
     DEFAULT_SORT_ORDER: '/default-sort-order',
     DEFAULT_SORT_ORDER_SAVE: '/default-sort-order/save',
     DEFAULT_SORT_ORDER_RESTORE: '/default-sort-order/restore',
-    PROCESS_NOW: '/schedules/process-now'
+    PROCESS_NOW: '/schedules/process-now',
+    ENUM_PRIORITIES: '/enum-priorities'
   } as const;
 
   // UI Messages
@@ -65,7 +66,8 @@ export class PowerSortConstants {
     UNDO: 'icon-undo',
     NAVIGATION: 'icon-navigation',
     BOOKMARK: 'icon-bookmark',
-    LOCK: 'icon-lock'
+    LOCK: 'icon-lock',
+    SETTINGS: 'icon-settings'
   } as const;
 
   // CSS Classes
