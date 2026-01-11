@@ -304,20 +304,6 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
   }
 
 
-  // Add method to render priority radio buttons section
-  private renderPriorityRadioButtons() {
-    return html`
-      <div class="priority-selection-section">
-        <div class="section-header">
-          <h2>
-            <uui-icon name="icon-settings"></uui-icon>
-            Select Priority
-          </h2>
-          <p>Choose a priority level from the available options below:</p>
-        </div>
-      </div>
-    `;
-  }
 
   private renderDialog() {
     if (!this.showCreateDialog) return '';
