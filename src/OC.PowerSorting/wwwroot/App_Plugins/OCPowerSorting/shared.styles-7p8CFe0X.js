@@ -1,95 +1,5 @@
-import { html as a, css as t } from "@umbraco-cms/backoffice/external/lit";
-import { P as o } from "./api-response.utils-UvM8kS4m.js";
-const p = (u) => {
-  class s extends u {
-    /**
-     * Render loading state with consistent styling
-     */
-    renderLoadingState(r = o.MESSAGES.LOADING) {
-      return a`
-        <div class="loading">
-          <uui-loader></uui-loader>
-          <p>${r}</p>
-        </div>
-      `;
-    }
-    /**
-     * Render error state with optional retry action
-     */
-    renderErrorState(r, e) {
-      return a`
-        <div class="error">
-          <uui-icon name="${o.ICONS.ALERT}"></uui-icon>
-          <p>${r}</p>
-          ${e ? a`<uui-button @click=${e}>Retry</uui-button>` : ""}
-        </div>
-      `;
-    }
-    /**
-     * Render empty state with icon and message
-     */
-    renderEmptyState(r, e = o.ICONS.DOCUMENT) {
-      return a`
-        <div class="empty-state">
-          <uui-icon name="${e}" style="font-size: 48px; opacity: 0.3;"></uui-icon>
-          <p>${r}</p>
-        </div>
-      `;
-    }
-    /**
-     * Render info banner with consistent styling
-     */
-    renderInfoBanner(r, e, i) {
-      return a`
-        <div class="info-banner ${r}">
-          ${e}
-          ${i ? a`<div class="actions">${i}</div>` : ""}
-        </div>
-      `;
-    }
-    /**
-     * Render badge with consistent styling
-     */
-    renderBadge(r, e = "default", i) {
-      return a`
-        <span class="badge ${e}">
-          ${i ? a`<uui-icon name="${i}"></uui-icon>` : ""}
-          ${r}
-        </span>
-      `;
-    }
-    /**
-     * Render status badge for schedules
-     */
-    renderScheduleStatus(r) {
-      if (r.isCurrentlyActive)
-        return a`
-          <uui-badge color="positive" look="primary">
-            <uui-icon name="${o.ICONS.CHECK}"></uui-icon>
-            Active Now
-          </uui-badge>
-        `;
-      const e = /* @__PURE__ */ new Date(), i = new Date(r.startDateTime), n = new Date(r.endDateTime);
-      return e < i ? a`
-          <uui-badge color="default" look="secondary">
-            <uui-icon name="${o.ICONS.TIME}"></uui-icon>
-            Scheduled
-          </uui-badge>
-        ` : e >= n ? a`
-          <uui-badge color="default" look="outline">
-            <uui-icon name="${o.ICONS.DELETE}"></uui-icon>
-            Expired
-          </uui-badge>
-        ` : a`
-        <uui-badge color="warning" look="secondary">
-          <uui-icon name="${o.ICONS.CALENDAR}"></uui-icon>
-          Pending
-        </uui-badge>
-      `;
-    }
-  }
-  return s;
-}, b = t`
+import { css as r } from "@umbraco-cms/backoffice/external/lit";
+const e = r`
   /* Dashboard Layout */
   .dashboard-container {
     max-width: 1200px;
@@ -309,7 +219,6 @@ const p = (u) => {
   }
 `;
 export {
-  p as U,
-  b as p
+  e as p
 };
-//# sourceMappingURL=shared.styles-D2JHfBsj.js.map
+//# sourceMappingURL=shared.styles-7p8CFe0X.js.map

@@ -15,6 +15,7 @@ using Umbraco.Cms.Api.Management.Services.Flags;
 using OC.PowerSorting.FlagProvider;
 using OC.PowerSorting.Migrations;
 using OC.PowerSorting.Services;
+using OC.PowerSorting.Interfaces;
 
 namespace OC.PowerSorting.Composers
 {

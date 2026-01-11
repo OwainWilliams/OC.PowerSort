@@ -1,10 +1,10 @@
-using OC.PowerSorting.Services;
 using Umbraco.Cms.Api.Management.Services.Flags;
 using Umbraco.Cms.Api.Management.ViewModels;
 using Umbraco.Cms.Api.Management.ViewModels.Document.Collection;
 using Umbraco.Cms.Api.Management.ViewModels.Document.Item;
 using Umbraco.Cms.Api.Management.ViewModels.Tree;
 using Microsoft.Extensions.Logging;
+using OC.PowerSorting.Interfaces;
 
 namespace OC.PowerSorting.FlagProvider
 {

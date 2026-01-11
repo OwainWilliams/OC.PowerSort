@@ -14,6 +14,6 @@ export const manifests: Array<UmbExtensionManifest> = [
     label: "Settings",
     pathname: "view",
     icon: "icon-settings",
-    jsImport: () => import("./section-view.element.js"),
+    jsImport: () => import("./priority-section-view.element.js"),
   }),
 ];

@@ -1,7 +1,7 @@
-import { LitElement, html, css, customElement, state } from '@umbraco-cms/backoffice/external/lit';
+import { LitElement, html, css, customElement, state, property } from '@umbraco-cms/backoffice/external/lit';
 import { UmbAuthMixin } from '../mixins/auth.mixin.js';
 import { UmbUiMixin } from '../mixins/ui.mixin.js';
-import { PowerSortConstants } from '../utils/constants.js';
+import { PowerSortConstants, buildApiUrl } from '../utils/constants.js';
 import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import { powerSortSharedStyles } from '../styles/shared.styles.js';
 import type {
@@ -10,12 +10,19 @@ import type {
   CreateEnumPriorityRequest,
   UpdateEnumPriorityRequest
 } from '../types/index.js';
+interface PriorityOption {
+  value: number;
+  label: string;
+}
 
 @customElement('power-sort-enum-priorities-dashboard')
 
 export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin(LitElement)) {
   @state()
   private enumPriorities: EnumPriorityResponse[] = [];
+
+  @property({ type: Array })
+  private priorityOptions: PriorityOption[] = [];
 
   @state()
   private loading = false;
@@ -41,6 +48,7 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
   async connectedCallback() {
     super.connectedCallback();
     await this.loadEnumPriorities();
+    await this.loadPriorityOptions();
   }
 
   private async loadEnumPriorities() {
@@ -249,6 +257,68 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
     }
   }
 
+  private async loadPriorityOptions() {
+    try {
+
+
+      console.log('[PowerSort Debug] Loading priority options from EnumPriorityAPIController...');
+
+      const response = await fetch(buildApiUrl(PowerSortConstants.ENDPOINTS.ENUM_PRIORITIES), {
+        headers: {
+          'Authorization': `Bearer ${this.authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[PowerSort Debug] Priority options response:', data);
+
+        // Handle both direct array and wrapped response
+        const priorities: EnumPriorityResponse[] = Array.isArray(data) ? data : data.items || [];
+
+        if (priorities.length > 0) {
+          // Map enum priorities to dropdown options, sorted by sortPriority
+          this.priorityOptions = priorities
+            .sort((a, b) => a.sortPriority - b.sortPriority)
+            .map((priority) => ({
+              value: priority.sortPriority, // Use the sortPriority as the value
+              label: priority.name
+            }));
+
+          console.log('[PowerSort Debug] Mapped priority options:', this.priorityOptions);
+        } else {
+          console.log('[PowerSort Debug] No priority options found in response');
+         
+        }
+      } else {
+        console.error('[PowerSort Debug] Failed to load priority options:', response.status, response.statusText);
+
+      }
+    } catch (error) {
+      console.error('[PowerSort Debug] Error loading priority options:', error);
+
+    } finally {
+
+    }
+  }
+
+
+  // Add method to render priority radio buttons section
+  private renderPriorityRadioButtons() {
+    return html`
+      <div class="priority-selection-section">
+        <div class="section-header">
+          <h2>
+            <uui-icon name="icon-settings"></uui-icon>
+            Select Priority
+          </h2>
+          <p>Choose a priority level from the available options below:</p>
+        </div>
+      </div>
+    `;
+  }
+
   private renderDialog() {
     if (!this.showCreateDialog) return '';
 
@@ -393,6 +463,8 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
     return 'low';
   }
 
+ 
+
   static styles = [
     powerSortSharedStyles,
     css`
@@ -477,6 +549,121 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
         display: flex;
         gap: var(--uui-size-space-2);
       }
+
+      /* Priority Selection Styles */
+      .priority-selection-section {
+        margin-top: var(--uui-size-space-6);
+        padding: var(--uui-size-space-4);
+        background: var(--uui-color-surface);
+        border: 1px solid var(--uui-color-border);
+        border-radius: var(--uui-border-radius);
+      }
+
+      .section-header {
+        margin-bottom: var(--uui-size-space-4);
+      }
+
+      .section-header h2 {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        margin: 0 0 var(--uui-size-space-1) 0;
+        color: var(--uui-color-text);
+      }
+
+      .section-header p {
+        margin: 0;
+        color: var(--uui-color-text-alt);
+        font-size: var(--uui-type-small-size);
+      }
+
+      .priority-loading {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        padding: var(--uui-size-space-4);
+        color: var(--uui-color-text-alt);
+      }
+
+      .no-priority-options {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        padding: var(--uui-size-space-5);
+        text-align: center;
+        color: var(--uui-color-text-alt);
+      }
+
+      .radio-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--uui-size-space-3);
+      }
+
+      .radio-option {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--uui-size-space-2);
+        padding: var(--uui-size-space-3);
+        border: 2px solid var(--uui-color-border);
+        border-radius: var(--uui-border-radius);
+        background: var(--uui-color-surface);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .radio-option:hover {
+        border-color: var(--uui-color-selected);
+        background: var(--uui-color-selected-alt);
+      }
+
+      .radio-option.selected {
+        border-color: var(--uui-color-selected);
+        background: var(--uui-color-selected-alt);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .radio-option input[type="radio"] {
+        margin: var(--uui-size-space-1) 0 0 0;
+        accent-color: var(--uui-color-selected);
+      }
+
+      .radio-content {
+        flex: 1;
+      }
+
+      .radio-label {
+        font-weight: 600;
+        color: var(--uui-color-text);
+        margin-bottom: var(--uui-size-space-1);
+      }
+
+      .radio-priority {
+        font-size: var(--uui-type-small-size);
+        color: var(--uui-color-text-alt);
+        margin-bottom: var(--uui-size-space-1);
+      }
+
+      .priority-level-badge {
+        display: inline-block;
+        padding: 2px var(--uui-size-space-2);
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .priority-info {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        margin-top: var(--uui-size-space-3);
+        padding: var(--uui-size-space-2) 0;
+        color: var(--uui-color-text-alt);
+        font-size: var(--uui-type-small-size);
+      }
     `
   ];
 
@@ -509,6 +696,7 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
         </div>
 
         ${this.renderEnumPrioritiesTable()}
+        ${this.renderPriorityRadioButtons()}
         ${this.renderDialog()}
       </div>
     `;

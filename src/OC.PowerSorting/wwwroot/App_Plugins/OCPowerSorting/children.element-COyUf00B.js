@@ -1,8 +1,9 @@
 import { LitElement as m, html as n, css as O, property as v, state as h, customElement as D } from "@umbraco-cms/backoffice/external/lit";
-import { U as E, P as r, A as a } from "./api-response.utils-UvM8kS4m.js";
-import { U as y, p as A } from "./shared.styles-D2JHfBsj.js";
-import { V as b, R as f } from "./validation.utils-BWAQMB43.js";
-import { S as C } from "./schedule-api.client-DzFC1bFz.js";
+import { U as E, P as r, A as a } from "./api-response.utils-CwOHzmUr.js";
+import { U as y } from "./ui.mixin-CNYLBGOM.js";
+import { V as A, R as f } from "./validation.utils-BWAQMB43.js";
+import { p as b } from "./shared.styles-7p8CFe0X.js";
+import { S as C } from "./schedule-api.client-Dwop60FJ.js";
 var N = Object.defineProperty, w = Object.getOwnPropertyDescriptor, l = (e, t, i, s) => {
   for (var d = s > 1 ? void 0 : s ? w(t, i) : t, p = e.length - 1, u; p >= 0; p--)
     (u = e[p]) && (d = (s ? u(t, i, d) : u(d)) || d);
@@ -13,7 +14,7 @@ let o = class extends y(E(m)) {
     super(...arguments), this.id = "", this.parentNodeName = "", this.nodeChildren = [], this.activeSchedules = [], this.hasDefaultOrder = !1, this.defaultOrderInfo = null, this.loading = !1, this.error = "";
   }
   async connectedCallback() {
-    super.connectedCallback(), this.scheduleApi = new C(() => this.getAuthToken()), this.id = b.extractGuidFromPath() || "", this.id && (await this.loadNodeChildren(), await this.loadActiveSchedules(), await this.loadDefaultOrderInfo());
+    super.connectedCallback(), this.scheduleApi = new C(() => this.getAuthToken()), this.id = A.extractGuidFromPath() || "", this.id && (await this.loadNodeChildren(), await this.loadActiveSchedules(), await this.loadDefaultOrderInfo());
   }
   async loadDefaultOrderInfo() {
     if (this.id)
@@ -289,7 +290,7 @@ let o = class extends y(E(m)) {
   }
 };
 o.styles = [
-  A,
+  b,
   O`
       :host {
         display: block;
@@ -379,4 +380,4 @@ o = l([
 export {
   o as default
 };
-//# sourceMappingURL=children.element-dUQ578vp.js.map
+//# sourceMappingURL=children.element-COyUf00B.js.map

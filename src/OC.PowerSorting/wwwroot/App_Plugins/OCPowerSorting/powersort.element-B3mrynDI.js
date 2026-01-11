@@ -1,5 +1,5 @@
 import { LitElement as v, css as h, html as n, property as d } from "@umbraco-cms/backoffice/external/lit";
-import { U as g, P as i, A as p } from "./api-response.utils-UvM8kS4m.js";
+import { U as g, P as i, A as p } from "./api-response.utils-CwOHzmUr.js";
 import { UmbDocumentItemRepository as b } from "@umbraco-cms/backoffice/document";
 var I = Object.defineProperty, c = (u, e, t, o) => {
   for (var s = void 0, r = u.length - 1, m; r >= 0; r--)
@@ -388,4 +388,4 @@ customElements.define("power-sort-dashboard", a);
 export {
   a as default
 };
-//# sourceMappingURL=powersort.element-BTLQhpA1.js.map
+//# sourceMappingURL=powersort.element-B3mrynDI.js.map

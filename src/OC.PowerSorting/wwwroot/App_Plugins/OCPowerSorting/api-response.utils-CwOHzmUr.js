@@ -1,7 +1,7 @@
 import { UmbElementMixin as u } from "@umbraco-cms/backoffice/element-api";
-import { UMB_AUTH_CONTEXT as n } from "@umbraco-cms/backoffice/auth";
-const l = (c) => {
-  class t extends u(c) {
+import { UMB_AUTH_CONTEXT as E } from "@umbraco-cms/backoffice/auth";
+const l = (a) => {
+  class t extends u(a) {
     constructor() {
       super(...arguments), this.authToken = "", this.hasError = !1, this.errorMessage = "";
     }
@@ -10,7 +10,7 @@ const l = (c) => {
      */
     async setupAuthContext() {
       return new Promise((e) => {
-        this.consumeContext(n, async (r) => {
+        this.consumeContext(E, async (r) => {
           try {
             const o = r?.getOpenApiConfiguration?.();
             o?.token && (this.authToken = await o.token()), e();
@@ -29,7 +29,7 @@ const l = (c) => {
       try {
         let e = this.authToken;
         if (!e) {
-          const r = await this.getContext(n);
+          const r = await this.getContext(E);
           if (r) {
             const o = r.getOpenApiConfiguration?.();
             o?.token && (e = await o.token() ?? "", e !== "" && (this.authToken = e));
@@ -44,10 +44,10 @@ const l = (c) => {
      * Make an authenticated HTTP request
      */
     async makeAuthenticatedRequest(e, r = {}) {
-      const o = await this.getAuthToken(), a = new Headers(r.headers);
-      return a.set("Content-Type", "application/json"), o && a.set("Authorization", `Bearer ${o}`), fetch(e, {
+      const o = await this.getAuthToken(), c = new Headers(r.headers);
+      return c.set("Content-Type", "application/json"), o && c.set("Authorization", `Bearer ${o}`), fetch(e, {
         ...r,
-        headers: a
+        headers: c
       });
     }
     /**
@@ -121,8 +121,11 @@ s.API_BASE = "/umbraco/management/api/v1/oc/power-sorting", s.ENDPOINTS = {
   TAKE_SIZE: 100,
   TIMEOUT: 5e3
 };
-let E = s;
-class T {
+let n = s;
+function T(a) {
+  return `${n.API_BASE}${a}`;
+}
+class S {
   /**
    * Handle API response with consistent error handling
    */
@@ -160,8 +163,9 @@ class T {
   }
 }
 export {
-  T as A,
-  E as P,
-  l as U
+  S as A,
+  n as P,
+  l as U,
+  T as b
 };
-//# sourceMappingURL=api-response.utils-UvM8kS4m.js.map
+//# sourceMappingURL=api-response.utils-CwOHzmUr.js.map

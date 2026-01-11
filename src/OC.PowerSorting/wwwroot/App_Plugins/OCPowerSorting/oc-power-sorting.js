@@ -114,7 +114,7 @@ const o = [
     label: "Settings",
     pathname: "view",
     icon: "icon-settings",
-    jsImport: () => import("./section-view.element-4dw6PJgR.js")
+    jsImport: () => import("./priority-section-view.element-CmTK8ZiG.js")
   })
 ], s = [
   t.createDashboardManifest({
@@ -122,7 +122,7 @@ const o = [
     alias: "OC.PowerSorting-Dashboard",
     label: "Power Sort Dashboard",
     pathname: "power-sort-dashboard",
-    jsImport: () => import("./powersort.element-BTLQhpA1.js")
+    jsImport: () => import("./powersort.element-B3mrynDI.js")
   })
 ], l = [
   t.createDashboardManifest({
@@ -130,7 +130,7 @@ const o = [
     alias: "OC.PowerSorting-Children-Dashboard",
     label: "Sort Children",
     pathname: "power-sort-children/:id",
-    jsImport: () => import("./children.element-dUQ578vp.js")
+    jsImport: () => import("./children.element-COyUf00B.js")
   })
 ], m = [
   t.createDashboardManifest({
@@ -138,7 +138,7 @@ const o = [
     alias: "OC.PowerSorting-Schedules-Dashboard",
     label: "Manage Schedules",
     pathname: "power-sort-schedules/:id",
-    jsImport: () => import("./schedules.element-BMNdcyWy.js")
+    jsImport: () => import("./schedules.element-B8Lu2WMR.js")
   })
 ], S = [
   t.createSidebarAppManifest({
@@ -146,7 +146,7 @@ const o = [
     alias: "OC.PowerSorting.SectionSidebar",
     label: "Power Sorting Sidebar",
     icon: "icon-sort",
-    jsImport: () => import("./sidebar-app.element-Bn37fnKH.js"),
+    jsImport: () => import("./sidebar-app.element-Cb6dJ8KJ.js"),
     menus: ["OC.PowerSorting.Menu"]
   })
 ], i = "Umb.", c = [

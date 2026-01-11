@@ -1,28 +1,29 @@
-import { html as d, LitElement as c, css as p, state as u, customElement as f } from "@umbraco-cms/backoffice/external/lit";
-import { U as g, P as s, A as a } from "./api-response.utils-UvM8kS4m.js";
-import { U as y, p as v } from "./shared.styles-D2JHfBsj.js";
-var P = Object.defineProperty, b = Object.getOwnPropertyDescriptor, n = (i, t, r, e) => {
-  for (var l = e > 1 ? void 0 : e ? b(t, r) : t, m = i.length - 1, h; m >= 0; m--)
-    (h = i[m]) && (l = (e ? h(t, r, l) : h(l)) || l);
-  return e && l && P(t, r, l), l;
+import { html as u, LitElement as p, css as h, state as d, property as g, customElement as y } from "@umbraco-cms/backoffice/external/lit";
+import { U as f, P as s, A as l, b as v } from "./api-response.utils-CwOHzmUr.js";
+import { U as b } from "./ui.mixin-CNYLBGOM.js";
+import { p as P } from "./shared.styles-7p8CFe0X.js";
+var E = Object.defineProperty, w = Object.getOwnPropertyDescriptor, n = (i, r, t, e) => {
+  for (var a = e > 1 ? void 0 : e ? w(r, t) : r, c = i.length - 1, m; c >= 0; c--)
+    (m = i[c]) && (a = (e ? m(r, t, a) : m(a)) || a);
+  return e && a && E(r, t, a), a;
 };
-let o = class extends y(g(c)) {
+let o = class extends b(f(p)) {
   constructor() {
-    super(...arguments), this.enumPriorities = [], this.loading = !1, this.error = "", this.showCreateDialog = !1, this.editingItem = null, this.formData = {
+    super(...arguments), this.enumPriorities = [], this.priorityOptions = [], this.loading = !1, this.error = "", this.showCreateDialog = !1, this.editingItem = null, this.formData = {
       name: "",
       sortPriority: 100
     }, this.formErrors = {};
   }
   async connectedCallback() {
-    super.connectedCallback(), await this.loadEnumPriorities();
+    super.connectedCallback(), await this.loadEnumPriorities(), await this.loadPriorityOptions();
   }
   async loadEnumPriorities() {
     this.loading = !0, this.error = "";
     try {
       const i = await this.makeAuthenticatedRequest(
         `${s.API_BASE}/enum-priorities`
-      ), t = await a.handleResponse(i);
-      this.enumPriorities = t.items || [];
+      ), r = await l.handleResponse(i);
+      this.enumPriorities = r.items || [];
     } catch (i) {
       this.error = i instanceof Error ? i.message : "Failed to load enum priorities", console.error("Error loading enum priorities:", i);
     } finally {
@@ -46,11 +47,11 @@ let o = class extends y(g(c)) {
   }
   getNextAvailablePriority() {
     if (this.enumPriorities.length === 0) return 100;
-    const i = new Set(this.enumPriorities.map((r) => r.sortPriority));
-    let t = 100;
-    for (; i.has(t); )
-      t += 100;
-    return t;
+    const i = new Set(this.enumPriorities.map((t) => t.sortPriority));
+    let r = 100;
+    for (; i.has(r); )
+      r += 100;
+    return r;
   }
   validateForm() {
     this.formErrors = {};
@@ -58,17 +59,17 @@ let o = class extends y(g(c)) {
     this.formData.name.trim() ? this.formData.name.trim().length < 2 ? (this.formErrors.name = "Name must be at least 2 characters", i = !1) : this.formData.name.trim().length > 100 && (this.formErrors.name = "Name must be less than 100 characters", i = !1) : (this.formErrors.name = "Name is required", i = !1), this.enumPriorities.find(
       (e) => e.name.toLowerCase() === this.formData.name.trim().toLowerCase() && (!this.editingItem || e.id !== this.editingItem.id)
     ) && (this.formErrors.name = `Name '${this.formData.name.trim()}' is already in use`, i = !1), this.formData.sortPriority < 0 ? (this.formErrors.sortPriority = "Sort priority must be 0 or greater", i = !1) : this.formData.sortPriority > 999999 && (this.formErrors.sortPriority = "Sort priority must be less than 1,000,000", i = !1);
-    const r = this.enumPriorities.find(
+    const t = this.enumPriorities.find(
       (e) => e.sortPriority === this.formData.sortPriority && (!this.editingItem || e.id !== this.editingItem.id)
     );
-    return r && (this.formErrors.sortPriority = `Sort priority ${this.formData.sortPriority} is already in use by '${r.name}'`, i = !1), this.requestUpdate(), i;
+    return t && (this.formErrors.sortPriority = `Sort priority ${this.formData.sortPriority} is already in use by '${t.name}'`, i = !1), this.requestUpdate(), i;
   }
   async saveItem() {
     if (this.validateForm())
       try {
         let i;
         if (this.editingItem) {
-          const r = {
+          const t = {
             name: this.formData.name.trim(),
             sortPriority: this.formData.sortPriority
           };
@@ -76,7 +77,7 @@ let o = class extends y(g(c)) {
             `${s.API_BASE}/enum-priorities/${this.editingItem.id}`,
             {
               method: "PUT",
-              body: JSON.stringify(r)
+              body: JSON.stringify(t)
             }
           );
         } else
@@ -87,42 +88,80 @@ let o = class extends y(g(c)) {
               body: JSON.stringify(this.formData)
             }
           );
-        await a.handleResponse(i), await this.loadEnumPriorities(), this.closeDialog();
-        const t = this.editingItem ? "updated" : "created";
-        a.showSuccess(`Enum priority ${t} successfully!`);
+        await l.handleResponse(i), await this.loadEnumPriorities(), this.closeDialog();
+        const r = this.editingItem ? "updated" : "created";
+        l.showSuccess(`Enum priority ${r} successfully!`);
       } catch (i) {
-        i instanceof Error && i.message.includes("already in use") ? (i.message.includes("Sort priority") ? this.formErrors.sortPriority = i.message : i.message.includes("Name") && (this.formErrors.name = i.message), this.requestUpdate()) : a.showError(i, `Failed to ${this.editingItem ? "update" : "create"} enum priority`);
+        i instanceof Error && i.message.includes("already in use") ? (i.message.includes("Sort priority") ? this.formErrors.sortPriority = i.message : i.message.includes("Name") && (this.formErrors.name = i.message), this.requestUpdate()) : l.showError(i, `Failed to ${this.editingItem ? "update" : "create"} enum priority`);
       }
   }
   async deleteItem(i) {
-    if (a.confirmAction(`Are you sure you want to delete '${i.name}'? This action cannot be undone.`))
+    if (l.confirmAction(`Are you sure you want to delete '${i.name}'? This action cannot be undone.`))
       try {
-        const t = await this.makeAuthenticatedRequest(
+        const r = await this.makeAuthenticatedRequest(
           `${s.API_BASE}/enum-priorities/${i.id}`,
           { method: "DELETE" }
         );
-        await a.handleResponse(t), await this.loadEnumPriorities(), a.showSuccess("Enum priority deleted successfully!");
-      } catch (t) {
-        a.showError(t, "Failed to delete enum priority");
+        await l.handleResponse(r), await this.loadEnumPriorities(), l.showSuccess("Enum priority deleted successfully!");
+      } catch (r) {
+        l.showError(r, "Failed to delete enum priority");
       }
   }
-  handleFormInput(i, t) {
-    const r = i.target;
-    t === "sortPriority" ? this.formData = {
+  handleFormInput(i, r) {
+    const t = i.target;
+    r === "sortPriority" ? this.formData = {
       ...this.formData,
-      [t]: parseInt(r.value) || 0
+      [r]: parseInt(t.value) || 0
     } : this.formData = {
       ...this.formData,
-      [t]: r.value
-    }, this.formErrors[t] && (this.formErrors = {
+      [r]: t.value
+    }, this.formErrors[r] && (this.formErrors = {
       ...this.formErrors,
-      [t]: ""
+      [r]: ""
     }, this.requestUpdate());
+  }
+  async loadPriorityOptions() {
+    try {
+      console.log("[PowerSort Debug] Loading priority options from EnumPriorityAPIController...");
+      const i = await fetch(v(s.ENDPOINTS.ENUM_PRIORITIES), {
+        headers: {
+          Authorization: `Bearer ${this.authToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+      if (i.ok) {
+        const r = await i.json();
+        console.log("[PowerSort Debug] Priority options response:", r);
+        const t = Array.isArray(r) ? r : r.items || [];
+        t.length > 0 ? (this.priorityOptions = t.sort((e, a) => e.sortPriority - a.sortPriority).map((e) => ({
+          value: e.sortPriority,
+          // Use the sortPriority as the value
+          label: e.name
+        })), console.log("[PowerSort Debug] Mapped priority options:", this.priorityOptions)) : console.log("[PowerSort Debug] No priority options found in response");
+      } else
+        console.error("[PowerSort Debug] Failed to load priority options:", i.status, i.statusText);
+    } catch (i) {
+      console.error("[PowerSort Debug] Error loading priority options:", i);
+    }
+  }
+  // Add method to render priority radio buttons section
+  renderPriorityRadioButtons() {
+    return u`
+      <div class="priority-selection-section">
+        <div class="section-header">
+          <h2>
+            <uui-icon name="icon-settings"></uui-icon>
+            Select Priority
+          </h2>
+          <p>Choose a priority level from the available options below:</p>
+        </div>
+      </div>
+    `;
   }
   renderDialog() {
     if (!this.showCreateDialog) return "";
-    const i = this.editingItem ? "Edit Enum Priority" : "Create Enum Priority", t = this.editingItem ? "Update" : "Create";
-    return d`
+    const i = this.editingItem ? "Edit Enum Priority" : "Create Enum Priority", r = this.editingItem ? "Update" : "Create";
+    return u`
       <uui-modal-dialog 
         headline="${i}"
         class="enum-priority-dialog">
@@ -134,11 +173,11 @@ let o = class extends y(g(c)) {
               type="text"
               placeholder="e.g., High Priority"
               .value=${this.formData.name}
-              @input=${(r) => this.handleFormInput(r, "name")}
+              @input=${(t) => this.handleFormInput(t, "name")}
               ?error=${!!this.formErrors.name}
               maxlength="100">
             </uui-input>
-            ${this.formErrors.name ? d`
+            ${this.formErrors.name ? u`
               <div class="error-message">${this.formErrors.name}</div>
             ` : ""}
           </div>
@@ -152,13 +191,13 @@ let o = class extends y(g(c)) {
               min="0"
               max="999999"
               .value=${this.formData.sortPriority.toString()}
-              @input=${(r) => this.handleFormInput(r, "sortPriority")}
+              @input=${(t) => this.handleFormInput(t, "sortPriority")}
               ?error=${!!this.formErrors.sortPriority}>
             </uui-input>
             <div class="field-description">
               Higher numbers = higher priority. Each weight can only be used once.
             </div>
-            ${this.formErrors.sortPriority ? d`
+            ${this.formErrors.sortPriority ? u`
               <div class="error-message">${this.formErrors.sortPriority}</div>
             ` : ""}
           </div>
@@ -172,11 +211,11 @@ let o = class extends y(g(c)) {
               Cancel
             </uui-button>
             <uui-button
-              label="${t}"
+              label="${r}"
               look="primary"
               color="positive"
               @click=${this.saveItem}>
-              ${t}
+              ${r}
             </uui-button>
           </div>
         </div>
@@ -187,7 +226,7 @@ let o = class extends y(g(c)) {
     return this.enumPriorities.length === 0 ? this.renderEmptyState(
       "No enum priorities have been created yet.",
       s.ICONS.SETTINGS
-    ) : d`
+    ) : u`
       <table class="data-table">
         <thead>
           <tr>
@@ -199,7 +238,7 @@ let o = class extends y(g(c)) {
           </tr>
         </thead>
         <tbody>
-          ${this.enumPriorities.map((i) => d`
+          ${this.enumPriorities.map((i) => u`
             <tr>
               <td>
                 <div class="item-name">
@@ -252,7 +291,7 @@ let o = class extends y(g(c)) {
     return i >= 500 ? "high" : i >= 200 ? "medium" : "low";
   }
   render() {
-    return this.loading ? this.renderLoadingState("Loading enum priorities...") : this.error ? this.renderErrorState(this.error, () => this.loadEnumPriorities()) : d`
+    return this.loading ? this.renderLoadingState("Loading enum priorities...") : this.error ? this.renderErrorState(this.error, () => this.loadEnumPriorities()) : u`
       <div class="dashboard-container">
         <div class="dashboard-header">
           <div class="header-content">
@@ -272,14 +311,15 @@ let o = class extends y(g(c)) {
         </div>
 
         ${this.renderEnumPrioritiesTable()}
+        ${this.renderPriorityRadioButtons()}
         ${this.renderDialog()}
       </div>
     `;
   }
 };
 o.styles = [
-  v,
-  p`
+  P,
+  h`
       :host {
         display: block;
         padding: var(--uui-size-space-5);
@@ -361,33 +401,151 @@ o.styles = [
         display: flex;
         gap: var(--uui-size-space-2);
       }
+
+      /* Priority Selection Styles */
+      .priority-selection-section {
+        margin-top: var(--uui-size-space-6);
+        padding: var(--uui-size-space-4);
+        background: var(--uui-color-surface);
+        border: 1px solid var(--uui-color-border);
+        border-radius: var(--uui-border-radius);
+      }
+
+      .section-header {
+        margin-bottom: var(--uui-size-space-4);
+      }
+
+      .section-header h2 {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        margin: 0 0 var(--uui-size-space-1) 0;
+        color: var(--uui-color-text);
+      }
+
+      .section-header p {
+        margin: 0;
+        color: var(--uui-color-text-alt);
+        font-size: var(--uui-type-small-size);
+      }
+
+      .priority-loading {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        padding: var(--uui-size-space-4);
+        color: var(--uui-color-text-alt);
+      }
+
+      .no-priority-options {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        padding: var(--uui-size-space-5);
+        text-align: center;
+        color: var(--uui-color-text-alt);
+      }
+
+      .radio-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--uui-size-space-3);
+      }
+
+      .radio-option {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--uui-size-space-2);
+        padding: var(--uui-size-space-3);
+        border: 2px solid var(--uui-color-border);
+        border-radius: var(--uui-border-radius);
+        background: var(--uui-color-surface);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .radio-option:hover {
+        border-color: var(--uui-color-selected);
+        background: var(--uui-color-selected-alt);
+      }
+
+      .radio-option.selected {
+        border-color: var(--uui-color-selected);
+        background: var(--uui-color-selected-alt);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .radio-option input[type="radio"] {
+        margin: var(--uui-size-space-1) 0 0 0;
+        accent-color: var(--uui-color-selected);
+      }
+
+      .radio-content {
+        flex: 1;
+      }
+
+      .radio-label {
+        font-weight: 600;
+        color: var(--uui-color-text);
+        margin-bottom: var(--uui-size-space-1);
+      }
+
+      .radio-priority {
+        font-size: var(--uui-type-small-size);
+        color: var(--uui-color-text-alt);
+        margin-bottom: var(--uui-size-space-1);
+      }
+
+      .priority-level-badge {
+        display: inline-block;
+        padding: 2px var(--uui-size-space-2);
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .priority-info {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        margin-top: var(--uui-size-space-3);
+        padding: var(--uui-size-space-2) 0;
+        color: var(--uui-color-text-alt);
+        font-size: var(--uui-type-small-size);
+      }
     `
 ];
 n([
-  u()
+  d()
 ], o.prototype, "enumPriorities", 2);
 n([
-  u()
+  g({ type: Array })
+], o.prototype, "priorityOptions", 2);
+n([
+  d()
 ], o.prototype, "loading", 2);
 n([
-  u()
+  d()
 ], o.prototype, "error", 2);
 n([
-  u()
+  d()
 ], o.prototype, "showCreateDialog", 2);
 n([
-  u()
+  d()
 ], o.prototype, "editingItem", 2);
 n([
-  u()
+  d()
 ], o.prototype, "formData", 2);
 n([
-  u()
+  d()
 ], o.prototype, "formErrors", 2);
 o = n([
-  f("power-sort-enum-priorities-dashboard")
+  y("power-sort-enum-priorities-dashboard")
 ], o);
 export {
   o as default
 };
-//# sourceMappingURL=section-view.element-4dw6PJgR.js.map
+//# sourceMappingURL=priority-section-view.element-CmTK8ZiG.js.map

@@ -1,3 +1,4 @@
+using OC.PowerSorting.Interfaces;
 using OC.PowerSorting.Models;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Persistence;

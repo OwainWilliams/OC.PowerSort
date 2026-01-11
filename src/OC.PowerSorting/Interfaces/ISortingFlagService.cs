@@ -1,4 +1,4 @@
-namespace OC.PowerSorting.Services
+namespace OC.PowerSorting.Interfaces
 {
     /// <summary>
     /// Service for determining if documents should display custom sorting flags
@@ -10,28 +10,28 @@ namespace OC.PowerSorting.Services
         /// </summary>
         /// <param name="documentId">Document ID to check</param>
         /// <returns>True if document has custom sort order</returns>
-        Task<bool> HasCustomSortOrderAsync(Guid documentId);
+        public Task<bool> HasCustomSortOrderAsync(Guid documentId);
 
         /// <summary>
         /// Check if a document is currently scheduled for sorting
         /// </summary>
         /// <param name="documentId">Document ID to check</param>
         /// <returns>True if document has active schedules</returns>
-        Task<bool> HasActiveScheduleAsync(Guid documentId);
+        public Task<bool> HasActiveScheduleAsync(Guid documentId);
 
         /// <summary>
         /// Check if a document has a saved default sort order
         /// </summary>
         /// <param name="documentId">Document ID to check</param>
         /// <returns>True if document has default sort order saved</returns>
-        Task<bool> HasDefaultSortOrderAsync(Guid documentId);
+        public Task<bool> HasDefaultSortOrderAsync(Guid documentId);
 
         /// <summary>
         /// Get flag information for multiple documents in batch
         /// </summary>
         /// <param name="documentIds">Document IDs to check</param>
         /// <returns>Dictionary with document ID and flag information</returns>
-        Task<Dictionary<Guid, SortingFlagInfo>> GetFlagInfoBatchAsync(IEnumerable<Guid> documentIds);
+        public Task<Dictionary<Guid, SortingFlagInfo>> GetFlagInfoBatchAsync(IEnumerable<Guid> documentIds);
     }
 
     /// <summary>
