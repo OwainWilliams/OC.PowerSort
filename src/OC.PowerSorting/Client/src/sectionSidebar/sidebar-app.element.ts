@@ -1,13 +1,13 @@
-import { LitElement, html, customElement, css, state } from '@umbraco-cms/backoffice/external/lit';
-import { UmbAuthMixin } from '../mixins/auth.mixin.js';
+import { html, customElement, css, state } from '@umbraco-cms/backoffice/external/lit';
 import { RouteUtils } from '../utils/validation.utils.js';
 import { PowerSortConstants } from '../utils/constants.js';
 import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import type { MenuItem } from '../types/index.js';
 import { UMB_SECTION_CONTEXT } from '@umbraco-cms/backoffice/section';
+import crudMixin from "../mixins/crud.mixin.js";
 
 @customElement('oc-powersorting-sidebar-app')
-export class OcPowersortingSidebarAppElement extends UmbAuthMixin(LitElement) {
+export class OcPowersortingSidebarAppElement extends crudMixin {
   @state()
   private menuItems: MenuItem[] = [];
 
@@ -18,6 +18,7 @@ export class OcPowersortingSidebarAppElement extends UmbAuthMixin(LitElement) {
     super();
     // Listen for menu updates
     window.addEventListener('powerSortMenuUpdated', this.handleMenuUpdate.bind(this));
+
   }
 
   async connectedCallback() {
@@ -58,7 +59,7 @@ export class OcPowersortingSidebarAppElement extends UmbAuthMixin(LitElement) {
         `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.MENU_ITEMS}`
       );
 
-      const data = await ApiResponseHandler.handleResponse<{items: MenuItem[]}>(response);
+      const data = await ApiResponseHandler.handleResponse<{ items: MenuItem[] }>(response);
       this.menuItems = data.items || [];
     } catch (error) {
       console.error('Error loading menu items from database:', error);
@@ -73,6 +74,24 @@ export class OcPowersortingSidebarAppElement extends UmbAuthMixin(LitElement) {
 
   private handleMenuItemClick(nodeId: string) {
     RouteUtils.navigateTo(RouteUtils.getDashboardPath('children', nodeId));
+  }
+
+  private removeMenuItem(e: Event, id: any) {
+    const item = e.currentTarget as HTMLElement;
+    const popover = item?.closest(".js-popover")
+
+    const itemToRemove = this.menuItems.find((item: MenuItem) => item.id === id);
+    this.menuItems = this.menuItems.filter((item: MenuItem) => item.id !== id);
+    this.saveMenuItemsToDb(this.menuItems);
+    console.log('Menu item removed:', id);
+
+    // Show feedback
+    this.saveMessage = `✓ "${itemToRemove?.name}" removed from menu`;
+    popover?.setAttribute("close", "true")
+    setTimeout(() => {
+      this.saveMessage = '';
+      this.requestUpdate();
+    }, 3000);
   }
 
   static styles = css`
@@ -111,6 +130,26 @@ export class OcPowersortingSidebarAppElement extends UmbAuthMixin(LitElement) {
       margin: 1rem;
       border-radius: 0.25rem;
     }
+
+    
+  .popover {
+    color: var(--uui-palette-maroon-flush-dark);
+    background-color: var(--uui-color-surface-emphasis);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    padding: 8px !important;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+    .relative {
+    position: relative;
+  }
+
+  .ml-1 {
+    margin-left: 16px;
+  }
   `;
 
   render() {
@@ -121,11 +160,26 @@ export class OcPowersortingSidebarAppElement extends UmbAuthMixin(LitElement) {
       <div class="menu-list">
         ${this.menuItems.length > 0 ? html`
           ${this.menuItems.map(item => html`
-            <uui-menu-item
+          <div class="js-menu-item relative">
+            <uui-menu-item 
               label="${item.name}"
-              @click=${() => this.handleMenuItemClick(item.id)}>
+              @click=${() => this.handleMenuItemClick(item.id)}
               <uui-icon slot="icon" name="${item.icon}"></uui-icon>
+              <uui-action-bar slot="actions">
+                <uui-button label="open popover" class="" popovertarget="my-popover">
+                  <uui-icon-registry-essential>
+                    <uui-icon name="delete"> </uui-icon>
+                  </uui-icon-registry-essential>
+                </uui-button>
+              </uui-action-bar>
             </uui-menu-item>
+               
+            <uui-popover-container id="my-popover" class="js-popover popover" placement="right-end">
+              Are you sure you want to delete?
+              <uui-button class="ml-1" label="delete menu item" look="primary" color="danger" @click=${(e:Event) => this.removeMenuItem(e, item.id)}>
+                Yes
+              </uui-button>
+            </uui-popover-container>
           `)}
         ` : html`
           <div class="no-items">
@@ -134,6 +188,7 @@ export class OcPowersortingSidebarAppElement extends UmbAuthMixin(LitElement) {
           </div>
         `}
       </div>
+
     `;
   }
 }

@@ -1,11 +1,10 @@
-import { LitElement, html, css, property } from '@umbraco-cms/backoffice/external/lit';
-import { UmbAuthMixin } from '../mixins/auth.mixin.js';
+import {html, css, property } from '@umbraco-cms/backoffice/external/lit';
 import { PowerSortConstants } from '../utils/constants.js';
 import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import type { MenuItem } from '../types/index.js';
 import { UmbDocumentItemRepository } from '@umbraco-cms/backoffice/document';
-
-export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) {
+import crudMixin  from "../mixins/crud.mixin.js"
+export default class PowerSortDashboardElement extends crudMixin {
   @property({ type: String })
   private selectedNodeId: string | null = null;
 
@@ -15,9 +14,6 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
   @property({ type: Array })
   private menuItems: MenuItem[] = [];
 
-  @property({ type: String })
-  private saveMessage: string = '';
-
   private documentItemRepository?: UmbDocumentItemRepository;
 
   constructor() {
@@ -25,7 +21,6 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
     this.selectedNodeId = null;
     this.selectedNodeName = '';
     this.menuItems = [];
-    this.saveMessage = '';
   }
 
   async connectedCallback() {
@@ -359,20 +354,6 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
     }
   }
 
-  removeMenuItem(id: any) {
-    const itemToRemove = this.menuItems.find((item: MenuItem) => item.id === id);
-    this.menuItems = this.menuItems.filter((item: MenuItem) => item.id !== id);
-    this.saveMenuItemsToDb();
-    console.log('Menu item removed:', id);
-    
-    // Show feedback
-    this.saveMessage = `✓ "${itemToRemove?.name}" removed from menu`;
-    setTimeout(() => {
-      this.saveMessage = '';
-      this.requestUpdate();
-    }, 3000);
-  }
-
   clearSelection() {
     this.selectedNodeId = null;
     this.selectedNodeName = '';
@@ -419,7 +400,7 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
           <div class="content-picker-wrapper">
             <label class="picker-label">Content Picker</label>
             <span class="picker-description">
-              Choose a content item from your site to add to the Power Sort menu
+              Choose the parent node for content you want to sort
             </span>
             
             <umb-input-document
@@ -470,41 +451,6 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
               </div>
             </div>
           ` : ''}
-        </div>
-
-        <div class="menu-items-section">
-          <h2>Active Menu Items (${this.menuItems.length})</h2>
-          
-          ${this.menuItems.length > 0 ? html`
-            <div class="info-box">
-              <strong>💡 How to use:</strong>
-              Click on any menu item in the sidebar (left panel) to view and sort its children.
-            </div>
-            <div class="menu-items-list">
-              ${this.menuItems.map((item: { icon: unknown; name: unknown; id: unknown; }) => html`
-                <div class="menu-item">
-                  <uui-icon name="${item.icon}"></uui-icon>
-                  <div class="menu-item-content">
-                    <span class="menu-item-name">${item.name}</span>
-                    <span class="menu-item-id">${item.id}</span>
-                  </div>
-                  <uui-button 
-                    label="Remove"
-                    look="outline"
-                    color="danger"
-                    @click=${() => this.removeMenuItem(item.id)}>
-                    <uui-icon name="icon-trash"></uui-icon>
-                    Remove
-                  </uui-button>
-                </div>
-              `)}
-            </div>
-          ` : html`
-            <div class="no-items">
-              <p>No menu items added yet.</p>
-              <p>Use the content picker above to select a node and click "Add to Menu".</p>
-            </div>
-          `}
         </div>
       </div>
     `;
