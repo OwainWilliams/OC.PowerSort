@@ -3,7 +3,8 @@ import { PowerSortConstants } from '../utils/constants.js';
 import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import type { MenuItem } from '../types/index.js';
 import { UmbDocumentItemRepository } from '@umbraco-cms/backoffice/document';
-import crudMixin  from "../mixins/crud.mixin.js"
+import crudMixin from "../mixins/crud.mixin.js"
+import "../components/document-picker.js"
 export default class PowerSortDashboardElement extends crudMixin {
   @property({ type: String })
   private selectedNodeId: string | null = null;
@@ -259,12 +260,12 @@ export default class PowerSortDashboardElement extends crudMixin {
 
     if (selection && Array.isArray(selection) && selection.length > 0) {
       // The picker returns an array of IDs, not full objects
-      const nodeId = typeof selection[0] === 'string' ? selection[0] : selection[0].unique || selection[0].id;
-      
-      console.log('Selected node ID:', nodeId);
+      selection.forEach(async (node) => {
+        const nodeId = typeof node === 'string' ? node : node.unique || node.id
+        await this.fetchNodeDetails(nodeId);
+        this.addSelectedNodeToMenu();
 
-      // Fetch the full node details using Umbraco's repository
-      await this.fetchNodeDetails(nodeId);
+      })
     } else if (typeof selection === 'string') {
       // Single ID string
       await this.fetchNodeDetails(selection);
@@ -391,8 +392,8 @@ export default class PowerSortDashboardElement extends crudMixin {
     return html`
       <div class="dashboard-container">
         <div class="dashboard-header">
-          <h1>Power Sort Dashboard</h1>
-          <p>Select content nodes to add them as menu items in the sidebar</p>
+          <h1 aria-describedby="plugin-description">Power Sort Dashboard</h1>
+          <h2 id="plugin-description">A plugin to enable scheduled sorting of child nodes</h2>
         </div>
 
         <div class="content-picker-section">
@@ -400,34 +401,11 @@ export default class PowerSortDashboardElement extends crudMixin {
           <div class="content-picker-wrapper">
             <label class="picker-label">Content Picker</label>
             <span class="picker-description">
-              Choose the parent node for content you want to sort
+              Select the parent nodes to add to the left hand menu to enable sorting
             </span>
             
-            <umb-input-document
-              @change=${this.handleContentSelected}
-              max="1"
-              min="0">
-            </umb-input-document>
-
-            <div class="action-buttons">
-              <uui-button
-                look="primary"
-                color="positive"
-                label="Add to Menu"
-                @click=${this.addSelectedNodeToMenu}
-                ?disabled=${!this.selectedNodeName}>
-                <uui-icon name="icon-add"></uui-icon>
-                Add to Menu
-              </uui-button>
-              
-              <uui-button
-                look="outline"
-                label="Clear Selection"
-                @click=${this.clearSelection}
-                ?disabled=${!this.selectedNodeName}>
-                <uui-icon name="icon-delete"></uui-icon>
-                Clear Selection
-              </uui-button>
+         <custom-document-picker @selection-changed=${this.handleContentSelected}>
+         </custom-document-picker>
             </div>
           </div>
 
