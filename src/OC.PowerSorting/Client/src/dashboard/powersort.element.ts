@@ -1,11 +1,11 @@
-import { LitElement, html, css, property } from '@umbraco-cms/backoffice/external/lit';
-import { UmbAuthMixin } from '../mixins/auth.mixin.js';
+import {html, css, property } from '@umbraco-cms/backoffice/external/lit';
 import { PowerSortConstants } from '../utils/constants.js';
 import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import type { MenuItem } from '../types/index.js';
 import { UmbDocumentItemRepository } from '@umbraco-cms/backoffice/document';
-
-export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) {
+import crudMixin from "../mixins/crud.mixin.js"
+import "../components/document-picker.js"
+export default class PowerSortDashboardElement extends crudMixin {
   @property({ type: String })
   private selectedNodeId: string | null = null;
 
@@ -15,9 +15,6 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
   @property({ type: Array })
   private menuItems: MenuItem[] = [];
 
-  @property({ type: String })
-  private saveMessage: string = '';
-
   private documentItemRepository?: UmbDocumentItemRepository;
 
   constructor() {
@@ -25,7 +22,6 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
     this.selectedNodeId = null;
     this.selectedNodeName = '';
     this.menuItems = [];
-    this.saveMessage = '';
   }
 
   async connectedCallback() {
@@ -264,12 +260,12 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
 
     if (selection && Array.isArray(selection) && selection.length > 0) {
       // The picker returns an array of IDs, not full objects
-      const nodeId = typeof selection[0] === 'string' ? selection[0] : selection[0].unique || selection[0].id;
-      
-      console.log('Selected node ID:', nodeId);
+      selection.forEach(async (node) => {
+        const nodeId = typeof node === 'string' ? node : node.unique || node.id
+        await this.fetchNodeDetails(nodeId);
+        this.addSelectedNodeToMenu();
 
-      // Fetch the full node details using Umbraco's repository
-      await this.fetchNodeDetails(nodeId);
+      })
     } else if (typeof selection === 'string') {
       // Single ID string
       await this.fetchNodeDetails(selection);
@@ -359,20 +355,6 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
     }
   }
 
-  removeMenuItem(id: any) {
-    const itemToRemove = this.menuItems.find((item: MenuItem) => item.id === id);
-    this.menuItems = this.menuItems.filter((item: MenuItem) => item.id !== id);
-    this.saveMenuItemsToDb();
-    console.log('Menu item removed:', id);
-    
-    // Show feedback
-    this.saveMessage = `✓ "${itemToRemove?.name}" removed from menu`;
-    setTimeout(() => {
-      this.saveMessage = '';
-      this.requestUpdate();
-    }, 3000);
-  }
-
   clearSelection() {
     this.selectedNodeId = null;
     this.selectedNodeName = '';
@@ -410,8 +392,8 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
     return html`
       <div class="dashboard-container">
         <div class="dashboard-header">
-          <h1>Power Sort Dashboard</h1>
-          <p>Select content nodes to add them as menu items in the sidebar</p>
+          <h1 aria-describedby="plugin-description">Power Sort Dashboard</h1>
+          <h2 id="plugin-description">A plugin to enable scheduled sorting of child nodes</h2>
         </div>
 
         <div class="content-picker-section">
@@ -419,34 +401,11 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
           <div class="content-picker-wrapper">
             <label class="picker-label">Content Picker</label>
             <span class="picker-description">
-              Choose a content item from your site to add to the Power Sort menu
+              Select the parent nodes to add to the left hand menu to enable sorting
             </span>
             
-            <umb-input-document
-              @change=${this.handleContentSelected}
-              max="1"
-              min="0">
-            </umb-input-document>
-
-            <div class="action-buttons">
-              <uui-button
-                look="primary"
-                color="positive"
-                label="Add to Menu"
-                @click=${this.addSelectedNodeToMenu}
-                ?disabled=${!this.selectedNodeName}>
-                <uui-icon name="icon-add"></uui-icon>
-                Add to Menu
-              </uui-button>
-              
-              <uui-button
-                look="outline"
-                label="Clear Selection"
-                @click=${this.clearSelection}
-                ?disabled=${!this.selectedNodeName}>
-                <uui-icon name="icon-delete"></uui-icon>
-                Clear Selection
-              </uui-button>
+         <custom-document-picker @selection-changed=${this.handleContentSelected}>
+         </custom-document-picker>
             </div>
           </div>
 
@@ -470,41 +429,6 @@ export default class PowerSortDashboardElement extends UmbAuthMixin(LitElement) 
               </div>
             </div>
           ` : ''}
-        </div>
-
-        <div class="menu-items-section">
-          <h2>Active Menu Items (${this.menuItems.length})</h2>
-          
-          ${this.menuItems.length > 0 ? html`
-            <div class="info-box">
-              <strong>💡 How to use:</strong>
-              Click on any menu item in the sidebar (left panel) to view and sort its children.
-            </div>
-            <div class="menu-items-list">
-              ${this.menuItems.map((item: { icon: unknown; name: unknown; id: unknown; }) => html`
-                <div class="menu-item">
-                  <uui-icon name="${item.icon}"></uui-icon>
-                  <div class="menu-item-content">
-                    <span class="menu-item-name">${item.name}</span>
-                    <span class="menu-item-id">${item.id}</span>
-                  </div>
-                  <uui-button 
-                    label="Remove"
-                    look="outline"
-                    color="danger"
-                    @click=${() => this.removeMenuItem(item.id)}>
-                    <uui-icon name="icon-trash"></uui-icon>
-                    Remove
-                  </uui-button>
-                </div>
-              `)}
-            </div>
-          ` : html`
-            <div class="no-items">
-              <p>No menu items added yet.</p>
-              <p>Use the content picker above to select a node and click "Add to Menu".</p>
-            </div>
-          `}
         </div>
       </div>
     `;
