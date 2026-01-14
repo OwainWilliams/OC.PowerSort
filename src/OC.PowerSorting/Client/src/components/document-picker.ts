@@ -8,31 +8,23 @@ export default class customDocumentPicker extends UmbAuthMixin(LitElement) {
 
   private async _openPicker() {
     try {
-      // open the modal; the picker context sets its internal selection rather than returning it
       await this.#pickerContext.openPicker();
 
-      // Try common accessors on the context to read the selection after the modal closes.
       const ctxAny = this.#pickerContext as any;
-      let selection: unknown = [];
-
-      if (typeof ctxAny.getSelection === 'function') {
-        selection = ctxAny.getSelection();
-      } else if (typeof ctxAny.selection !== 'undefined') {
-        selection = ctxAny.selection;
-      } else if (typeof ctxAny.value !== 'undefined') {
-        selection = ctxAny.value;
-      }
+      const selection = ctxAny.getSelection();
 
       console.debug('[custom-document-picker] resolved selection:', selection);
 
       this.dispatchEvent(new CustomEvent('selection-changed', {
-        detail: {selection},
+        detail: { selection },
         bubbles: true,
         composed: true
       }));
     } catch (err: unknown) {
       console.warn('[custom-document-picker] openPicker error or closed:', err);
     }
+    // clear selected nodes after getting selection, ready for next selection
+    this.#pickerContext.setSelection([]);
   }
 
   render() {
