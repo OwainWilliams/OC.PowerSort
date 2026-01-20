@@ -682,7 +682,6 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
         </div>
 
         ${this.renderEnumPrioritiesTable()}
-        ${this.renderPriorityRadioButtons()}
         ${this.renderDialog()}
       </div>
     `;
