@@ -1,10 +1,10 @@
-import { html as u, LitElement as p, css as h, state as d, property as g, customElement as y } from "@umbraco-cms/backoffice/external/lit";
+import { html as d, LitElement as p, css as h, state as u, property as g, customElement as y } from "@umbraco-cms/backoffice/external/lit";
 import { U as f, P as s, A as l, b as v } from "./api-response.utils-CwOHzmUr.js";
 import { U as b } from "./ui.mixin-CNYLBGOM.js";
 import { p as P } from "./shared.styles-7p8CFe0X.js";
 var E = Object.defineProperty, w = Object.getOwnPropertyDescriptor, n = (i, r, t, e) => {
-  for (var a = e > 1 ? void 0 : e ? w(r, t) : r, c = i.length - 1, m; c >= 0; c--)
-    (m = i[c]) && (a = (e ? m(r, t, a) : m(a)) || a);
+  for (var a = e > 1 ? void 0 : e ? w(r, t) : r, m = i.length - 1, c; m >= 0; m--)
+    (c = i[m]) && (a = (e ? c(r, t, a) : c(a)) || a);
   return e && a && E(r, t, a), a;
 };
 let o = class extends b(f(p)) {
@@ -144,24 +144,10 @@ let o = class extends b(f(p)) {
       console.error("[PowerSort Debug] Error loading priority options:", i);
     }
   }
-  // Add method to render priority radio buttons section
-  renderPriorityRadioButtons() {
-    return u`
-      <div class="priority-selection-section">
-        <div class="section-header">
-          <h2>
-            <uui-icon name="icon-settings"></uui-icon>
-            Select Priority
-          </h2>
-          <p>Choose a priority level from the available options below:</p>
-        </div>
-      </div>
-    `;
-  }
   renderDialog() {
     if (!this.showCreateDialog) return "";
     const i = this.editingItem ? "Edit Enum Priority" : "Create Enum Priority", r = this.editingItem ? "Update" : "Create";
-    return u`
+    return d`
       <uui-modal-dialog 
         headline="${i}"
         class="enum-priority-dialog">
@@ -177,7 +163,7 @@ let o = class extends b(f(p)) {
               ?error=${!!this.formErrors.name}
               maxlength="100">
             </uui-input>
-            ${this.formErrors.name ? u`
+            ${this.formErrors.name ? d`
               <div class="error-message">${this.formErrors.name}</div>
             ` : ""}
           </div>
@@ -197,7 +183,7 @@ let o = class extends b(f(p)) {
             <div class="field-description">
               Higher numbers = higher priority. Each weight can only be used once.
             </div>
-            ${this.formErrors.sortPriority ? u`
+            ${this.formErrors.sortPriority ? d`
               <div class="error-message">${this.formErrors.sortPriority}</div>
             ` : ""}
           </div>
@@ -226,7 +212,7 @@ let o = class extends b(f(p)) {
     return this.enumPriorities.length === 0 ? this.renderEmptyState(
       "No enum priorities have been created yet.",
       s.ICONS.SETTINGS
-    ) : u`
+    ) : d`
       <table class="data-table">
         <thead>
           <tr>
@@ -238,7 +224,7 @@ let o = class extends b(f(p)) {
           </tr>
         </thead>
         <tbody>
-          ${this.enumPriorities.map((i) => u`
+          ${this.enumPriorities.map((i) => d`
             <tr>
               <td>
                 <div class="item-name">
@@ -291,7 +277,7 @@ let o = class extends b(f(p)) {
     return i >= 500 ? "high" : i >= 200 ? "medium" : "low";
   }
   render() {
-    return this.loading ? this.renderLoadingState("Loading enum priorities...") : this.error ? this.renderErrorState(this.error, () => this.loadEnumPriorities()) : u`
+    return this.loading ? this.renderLoadingState("Loading enum priorities...") : this.error ? this.renderErrorState(this.error, () => this.loadEnumPriorities()) : d`
       <div class="dashboard-container">
         <div class="dashboard-header">
           <div class="header-content">
@@ -311,7 +297,7 @@ let o = class extends b(f(p)) {
         </div>
 
         ${this.renderEnumPrioritiesTable()}
-        ${this.renderPriorityRadioButtons()}
+
         ${this.renderDialog()}
       </div>
     `;
@@ -519,28 +505,28 @@ o.styles = [
     `
 ];
 n([
-  d()
+  u()
 ], o.prototype, "enumPriorities", 2);
 n([
   g({ type: Array })
 ], o.prototype, "priorityOptions", 2);
 n([
-  d()
+  u()
 ], o.prototype, "loading", 2);
 n([
-  d()
+  u()
 ], o.prototype, "error", 2);
 n([
-  d()
+  u()
 ], o.prototype, "showCreateDialog", 2);
 n([
-  d()
+  u()
 ], o.prototype, "editingItem", 2);
 n([
-  d()
+  u()
 ], o.prototype, "formData", 2);
 n([
-  d()
+  u()
 ], o.prototype, "formErrors", 2);
 o = n([
   y("power-sort-enum-priorities-dashboard")
@@ -548,4 +534,4 @@ o = n([
 export {
   o as default
 };
-//# sourceMappingURL=priority-section-view.element-CmTK8ZiG.js.map
+//# sourceMappingURL=priority-section-view.element-CIzB7BtP.js.map
