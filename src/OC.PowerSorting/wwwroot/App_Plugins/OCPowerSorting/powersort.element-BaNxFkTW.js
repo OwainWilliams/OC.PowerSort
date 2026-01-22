@@ -1,44 +1,85 @@
-import { LitElement as v, css as h, html as n, property as d } from "@umbraco-cms/backoffice/external/lit";
-import { U as g, P as i, A as p } from "./api-response.utils-CwOHzmUr.js";
-import { UmbDocumentItemRepository as b } from "@umbraco-cms/backoffice/document";
-var I = Object.defineProperty, c = (u, e, t, o) => {
-  for (var s = void 0, r = u.length - 1, m; r >= 0; r--)
-    (m = u[r]) && (s = m(e, t, s) || s);
-  return s && I(e, t, s), s;
-};
-const l = class l extends g(v) {
+import { LitElement as S, html as l, customElement as N, css as b, property as m } from "@umbraco-cms/backoffice/external/lit";
+import { U as I, P as n, A as v } from "./api-response.utils-CwOHzmUr.js";
+import { UmbDocumentPickerInputContext as y, UmbDocumentItemRepository as k } from "@umbraco-cms/backoffice/document";
+import { c as w } from "./crud.mixin-C3UrAXbX.js";
+var z = Object.getOwnPropertyDescriptor, f = (o) => {
+  throw TypeError(o);
+}, x = (o, e, t, i) => {
+  for (var s = i > 1 ? void 0 : i ? z(e, t) : e, a = o.length - 1, r; a >= 0; a--)
+    (r = o[a]) && (s = r(s) || s);
+  return s;
+}, E = (o, e, t) => e.has(o) || f("Cannot " + t), u = (o, e, t) => (E(o, e, "read from private field"), t ? t.call(o) : e.get(o)), M = (o, e, t) => e.has(o) ? f("Cannot add the same private member more than once") : e instanceof WeakSet ? e.add(o) : e.set(o, t), d;
+let g = class extends I(S) {
   constructor() {
-    super(), this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.saveMessage = "", this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.saveMessage = "";
+    super(...arguments), M(this, d, new y(this));
+  }
+  async _openPicker() {
+    try {
+      await u(this, d).openPicker();
+      const e = u(this, d).getSelection();
+      console.debug("[custom-document-picker] resolved selection:", e), this.dispatchEvent(new CustomEvent("selection-changed", {
+        detail: { selection: e },
+        bubbles: !0,
+        composed: !0
+      }));
+    } catch (o) {
+      console.warn("[custom-document-picker] openPicker error or closed:", o);
+    }
+    u(this, d).setSelection([]);
+  }
+  render() {
+    return l`
+      <uui-button
+        look="primary"
+        label="Select document"
+        @click=${this._openPicker}>
+        Select parent nodes
+      </uui-button>
+    `;
+  }
+};
+d = /* @__PURE__ */ new WeakMap();
+g = x([
+  N("custom-document-picker")
+], g);
+var _ = Object.defineProperty, p = (o, e, t, i) => {
+  for (var s = void 0, a = o.length - 1, r; a >= 0; a--)
+    (r = o[a]) && (s = r(e, t, s) || s);
+  return s && _(e, t, s), s;
+};
+const h = class h extends w {
+  constructor() {
+    super(), this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [];
   }
   async connectedCallback() {
-    super.connectedCallback(), this.documentItemRepository = new b(this), await this.loadMenuItemsFromDb();
+    super.connectedCallback(), this.documentItemRepository = new k(this), await this.loadMenuItemsFromDb();
   }
   async loadMenuItemsFromDb() {
     try {
       const e = await this.makeAuthenticatedRequest(
-        `${i.API_BASE}${i.ENDPOINTS.MENU_ITEMS}`
-      ), t = await p.handleResponse(e);
+        `${n.API_BASE}${n.ENDPOINTS.MENU_ITEMS}`
+      ), t = await v.handleResponse(e);
       this.menuItems = t.items || [];
     } catch (e) {
       console.error("Error loading menu items from database:", e);
-      const t = localStorage.getItem(i.STORAGE_KEYS.MENU_ITEMS);
+      const t = localStorage.getItem(n.STORAGE_KEYS.MENU_ITEMS);
       this.menuItems = t ? JSON.parse(t) : [];
     }
   }
   async saveMenuItemsToDb() {
     try {
       const e = await this.makeAuthenticatedRequest(
-        `${i.API_BASE}${i.ENDPOINTS.MENU_ITEMS}`,
+        `${n.API_BASE}${n.ENDPOINTS.MENU_ITEMS}`,
         {
           method: "POST",
           body: JSON.stringify({ items: this.menuItems })
         }
       );
-      await p.handleResponse(e), localStorage.setItem(i.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
+      await v.handleResponse(e), localStorage.setItem(n.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
         detail: { menuItems: this.menuItems }
       }));
     } catch (e) {
-      console.error("Error saving menu items to database:", e), localStorage.setItem(i.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
+      console.error("Error saving menu items to database:", e), localStorage.setItem(n.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
         detail: { menuItems: this.menuItems }
       }));
     }
@@ -48,13 +89,13 @@ const l = class l extends g(v) {
     console.log("Content selected event:", e);
     const t = e;
     console.log("Custom event detail:", t.detail);
-    const o = e.target;
-    console.log("Picker element:", o), console.log("Picker selection:", o.selection), console.log("Picker value:", o.value);
-    let s = t.detail?.selection || o.selection || o.value;
-    if (console.log("Final selection:", s), s && Array.isArray(s) && s.length > 0) {
-      const r = typeof s[0] == "string" ? s[0] : s[0].unique || s[0].id;
-      console.log("Selected node ID:", r), await this.fetchNodeDetails(r);
-    } else typeof s == "string" ? await this.fetchNodeDetails(s) : s && Array.isArray(s) && s.length === 0 ? this.clearSelection() : console.warn("Could not extract selection from event");
+    const i = e.target;
+    console.log("Picker element:", i), console.log("Picker selection:", i.selection), console.log("Picker value:", i.value);
+    let s = t.detail?.selection || i.selection || i.value;
+    console.log("Final selection:", s), s && Array.isArray(s) && s.length > 0 ? s.forEach(async (a) => {
+      const r = typeof a == "string" ? a : a.unique || a.id;
+      await this.fetchNodeDetails(r), this.addSelectedNodeToMenu();
+    }) : typeof s == "string" ? await this.fetchNodeDetails(s) : s && Array.isArray(s) && s.length === 0 ? this.clearSelection() : console.warn("Could not extract selection from event");
   }
   async fetchNodeDetails(e) {
     try {
@@ -64,8 +105,8 @@ const l = class l extends g(v) {
       }
       const { data: t } = await this.documentItemRepository.requestItems([e]);
       if (t && t.length > 0) {
-        const o = t[0];
-        this.selectedNodeId = o.unique, this.selectedNodeName = o.variants?.[0]?.name || "Unnamed Node", console.log("Fetched node details:", o), this.saveSelection(), this.saveMessage = "";
+        const i = t[0];
+        this.selectedNodeId = i.unique, this.selectedNodeName = i.variants?.[0]?.name || "Unnamed Node", console.log("Fetched node details:", i), this.saveSelection(), this.saveMessage = "";
       } else
         console.error("No node data returned"), this.saveMessage = "Failed to load node details";
     } catch (t) {
@@ -93,12 +134,6 @@ const l = class l extends g(v) {
       this.saveMessage = "", this.requestUpdate();
     }, 3e3)) : (this.menuItems = [...this.menuItems, t], this.saveMenuItemsToDb(), console.log("Menu item added:", t));
   }
-  removeMenuItem(e) {
-    const t = this.menuItems.find((o) => o.id === e);
-    this.menuItems = this.menuItems.filter((o) => o.id !== e), this.saveMenuItemsToDb(), console.log("Menu item removed:", e), this.saveMessage = `✓ "${t?.name}" removed from menu`, setTimeout(() => {
-      this.saveMessage = "", this.requestUpdate();
-    }, 3e3);
-  }
   clearSelection() {
     this.selectedNodeId = null, this.selectedNodeName = "", localStorage.removeItem("powerSortSelectedNodeName"), localStorage.removeItem("powerSortSelectedNodeId"), localStorage.removeItem("powerSortLastSelectedTime"), this.requestUpdate();
   }
@@ -110,11 +145,11 @@ const l = class l extends g(v) {
     e && t && (this.selectedNodeName = e, this.selectedNodeId = t, this.requestUpdate());
   }
   render() {
-    return n`
+    return l`
       <div class="dashboard-container">
         <div class="dashboard-header">
-          <h1>Power Sort Dashboard</h1>
-          <p>Select content nodes to add them as menu items in the sidebar</p>
+          <h1 aria-describedby="plugin-description">Power Sort Dashboard</h1>
+          <h2 id="plugin-description">A plugin to enable scheduled sorting of child nodes</h2>
         </div>
 
         <div class="content-picker-section">
@@ -122,44 +157,21 @@ const l = class l extends g(v) {
           <div class="content-picker-wrapper">
             <label class="picker-label">Content Picker</label>
             <span class="picker-description">
-              Choose a content item from your site to add to the Power Sort menu
+              Select the parent nodes to add to the left hand menu to enable sorting
             </span>
             
-            <umb-input-document
-              @change=${this.handleContentSelected}
-              max="1"
-              min="0">
-            </umb-input-document>
-
-            <div class="action-buttons">
-              <uui-button
-                look="primary"
-                color="positive"
-                label="Add to Menu"
-                @click=${this.addSelectedNodeToMenu}
-                ?disabled=${!this.selectedNodeName}>
-                <uui-icon name="icon-add"></uui-icon>
-                Add to Menu
-              </uui-button>
-              
-              <uui-button
-                look="outline"
-                label="Clear Selection"
-                @click=${this.clearSelection}
-                ?disabled=${!this.selectedNodeName}>
-                <uui-icon name="icon-delete"></uui-icon>
-                Clear Selection
-              </uui-button>
+         <custom-document-picker @selection-changed=${this.handleContentSelected}>
+         </custom-document-picker>
             </div>
           </div>
 
-          ${this.saveMessage ? n`
+          ${this.saveMessage ? l`
             <div class="save-message">
               ${this.saveMessage}
             </div>
           ` : ""}
 
-          ${this.selectedNodeName ? n`
+          ${this.selectedNodeName ? l`
             <div class="selected-info">
               <uui-icon name="icon-check"></uui-icon>
               <div>
@@ -174,46 +186,11 @@ const l = class l extends g(v) {
             </div>
           ` : ""}
         </div>
-
-        <div class="menu-items-section">
-          <h2>Active Menu Items (${this.menuItems.length})</h2>
-          
-          ${this.menuItems.length > 0 ? n`
-            <div class="info-box">
-              <strong>💡 How to use:</strong>
-              Click on any menu item in the sidebar (left panel) to view and sort its children.
-            </div>
-            <div class="menu-items-list">
-              ${this.menuItems.map((e) => n`
-                <div class="menu-item">
-                  <uui-icon name="${e.icon}"></uui-icon>
-                  <div class="menu-item-content">
-                    <span class="menu-item-name">${e.name}</span>
-                    <span class="menu-item-id">${e.id}</span>
-                  </div>
-                  <uui-button 
-                    label="Remove"
-                    look="outline"
-                    color="danger"
-                    @click=${() => this.removeMenuItem(e.id)}>
-                    <uui-icon name="icon-trash"></uui-icon>
-                    Remove
-                  </uui-button>
-                </div>
-              `)}
-            </div>
-          ` : n`
-            <div class="no-items">
-              <p>No menu items added yet.</p>
-              <p>Use the content picker above to select a node and click "Add to Menu".</p>
-            </div>
-          `}
-        </div>
       </div>
     `;
   }
 };
-l.styles = h`
+h.styles = b`
     :host {
       display: block;
       padding: var(--uui-size-space-5);
@@ -371,21 +348,18 @@ l.styles = h`
       margin-bottom: var(--uui-size-space-2);
     }
   `;
-let a = l;
-c([
-  d({ type: String })
-], a.prototype, "selectedNodeId");
-c([
-  d({ type: String })
-], a.prototype, "selectedNodeName");
-c([
-  d({ type: Array })
-], a.prototype, "menuItems");
-c([
-  d({ type: String })
-], a.prototype, "saveMessage");
-customElements.define("power-sort-dashboard", a);
+let c = h;
+p([
+  m({ type: String })
+], c.prototype, "selectedNodeId");
+p([
+  m({ type: String })
+], c.prototype, "selectedNodeName");
+p([
+  m({ type: Array })
+], c.prototype, "menuItems");
+customElements.define("power-sort-dashboard", c);
 export {
-  a as default
+  c as default
 };
-//# sourceMappingURL=powersort.element-B3mrynDI.js.map
+//# sourceMappingURL=powersort.element-BaNxFkTW.js.map

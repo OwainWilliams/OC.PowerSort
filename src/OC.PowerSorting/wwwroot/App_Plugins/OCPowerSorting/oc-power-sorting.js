@@ -114,7 +114,7 @@ const o = [
     label: "Settings",
     pathname: "view",
     icon: "icon-settings",
-    jsImport: () => import("./priority-section-view.element-CmTK8ZiG.js")
+    jsImport: () => import("./priority-section-view.element-CIzB7BtP.js")
   })
 ], s = [
   t.createDashboardManifest({
@@ -122,7 +122,7 @@ const o = [
     alias: "OC.PowerSorting-Dashboard",
     label: "Power Sort Dashboard",
     pathname: "power-sort-dashboard",
-    jsImport: () => import("./powersort.element-B3mrynDI.js")
+    jsImport: () => import("./powersort.element-BaNxFkTW.js")
   })
 ], l = [
   t.createDashboardManifest({
@@ -146,7 +146,7 @@ const o = [
     alias: "OC.PowerSorting.SectionSidebar",
     label: "Power Sorting Sidebar",
     icon: "icon-sort",
-    jsImport: () => import("./sidebar-app.element-Cb6dJ8KJ.js"),
+    jsImport: () => import("./sidebar-app.element-mAgzSIj4.js"),
     menus: ["OC.PowerSorting.Menu"]
   })
 ], i = "Umb.", c = [
