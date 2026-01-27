@@ -297,7 +297,6 @@ let o = class extends b(f(p)) {
         </div>
 
         ${this.renderEnumPrioritiesTable()}
-
         ${this.renderDialog()}
       </div>
     `;
@@ -534,4 +533,4 @@ o = n([
 export {
   o as default
 };
-//# sourceMappingURL=priority-section-view.element-CIzB7BtP.js.map
+//# sourceMappingURL=priority-section-view.element-DGakZAnw.js.map

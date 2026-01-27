@@ -114,7 +114,7 @@ const o = [
     label: "Settings",
     pathname: "view",
     icon: "icon-settings",
-    jsImport: () => import("./priority-section-view.element-CIzB7BtP.js")
+    jsImport: () => import("./priority-section-view.element-DGakZAnw.js")
   })
 ], s = [
   t.createDashboardManifest({
