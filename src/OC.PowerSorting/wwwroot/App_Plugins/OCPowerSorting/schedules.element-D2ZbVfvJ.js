@@ -1,14 +1,14 @@
 import { LitElement as y, html as o, css as b, property as u, state as n } from "@umbraco-cms/backoffice/external/lit";
-import { U as D, P as p, A as v } from "./api-response.utils-CwOHzmUr.js";
-import { V as S, D as w } from "./validation.utils-BWAQMB43.js";
-import { S as C } from "./schedule-api.client-Dwop60FJ.js";
-import { U as x } from "./ui.mixin-CNYLBGOM.js";
+import { U as D, P as p, A as v } from "./crud.mixin-CKRlkSCY.js";
+import { D as S } from "./validation.utils-BMdJXB5x.js";
+import { S as w } from "./schedule-api.client-B7glFSVb.js";
+import { U as C } from "./ui.mixin-BO9nAmoy.js";
 var z = Object.defineProperty, s = (h, e, i, r) => {
   for (var t = void 0, l = h.length - 1, g; l >= 0; l--)
     (g = h[l]) && (t = g(e, i, t) || t);
   return t && z(e, i, t), t;
 };
-const m = class m extends x(D(y)) {
+const m = class m extends C(D(y)) {
   constructor() {
     super(...arguments), this.parentId = "", this.schedule = null, this.selectedContentId = "", this.selectedContentName = "", this.targetPosition = 0, this.startDateTime = "", this.endDateTime = "", this.priority = 0, this.priorityOptions = [], this.loadingPriorities = !0, this.noPriorityOptionsFound = !1, this.availableChildren = [], this.loadingChildren = !1, this.error = "";
   }
@@ -650,17 +650,20 @@ s([
   n()
 ], a.prototype, "error");
 customElements.define("schedule-dialog", a);
-var $ = Object.defineProperty, c = (h, e, i, r) => {
+var x = Object.defineProperty, c = (h, e, i, r) => {
   for (var t = void 0, l = h.length - 1, g; l >= 0; l--)
     (g = h[l]) && (t = g(e, i, t) || t);
-  return t && $(e, i, t), t;
+  return t && x(e, i, t), t;
 };
 const f = class f extends D(y) {
   constructor() {
     super(...arguments), this.parentId = "", this.parentNodeName = "", this.schedules = [], this.loading = !1, this.error = "", this.showCreateDialog = !1, this.editingSchedule = null;
   }
   async connectedCallback() {
-    super.connectedCallback(), this.parentId = S.extractGuidFromPath() || "", this.scheduleApi = new C(() => this.getAuthToken()), this.parentId && (await this.loadParentInfo(), await this.loadSchedules());
+    super.connectedCallback(), this.scheduleApi = new w(() => this.getAuthToken()), this.parentId && (await this.loadParentInfo(), await this.loadSchedules());
+  }
+  async updated(e) {
+    super.updated(e), e.has("parentId") && this.parentId && (await this.loadParentInfo(), await this.loadSchedules());
   }
   async loadParentInfo() {
     if (this.parentId)
@@ -738,7 +741,7 @@ const f = class f extends D(y) {
       }
   }
   formatDateTime(e) {
-    return w.formatDateTime(e);
+    return S.formatDateTime(e);
   }
   getStatusBadge(e) {
     if (e.isCurrentlyActive)
@@ -999,4 +1002,4 @@ customElements.define("power-sort-schedules", d);
 export {
   d as default
 };
-//# sourceMappingURL=schedules.element-B8Lu2WMR.js.map
+//# sourceMappingURL=schedules.element-D2ZbVfvJ.js.map

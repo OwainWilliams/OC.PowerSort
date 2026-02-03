@@ -8,12 +8,7 @@ export const manifests: Array<UmbExtensionManifest> = [
     pathname: "power-sort",
   }),
   
-  ManifestFactory.createSectionViewManifest({
-    name: "Power Sort Section View",
-    alias: "OC.PowerSorting.SectionView",
-    label: "Settings",
-    pathname: "view",
-    icon: "icon-settings",
-    jsImport: () => import("./priority-section-view.element.js"),
-  }),
+  // Section view removed - content is accessed contextually through dashboards
+  // Users interact with Children/Schedules by clicking nodes in the tree or sidebar
+  // If you need the Enum Priorities view, you can convert it to a dashboard instead
 ];

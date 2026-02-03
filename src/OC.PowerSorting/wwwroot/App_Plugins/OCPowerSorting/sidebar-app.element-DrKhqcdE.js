@@ -1,16 +1,15 @@
 import { html as n, css as h, state as v, customElement as b } from "@umbraco-cms/backoffice/external/lit";
-import { R as m } from "./validation.utils-BWAQMB43.js";
-import { P as c, A as g } from "./api-response.utils-CwOHzmUr.js";
+import { R as l } from "./validation.utils-BMdJXB5x.js";
+import { c as g, P as c, A as I } from "./crud.mixin-CKRlkSCY.js";
 import { UMB_SECTION_CONTEXT as f } from "@umbraco-cms/backoffice/section";
-import { c as I } from "./crud.mixin-C3UrAXbX.js";
-var w = Object.defineProperty, M = Object.getOwnPropertyDescriptor, l = (e) => {
+var w = Object.defineProperty, M = Object.getOwnPropertyDescriptor, m = (e) => {
   throw TypeError(e);
 }, p = (e, t, o, r) => {
-  for (var s = r > 1 ? void 0 : r ? M(t, o) : t, i = e.length - 1, u; i >= 0; i--)
-    (u = e[i]) && (s = (r ? u(t, o, s) : u(s)) || s);
+  for (var s = r > 1 ? void 0 : r ? M(t, o) : t, a = e.length - 1, u; a >= 0; a--)
+    (u = e[a]) && (s = (r ? u(t, o, s) : u(s)) || s);
   return r && s && w(t, o, s), s;
-}, x = (e, t, o) => t.has(e) || l("Cannot " + o), _ = (e, t, o) => t.has(e) ? l("Cannot add the same private member more than once") : t instanceof WeakSet ? t.add(e) : t.set(e, o), y = (e, t, o, r) => (x(e, t, "write to private field"), t.set(e, o), o), d;
-let a = class extends I {
+}, x = (e, t, o) => t.has(e) || m("Cannot " + o), _ = (e, t, o) => t.has(e) ? m("Cannot add the same private member more than once") : t instanceof WeakSet ? t.add(e) : t.set(e, o), y = (e, t, o, r) => (x(e, t, "write to private field"), t.set(e, o), o), d;
+let i = class extends g {
   constructor() {
     super(), this.menuItems = [], _(this, d), window.addEventListener("powerSortMenuUpdated", this.handleMenuUpdate.bind(this));
   }
@@ -37,7 +36,7 @@ let a = class extends I {
     try {
       const e = await this.makeAuthenticatedRequest(
         `${c.API_BASE}${c.ENDPOINTS.MENU_ITEMS}`
-      ), t = await g.handleResponse(e);
+      ), t = await I.handleResponse(e);
       this.menuItems = t.items || [];
     } catch (e) {
       console.error("Error loading menu items from database:", e), this.loadMenuItems();
@@ -48,11 +47,11 @@ let a = class extends I {
     this.menuItems = e ? JSON.parse(e) : [];
   }
   handleMenuItemClick(e) {
-    m.navigateTo(m.getDashboardPath("children", e));
+    l.navigateTo(l.getDashboardPath("children", e));
   }
   removeMenuItem(e, t) {
-    const r = e.currentTarget?.closest(".js-popover"), s = this.menuItems.find((i) => i.id === t);
-    this.menuItems = this.menuItems.filter((i) => i.id !== t), this.saveMenuItemsToDb(this.menuItems), console.log("Menu item removed:", t), this.saveMessage = `✓ "${s?.name}" removed from menu`, r?.setAttribute("close", "true"), setTimeout(() => {
+    const r = e.currentTarget?.closest(".js-popover"), s = this.menuItems.find((a) => a.id === t);
+    this.menuItems = this.menuItems.filter((a) => a.id !== t), this.saveMenuItemsToDb(this.menuItems), console.log("Menu item removed:", t), this.saveMessage = `✓ "${s?.name}" removed from menu`, r?.setAttribute("close", "true"), setTimeout(() => {
       this.saveMessage = "", this.requestUpdate();
     }, 3e3);
   }
@@ -97,7 +96,7 @@ let a = class extends I {
   }
 };
 d = /* @__PURE__ */ new WeakMap();
-a.styles = h`
+i.styles = h`
     :host {
       display: block;
     }
@@ -156,13 +155,13 @@ a.styles = h`
   `;
 p([
   v()
-], a.prototype, "menuItems", 2);
-a = p([
+], i.prototype, "menuItems", 2);
+i = p([
   b("oc-powersorting-sidebar-app")
-], a);
-const k = a;
+], i);
+const T = i;
 export {
-  a as OcPowersortingSidebarAppElement,
-  k as default
+  i as OcPowersortingSidebarAppElement,
+  T as default
 };
-//# sourceMappingURL=sidebar-app.element-mAgzSIj4.js.map
+//# sourceMappingURL=sidebar-app.element-DrKhqcdE.js.map

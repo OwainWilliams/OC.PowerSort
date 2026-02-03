@@ -1,4 +1,4 @@
-import { P as t, A as a } from "./api-response.utils-CwOHzmUr.js";
+import { P as t, A as a } from "./crud.mixin-CKRlkSCY.js";
 class E {
   constructor(e) {
     this.getAuthToken = e;
@@ -57,4 +57,4 @@ class E {
 export {
   E as S
 };
-//# sourceMappingURL=schedule-api.client-Dwop60FJ.js.map
+//# sourceMappingURL=schedule-api.client-B7glFSVb.js.map

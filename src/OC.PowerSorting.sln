@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33020.496
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{898245CA-CC93-43B0-83F3-83987F8CFEAC}"
 	ProjectSection(SolutionItems) = preProject
@@ -14,6 +14,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OC.PowerSorting.TestSite", "OC.PowerSorting.TestSite\OC.PowerSorting.TestSite.csproj", "{F8D31601-8BB7-475E-9835-F223224CB455}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OC.PowerSorting", "OC.PowerSorting\OC.PowerSorting.csproj", "{B36755F2-E273-4DED-A84A-7DC404E6C0C2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OC.PowerSorting.Tests", "src\OC.PowerSorting.Tests\OC.PowerSorting.Tests.csproj", "{8536D310-1385-4713-805C-DB962FA1CF7A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -49,6 +51,18 @@ Global
 		{B36755F2-E273-4DED-A84A-7DC404E6C0C2}.Release|x64.Build.0 = Release|Any CPU
 		{B36755F2-E273-4DED-A84A-7DC404E6C0C2}.Release|x86.ActiveCfg = Release|Any CPU
 		{B36755F2-E273-4DED-A84A-7DC404E6C0C2}.Release|x86.Build.0 = Release|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Debug|x64.Build.0 = Debug|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Debug|x86.Build.0 = Debug|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Release|x64.ActiveCfg = Release|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Release|x64.Build.0 = Release|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Release|x86.ActiveCfg = Release|Any CPU
+		{8536D310-1385-4713-805C-DB962FA1CF7A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

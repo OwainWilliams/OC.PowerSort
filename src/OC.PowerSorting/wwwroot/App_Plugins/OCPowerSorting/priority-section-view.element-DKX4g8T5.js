@@ -1,6 +1,6 @@
-import { html as d, LitElement as p, css as h, state as u, property as g, customElement as y } from "@umbraco-cms/backoffice/external/lit";
-import { U as f, P as s, A as l, b as v } from "./api-response.utils-CwOHzmUr.js";
-import { U as b } from "./ui.mixin-CNYLBGOM.js";
+import { LitElement as p, html as d, css as h, state as u, property as g, customElement as y } from "@umbraco-cms/backoffice/external/lit";
+import { U as f, P as s, A as l, b as v } from "./crud.mixin-CKRlkSCY.js";
+import { U as b } from "./ui.mixin-BO9nAmoy.js";
 import { p as P } from "./shared.styles-7p8CFe0X.js";
 var E = Object.defineProperty, w = Object.getOwnPropertyDescriptor, n = (i, r, t, e) => {
   for (var a = e > 1 ? void 0 : e ? w(r, t) : r, m = i.length - 1, c; m >= 0; m--)
@@ -297,7 +297,6 @@ let o = class extends b(f(p)) {
         </div>
 
         ${this.renderEnumPrioritiesTable()}
-
         ${this.renderDialog()}
       </div>
     `;
@@ -534,4 +533,4 @@ o = n([
 export {
   o as default
 };
-//# sourceMappingURL=priority-section-view.element-CIzB7BtP.js.map
+//# sourceMappingURL=priority-section-view.element-DKX4g8T5.js.map

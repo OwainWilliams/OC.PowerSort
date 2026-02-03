@@ -19,6 +19,10 @@ export const onInit: UmbEntryPointOnInit = (_host, _extensionRegistry) => {
       credentials: config?.credentials ?? "same-origin",
     });
   });
+  
+  // Note: Children and Schedules elements are NOT registered as extensions
+  // They are loaded dynamically when navigating via sidebar or direct URLs
+  // This prevents them from showing as tabs in the section
 };
 
 export const onUnload: UmbEntryPointOnUnload = (_host, _extensionRegistry) => {

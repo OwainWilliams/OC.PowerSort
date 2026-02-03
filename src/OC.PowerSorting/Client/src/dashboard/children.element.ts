@@ -1,7 +1,7 @@
 import { LitElement, html, css, customElement, state, property } from '@umbraco-cms/backoffice/external/lit';
 import { UmbAuthMixin } from '../mixins/auth.mixin.js';
 import { UmbUiMixin } from '../mixins/ui.mixin.js';
-import { ValidationUtils, RouteUtils } from '../utils/validation.utils.js';
+import { RouteUtils } from '../utils/validation.utils.js';
 import { PowerSortConstants } from '../utils/constants.js';
 import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import { powerSortSharedStyles } from '../styles/shared.styles.js';
@@ -42,9 +42,10 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(UmbAut
     // Initialize schedule API
     this.scheduleApi = new ScheduleApiClient(() => this.getAuthToken());
 
-    // Extract ID from route
-    this.id = ValidationUtils.extractGuidFromPath() || '';
-
+    // Don't extract ID from route here - it's passed as a property from parent dashboard
+    // The updated() lifecycle method will handle loading when the id property is set
+    
+    // If ID is already set (shouldn't happen on first connect), load data
     if (this.id) {
       await this.loadNodeChildren();
       await this.loadActiveSchedules();
@@ -156,9 +157,11 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(UmbAut
   async updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
 
-    // If id changes, reload children
+    // If id changes, reload all data
     if (changedProperties.has('id') && this.id) {
       await this.loadNodeChildren();
+      await this.loadActiveSchedules();
+      await this.loadDefaultOrderInfo();
     }
   }
 
