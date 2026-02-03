@@ -1,10 +1,11 @@
-import {html, css, property } from '@umbraco-cms/backoffice/external/lit';
+import {html, css, property, state } from '@umbraco-cms/backoffice/external/lit';
 import { PowerSortConstants } from '../utils/constants.js';
 import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import type { MenuItem } from '../types/index.js';
 import { UmbDocumentItemRepository } from '@umbraco-cms/backoffice/document';
 import crudMixin from "../mixins/crud.mixin.js"
 import "../components/document-picker.js"
+
 export default class PowerSortDashboardElement extends crudMixin {
   @property({ type: String })
   private selectedNodeId: string | null = null;
@@ -14,6 +15,12 @@ export default class PowerSortDashboardElement extends crudMixin {
 
   @property({ type: Array })
   private menuItems: MenuItem[] = [];
+
+  @state()
+  private currentView: 'main' | 'children' | 'schedules' | 'priorities' = 'main';
+
+  @state()
+  private routeNodeId: string = '';
 
   private documentItemRepository?: UmbDocumentItemRepository;
 
@@ -30,7 +37,51 @@ export default class PowerSortDashboardElement extends crudMixin {
     // Initialize repository after element is connected
     this.documentItemRepository = new UmbDocumentItemRepository(this);
     
+    // Determine which view to show based on route
+    this.detectCurrentView();
+    
+    // Listen for hash changes to update view
+    window.addEventListener('hashchange', () => this.detectCurrentView());
+    window.addEventListener('popstate', () => this.detectCurrentView());
+    
     await this.loadMenuItemsFromDb();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener('hashchange', () => this.detectCurrentView());
+    window.removeEventListener('popstate', () => this.detectCurrentView());
+  }
+
+  private detectCurrentView() {
+    const hash = window.location.hash;
+    
+    // Check if we're on a children route (hash: #children/:id)
+    if (hash.includes('children/')) {
+      this.currentView = 'children';
+      // Extract ID from hash
+      const matches = hash.match(/children\/([a-f0-9-]+)/i);
+      this.routeNodeId = matches ? matches[1] : '';
+      this.requestUpdate();
+    }
+    // Check if we're on a schedules route (hash: #schedules/:id)
+    else if (hash.includes('schedules/')) {
+      this.currentView = 'schedules';
+      // Extract ID from hash
+      const matches = hash.match(/schedules\/([a-f0-9-]+)/i);
+      this.routeNodeId = matches ? matches[1] : '';
+      this.requestUpdate();
+    }
+    // Check if we're on the priorities route (hash: #priorities)
+    else if (hash.includes('priorities')) {
+      this.currentView = 'priorities';
+      this.requestUpdate();
+    }
+    // Default to main view
+    else {
+      this.currentView = 'main';
+      this.requestUpdate();
+    }
   }
 
   async loadMenuItemsFromDb() {
@@ -389,11 +440,36 @@ export default class PowerSortDashboardElement extends crudMixin {
   }
 
   render() {
+    // Conditionally render based on current view
+    switch (this.currentView) {
+      case 'children':
+        return this.renderChildrenView();
+      case 'schedules':
+        return this.renderSchedulesView();
+      case 'priorities':
+        return this.renderPrioritiesView();
+      default:
+        return this.renderMainView();
+    }
+  }
+
+  private renderMainView() {
     return html`
       <div class="dashboard-container">
         <div class="dashboard-header">
           <h1 aria-describedby="plugin-description">Power Sort Dashboard</h1>
           <h2 id="plugin-description">A plugin to enable scheduled sorting of child nodes</h2>
+          
+          <div style="margin-top: var(--uui-size-space-4);">
+            <uui-button
+              look="outline"
+              color="default"
+              label="Manage Enum Priorities"
+              @click=${() => window.location.hash = 'priorities'}>
+              <uui-icon name="icon-ordered-list"></uui-icon>
+              Manage Priorities
+            </uui-button>
+          </div>
         </div>
 
         <div class="content-picker-section">
@@ -431,6 +507,30 @@ export default class PowerSortDashboardElement extends crudMixin {
           ` : ''}
         </div>
       </div>
+    `;
+  }
+
+  private renderChildrenView() {
+    // Dynamically import and render the children element
+    import('./children.element.js');
+    return html`
+      <power-sort-children-dashboard .id=${this.routeNodeId}></power-sort-children-dashboard>
+    `;
+  }
+
+  private renderSchedulesView() {
+    // Dynamically import and render the schedules element
+    import('./schedules.element.js');
+    return html`
+      <power-sort-schedules .parentId=${this.routeNodeId}></power-sort-schedules>
+    `;
+  }
+
+  private renderPrioritiesView() {
+    // Dynamically import and render the enum priorities element
+    import('../section/priority-section-view.element.js');
+    return html`
+      <power-sort-enum-priorities-dashboard></power-sort-enum-priorities-dashboard>
     `;
   }
 }

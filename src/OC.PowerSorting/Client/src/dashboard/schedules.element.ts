@@ -1,6 +1,6 @@
 import { LitElement, html, css, property } from '@umbraco-cms/backoffice/external/lit';
 import { UmbAuthMixin } from '../mixins/auth.mixin.js';
-import { ValidationUtils, DateUtils } from '../utils/validation.utils.js';
+import { DateUtils } from '../utils/validation.utils.js';
 import { PowerSortConstants } from '../utils/constants.js';
 import { ApiResponseHandler } from '../utils/api-response.utils.js';
 import type {
@@ -38,12 +38,23 @@ export default class ScheduleManagementElement extends UmbAuthMixin(LitElement) 
   async connectedCallback() {
     super.connectedCallback(); // Auth setup handled by mixin
     
-    // Extract parent ID from route
-    this.parentId = ValidationUtils.extractGuidFromPath() || '';
+    // Don't extract parent ID from route here - it's passed as a property from parent dashboard
+    // The updated() lifecycle method will handle loading when the parentId property is set
     
     this.scheduleApi = new ScheduleApiClient(() => this.getAuthToken());
     
+    // If parentId is already set (shouldn't happen on first connect), load data
     if (this.parentId) {
+      await this.loadParentInfo();
+      await this.loadSchedules();
+    }
+  }
+
+  async updated(changedProperties: Map<string, any>) {
+    super.updated(changedProperties);
+
+    // If parentId changes, reload all data
+    if (changedProperties.has('parentId') && this.parentId) {
       await this.loadParentInfo();
       await this.loadSchedules();
     }

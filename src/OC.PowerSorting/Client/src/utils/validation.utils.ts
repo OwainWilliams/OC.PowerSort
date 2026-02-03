@@ -38,6 +38,7 @@ export class ValidationUtils {
   }
 }
 
+
 /**
  * URL and routing utilities
  */
@@ -52,9 +53,11 @@ export class RouteUtils {
 
   /**
    * Generate dashboard path for Power Sort sections
+   * Now routes to main dashboard with view type and ID in path
    */
   static getDashboardPath(dashboardType: 'children' | 'schedules', id: string): string {
-    return `/umbraco/section/power-sort/dashboard/power-sort-${dashboardType}/${id}`;
+    // Use hash-based routing within the main dashboard
+    return `/umbraco/section/power-sort/dashboard/power-sort-dashboard#${dashboardType}/${id}`;
   }
 }
 

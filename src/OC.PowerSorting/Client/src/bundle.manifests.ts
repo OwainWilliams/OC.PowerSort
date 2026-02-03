@@ -1,8 +1,8 @@
 import { manifests as entrypoints } from "./entrypoints/manifest.js";
 import { manifests as section } from "./section/manifest.js";
 import { manifests as dashboard } from "./dashboard/manifest.js";
-import { manifests as childrenDashboard } from "./dashboard/children.manifest.js";
-import { manifests as schedulesDashboard } from "./dashboard/schedules.manifest.js";
+// Children and Schedules are now rendered conditionally within the main dashboard
+// No separate dashboard registrations needed
 import { manifests as sidebar } from "./sectionSidebar/manifest.js"; 
 import { entitySignManifests } from "./entitySigns/manifest.js";
 
@@ -10,9 +10,7 @@ import { entitySignManifests } from "./entitySigns/manifest.js";
 // We load this bundle from umbraco-package.json
 export const manifests: Array<UmbExtensionManifest> = [
   ...entrypoints,
-  ...dashboard,
-  ...childrenDashboard,
-  ...schedulesDashboard,
+  ...dashboard, // Main PowerSort dashboard - conditionally renders Children/Schedules
   ...section,
   ...sidebar,
   ...entitySignManifests,

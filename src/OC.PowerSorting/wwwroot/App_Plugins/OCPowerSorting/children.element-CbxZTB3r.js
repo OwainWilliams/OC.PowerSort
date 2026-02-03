@@ -1,34 +1,34 @@
 import { LitElement as m, html as n, css as O, property as v, state as h, customElement as D } from "@umbraco-cms/backoffice/external/lit";
-import { U as E, P as r, A as a } from "./api-response.utils-CwOHzmUr.js";
-import { U as y } from "./ui.mixin-CNYLBGOM.js";
-import { V as A, R as f } from "./validation.utils-BWAQMB43.js";
-import { p as b } from "./shared.styles-7p8CFe0X.js";
-import { S as C } from "./schedule-api.client-Dwop60FJ.js";
-var N = Object.defineProperty, w = Object.getOwnPropertyDescriptor, l = (e, t, i, s) => {
-  for (var d = s > 1 ? void 0 : s ? w(t, i) : t, p = e.length - 1, u; p >= 0; p--)
-    (u = e[p]) && (d = (s ? u(t, i, d) : u(d)) || d);
-  return s && d && N(t, i, d), d;
+import { U as E, P as r, A as i } from "./crud.mixin-CKRlkSCY.js";
+import { U as A } from "./ui.mixin-BO9nAmoy.js";
+import { R as f } from "./validation.utils-BMdJXB5x.js";
+import { p as y } from "./shared.styles-7p8CFe0X.js";
+import { S as b } from "./schedule-api.client-B7glFSVb.js";
+var w = Object.defineProperty, C = Object.getOwnPropertyDescriptor, l = (e, t, a, s) => {
+  for (var d = s > 1 ? void 0 : s ? C(t, a) : t, p = e.length - 1, u; p >= 0; p--)
+    (u = e[p]) && (d = (s ? u(t, a, d) : u(d)) || d);
+  return s && d && w(t, a, d), d;
 };
-let o = class extends y(E(m)) {
+let o = class extends A(E(m)) {
   constructor() {
     super(...arguments), this.id = "", this.parentNodeName = "", this.nodeChildren = [], this.activeSchedules = [], this.hasDefaultOrder = !1, this.defaultOrderInfo = null, this.loading = !1, this.error = "";
   }
   async connectedCallback() {
-    super.connectedCallback(), this.scheduleApi = new C(() => this.getAuthToken()), this.id = A.extractGuidFromPath() || "", this.id && (await this.loadNodeChildren(), await this.loadActiveSchedules(), await this.loadDefaultOrderInfo());
+    super.connectedCallback(), this.scheduleApi = new b(() => this.getAuthToken()), this.id && (await this.loadNodeChildren(), await this.loadActiveSchedules(), await this.loadDefaultOrderInfo());
   }
   async loadDefaultOrderInfo() {
     if (this.id)
       try {
         const e = await this.makeAuthenticatedRequest(
           `${r.API_BASE}${r.ENDPOINTS.DEFAULT_SORT_ORDER}/${this.id}`
-        ), t = await a.handleResponse(e);
+        ), t = await i.handleResponse(e);
         this.defaultOrderInfo = t, this.hasDefaultOrder = t.isSet;
       } catch (e) {
         console.error("Error loading default order info:", e);
       }
   }
   async saveAsDefaultOrder() {
-    if (this.id && a.confirmAction(r.MESSAGES.CONFIRM_SAVE_DEFAULT))
+    if (this.id && i.confirmAction(r.MESSAGES.CONFIRM_SAVE_DEFAULT))
       try {
         const e = await this.makeAuthenticatedRequest(
           `${r.API_BASE}${r.ENDPOINTS.DEFAULT_SORT_ORDER_SAVE}`,
@@ -37,33 +37,33 @@ let o = class extends y(E(m)) {
             body: JSON.stringify({ parentId: this.id })
           }
         );
-        await a.handleResponse(e), await this.loadDefaultOrderInfo(), a.showSuccess("Current sort order saved as default!");
+        await i.handleResponse(e), await this.loadDefaultOrderInfo(), i.showSuccess("Current sort order saved as default!");
       } catch (e) {
-        a.showError(e, "Failed to save default order");
+        i.showError(e, "Failed to save default order");
       }
   }
   async restoreDefaultOrder() {
-    if (this.id && a.confirmAction(r.MESSAGES.CONFIRM_RESTORE_DEFAULT))
+    if (this.id && i.confirmAction(r.MESSAGES.CONFIRM_RESTORE_DEFAULT))
       try {
         const e = await this.makeAuthenticatedRequest(
           `${r.API_BASE}${r.ENDPOINTS.DEFAULT_SORT_ORDER_RESTORE}/${this.id}`,
           { method: "POST" }
         );
-        await a.handleResponse(e), await this.loadNodeChildren(), a.showSuccess("Default sort order restored!");
+        await i.handleResponse(e), await this.loadNodeChildren(), i.showSuccess("Default sort order restored!");
       } catch (e) {
-        a.showError(e, "Failed to restore default order");
+        i.showError(e, "Failed to restore default order");
       }
   }
   async clearDefaultOrder() {
-    if (this.id && a.confirmAction(r.MESSAGES.CONFIRM_CLEAR_DEFAULT))
+    if (this.id && i.confirmAction(r.MESSAGES.CONFIRM_CLEAR_DEFAULT))
       try {
         const e = await this.makeAuthenticatedRequest(
           `${r.API_BASE}${r.ENDPOINTS.DEFAULT_SORT_ORDER}/${this.id}`,
           { method: "DELETE" }
         );
-        await a.handleResponse(e), await this.loadDefaultOrderInfo(), a.showSuccess("Default sort order cleared!");
+        await i.handleResponse(e), await this.loadDefaultOrderInfo(), i.showSuccess("Default sort order cleared!");
       } catch (e) {
-        a.showError(e, "Failed to clear default order");
+        i.showError(e, "Failed to clear default order");
       }
   }
   async loadActiveSchedules() {
@@ -81,7 +81,7 @@ let o = class extends y(E(m)) {
     f.navigateTo(f.getDashboardPath("schedules", this.id));
   }
   async updated(e) {
-    super.updated(e), e.has("id") && this.id && await this.loadNodeChildren();
+    super.updated(e), e.has("id") && this.id && (await this.loadNodeChildren(), await this.loadActiveSchedules(), await this.loadDefaultOrderInfo());
   }
   async loadNodeChildren() {
     if (this.id) {
@@ -89,9 +89,9 @@ let o = class extends y(E(m)) {
       try {
         const e = await this.makeAuthenticatedRequest(
           `${r.API_BASE}${r.ENDPOINTS.CHILDREN}/${this.id}`
-        ), t = await a.handleResponse(e), i = await this.makeAuthenticatedRequest(`/umbraco/management/api/v1/document/${this.id}`);
-        if (i.ok) {
-          const s = await i.json();
+        ), t = await i.handleResponse(e), a = await this.makeAuthenticatedRequest(`/umbraco/management/api/v1/document/${this.id}`);
+        if (a.ok) {
+          const s = await a.json();
           this.parentNodeName = s.variants?.[0]?.name || "Unknown Node";
         }
         this.nodeChildren = t.items?.map((s) => ({
@@ -111,8 +111,8 @@ let o = class extends y(E(m)) {
   async updateSortOrder() {
     if (this.id)
       try {
-        const e = this.nodeChildren.map((i, s) => ({
-          id: i.id,
+        const e = this.nodeChildren.map((a, s) => ({
+          id: a.id,
           sortOrder: s
         })), t = await this.makeAuthenticatedRequest(
           `${r.API_BASE}${r.ENDPOINTS.SORT_DOCUMENT}`,
@@ -124,9 +124,9 @@ let o = class extends y(E(m)) {
             })
           }
         );
-        await a.handleResponse(t), await this.loadNodeChildren();
+        await i.handleResponse(t), await this.loadNodeChildren();
       } catch (e) {
-        this.error = "Failed to update sort order", a.showError(e, "Sort order update failed");
+        this.error = "Failed to update sort order", i.showError(e, "Sort order update failed");
       }
   }
   handleDragStart(e, t) {
@@ -140,9 +140,9 @@ let o = class extends y(E(m)) {
   }
   async handleDrop(e, t) {
     e.preventDefault();
-    const i = e.dataTransfer.getData("text/plain");
-    if (!this.nodeChildren.find((c) => c.id === i) || i === t.id) return;
-    const d = this.nodeChildren.findIndex((c) => c.id === i), p = this.nodeChildren.findIndex((c) => c.id === t.id), u = [...this.nodeChildren], [S] = u.splice(d, 1);
+    const a = e.dataTransfer.getData("text/plain");
+    if (!this.nodeChildren.find((c) => c.id === a) || a === t.id) return;
+    const d = this.nodeChildren.findIndex((c) => c.id === a), p = this.nodeChildren.findIndex((c) => c.id === t.id), u = [...this.nodeChildren], [S] = u.splice(d, 1);
     u.splice(p, 0, S), this.nodeChildren = u.map((c, g) => ({
       ...c,
       sortOrder: g
@@ -182,7 +182,7 @@ let o = class extends y(E(m)) {
           Some items are automatically sorted to specific positions.
         </p>
       </div>
-    `, i = n`
+    `, a = n`
       <uui-button
         look="outline"
         label="View Schedules"
@@ -190,7 +190,7 @@ let o = class extends y(E(m)) {
         View Details
       </uui-button>
     `;
-    return this.renderInfoBanner("positive", t, i);
+    return this.renderInfoBanner("positive", t, a);
   }
   renderChildrenTable() {
     return this.nodeChildren.length === 0 ? this.renderEmptyState("This node has no children.", r.ICONS.DOCUMENT) : n`
@@ -209,10 +209,10 @@ let o = class extends y(E(m)) {
       return n`
               <tr 
                 draggable="true"
-                @dragstart=${(i) => this.handleDragStart(i, e)}
+                @dragstart=${(a) => this.handleDragStart(a, e)}
                 @dragend=${this.handleDragEnd}
                 @dragover=${this.handleDragOver}
-                @drop=${(i) => this.handleDrop(i, e)}>
+                @drop=${(a) => this.handleDrop(a, e)}>
                 <td>
                   <uui-icon class="drag-handle" name="${r.ICONS.NAVIGATION}"></uui-icon>
                 </td>
@@ -290,7 +290,7 @@ let o = class extends y(E(m)) {
   }
 };
 o.styles = [
-  b,
+  y,
   O`
       :host {
         display: block;
@@ -380,4 +380,4 @@ o = l([
 export {
   o as default
 };
-//# sourceMappingURL=children.element-COyUf00B.js.map
+//# sourceMappingURL=children.element-CbxZTB3r.js.map

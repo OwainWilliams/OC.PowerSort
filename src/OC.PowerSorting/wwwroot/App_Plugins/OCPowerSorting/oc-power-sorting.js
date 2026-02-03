@@ -3,15 +3,15 @@ const n = class n {
   /**
    * Create dashboard manifest with consistent structure
    */
-  static createDashboardManifest(e) {
+  static createDashboardManifest(t) {
     return {
-      name: e.name,
-      alias: e.alias,
+      name: t.name,
+      alias: t.alias,
       type: "dashboard",
-      js: e.jsImport,
+      js: t.jsImport,
       meta: {
-        label: e.label,
-        pathname: e.pathname
+        label: t.label,
+        pathname: t.pathname
       },
       conditions: [
         {
@@ -24,32 +24,32 @@ const n = class n {
   /**
    * Create section manifest
    */
-  static createSectionManifest(e) {
+  static createSectionManifest(t) {
     return {
       type: "section",
-      alias: e.alias,
-      name: e.name,
-      weight: e.weight ?? 100,
+      alias: t.alias,
+      name: t.name,
+      weight: t.weight ?? 100,
       meta: {
-        label: e.label,
-        pathname: e.pathname
+        label: t.label,
+        pathname: t.pathname
       }
     };
   }
   /**
    * Create section view manifest
    */
-  static createSectionViewManifest(e) {
+  static createSectionViewManifest(t) {
     return {
       type: "sectionView",
-      alias: e.alias,
-      name: e.name,
-      js: e.jsImport,
-      weight: e.weight ?? 200,
+      alias: t.alias,
+      name: t.name,
+      js: t.jsImport,
+      weight: t.weight ?? 200,
       meta: {
-        label: e.label,
-        pathname: e.pathname,
-        icon: e.icon
+        label: t.label,
+        pathname: t.pathname,
+        icon: t.icon
       },
       conditions: [
         {
@@ -62,12 +62,12 @@ const n = class n {
   /**
    * Create sidebar app manifest
    */
-  static createSidebarAppManifest(e) {
+  static createSidebarAppManifest(t) {
     return {
       type: "sectionSidebarApp",
-      alias: e.alias,
-      name: e.name,
-      element: e.jsImport,
+      alias: t.alias,
+      name: t.name,
+      element: t.jsImport,
       conditions: [
         {
           alias: "Umb.Condition.SectionAlias",
@@ -75,81 +75,62 @@ const n = class n {
         }
       ],
       meta: {
-        label: e.label,
-        icon: e.icon,
-        menus: e.menus || []
+        label: t.label,
+        icon: t.icon,
+        menus: t.menus || []
       }
     };
   }
   /**
    * Create entrypoint manifest
    */
-  static createEntrypointManifest(e) {
+  static createEntrypointManifest(t) {
     return {
-      name: e.name,
-      alias: e.alias,
+      name: t.name,
+      alias: t.alias,
       type: "backofficeEntryPoint",
-      js: e.jsImport
+      js: t.jsImport
     };
   }
 };
 n.SECTION_ALIAS = "OC.PowerSorting.Section";
-let t = n;
+let e = n;
 const o = [
-  t.createEntrypointManifest({
+  e.createEntrypointManifest({
     name: "OCPower Sorting Entrypoint",
     alias: "OC.PowerSorting.Entrypoint",
     jsImport: () => import("./entrypoint-CUHy5R0W.js")
   })
 ], r = [
-  t.createSectionManifest({
+  e.createSectionManifest({
     name: "Power Sort Section",
     alias: "OC.PowerSorting.Section",
     label: "Power Sort",
     pathname: "power-sort"
-  }),
-  t.createSectionViewManifest({
-    name: "Power Sort Section View",
-    alias: "OC.PowerSorting.SectionView",
-    label: "Settings",
-    pathname: "view",
-    icon: "icon-settings",
-    jsImport: () => import("./priority-section-view.element-DGakZAnw.js")
   })
+  // Section view removed - content is accessed contextually through dashboards
+  // Users interact with Children/Schedules by clicking nodes in the tree or sidebar
+  // If you need the Enum Priorities view, you can convert it to a dashboard instead
 ], s = [
-  t.createDashboardManifest({
+  // Main dashboard - handles all views (main, children, schedules) through conditional rendering
+  // The powersort.element component detects the current route and renders the appropriate view
+  e.createDashboardManifest({
     name: "OCPower Sorting Dashboard",
     alias: "OC.PowerSorting-Dashboard",
-    label: "Power Sort Dashboard",
+    label: "Power Sort",
     pathname: "power-sort-dashboard",
-    jsImport: () => import("./powersort.element-BaNxFkTW.js")
+    jsImport: () => import("./powersort.element-Bkbi62iq.js")
   })
 ], l = [
-  t.createDashboardManifest({
-    name: "OCPower Sorting Children Dashboard",
-    alias: "OC.PowerSorting-Children-Dashboard",
-    label: "Sort Children",
-    pathname: "power-sort-children/:id",
-    jsImport: () => import("./children.element-COyUf00B.js")
-  })
-], m = [
-  t.createDashboardManifest({
-    name: "OCPower Sorting Schedules Dashboard",
-    alias: "OC.PowerSorting-Schedules-Dashboard",
-    label: "Manage Schedules",
-    pathname: "power-sort-schedules/:id",
-    jsImport: () => import("./schedules.element-B8Lu2WMR.js")
-  })
-], S = [
-  t.createSidebarAppManifest({
+  e.createSidebarAppManifest({
     name: "My Section Sidebar App",
     alias: "OC.PowerSorting.SectionSidebar",
     label: "Power Sorting Sidebar",
     icon: "icon-sort",
-    jsImport: () => import("./sidebar-app.element-mAgzSIj4.js"),
+    jsImport: () => import("./sidebar-app.element-DrKhqcdE.js"),
     menus: ["OC.PowerSorting.Menu"]
   })
-], i = "Umb.", c = [
+], i = "Umb.", m = [
   // Custom Sorted Flag - Shows when document has been manually sorted
   {
     type: "entitySign",
@@ -199,16 +180,15 @@ const o = [
       iconColorAlias: "orange"
     }
   }
-], d = [
+], c = [
   ...o,
   ...s,
-  ...l,
-  ...m,
+  // Main PowerSort dashboard - conditionally renders Children/Schedules
   ...r,
-  ...S,
-  ...c
+  ...l,
+  ...m
 ];
 export {
-  d as manifests
+  c as manifests
 };
 //# sourceMappingURL=oc-power-sorting.js.map

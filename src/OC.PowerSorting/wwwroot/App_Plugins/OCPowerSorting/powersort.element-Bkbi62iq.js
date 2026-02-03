@@ -1,34 +1,33 @@
-import { LitElement as S, html as l, customElement as N, css as b, property as m } from "@umbraco-cms/backoffice/external/lit";
-import { U as I, P as n, A as v } from "./api-response.utils-CwOHzmUr.js";
-import { UmbDocumentPickerInputContext as y, UmbDocumentItemRepository as k } from "@umbraco-cms/backoffice/document";
-import { c as w } from "./crud.mixin-C3UrAXbX.js";
-var z = Object.getOwnPropertyDescriptor, f = (o) => {
-  throw TypeError(o);
-}, x = (o, e, t, i) => {
-  for (var s = i > 1 ? void 0 : i ? z(e, t) : e, a = o.length - 1, r; a >= 0; a--)
-    (r = o[a]) && (s = r(s) || s);
-  return s;
-}, E = (o, e, t) => e.has(o) || f("Cannot " + t), u = (o, e, t) => (E(o, e, "read from private field"), t ? t.call(o) : e.get(o)), M = (o, e, t) => e.has(o) ? f("Cannot add the same private member more than once") : e instanceof WeakSet ? e.add(o) : e.set(o, t), d;
-let g = class extends I(S) {
+import { LitElement as f, html as c, customElement as N, css as I, property as p, state as w } from "@umbraco-cms/backoffice/external/lit";
+import { U as S, c as y, P as d, A as v } from "./crud.mixin-CKRlkSCY.js";
+import { UmbDocumentPickerInputContext as k, UmbDocumentItemRepository as z } from "@umbraco-cms/backoffice/document";
+var x = Object.getOwnPropertyDescriptor, b = (s) => {
+  throw TypeError(s);
+}, E = (s, e, t, o) => {
+  for (var i = o > 1 ? void 0 : o ? x(e, t) : e, r = s.length - 1, n; r >= 0; r--)
+    (n = s[r]) && (i = n(i) || i);
+  return i;
+}, M = (s, e, t) => e.has(s) || b("Cannot " + t), m = (s, e, t) => (M(s, e, "read from private field"), t ? t.call(s) : e.get(s)), C = (s, e, t) => e.has(s) ? b("Cannot add the same private member more than once") : e instanceof WeakSet ? e.add(s) : e.set(s, t), u;
+let g = class extends S(f) {
   constructor() {
-    super(...arguments), M(this, d, new y(this));
+    super(...arguments), C(this, u, new k(this));
   }
   async _openPicker() {
     try {
-      await u(this, d).openPicker();
-      const e = u(this, d).getSelection();
+      await m(this, u).openPicker();
+      const e = m(this, u).getSelection();
       console.debug("[custom-document-picker] resolved selection:", e), this.dispatchEvent(new CustomEvent("selection-changed", {
         detail: { selection: e },
         bubbles: !0,
         composed: !0
       }));
-    } catch (o) {
-      console.warn("[custom-document-picker] openPicker error or closed:", o);
+    } catch (s) {
+      console.warn("[custom-document-picker] openPicker error or closed:", s);
     }
-    u(this, d).setSelection([]);
+    m(this, u).setSelection([]);
   }
   render() {
-    return l`
+    return c`
       <uui-button
         look="primary"
         label="Select document"
@@ -38,48 +37,63 @@ let g = class extends I(S) {
     `;
   }
 };
-d = /* @__PURE__ */ new WeakMap();
-g = x([
+u = /* @__PURE__ */ new WeakMap();
+g = E([
   N("custom-document-picker")
 ], g);
-var _ = Object.defineProperty, p = (o, e, t, i) => {
-  for (var s = void 0, a = o.length - 1, r; a >= 0; a--)
-    (r = o[a]) && (s = r(e, t, s) || s);
-  return s && _(e, t, s), s;
+var _ = Object.defineProperty, l = (s, e, t, o) => {
+  for (var i = void 0, r = s.length - 1, n; r >= 0; r--)
+    (n = s[r]) && (i = n(e, t, i) || i);
+  return i && _(e, t, i), i;
 };
-const h = class h extends w {
+const h = class h extends y {
   constructor() {
-    super(), this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [];
+    super(), this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [], this.currentView = "main", this.routeNodeId = "", this.selectedNodeId = null, this.selectedNodeName = "", this.menuItems = [];
   }
   async connectedCallback() {
-    super.connectedCallback(), this.documentItemRepository = new k(this), await this.loadMenuItemsFromDb();
+    super.connectedCallback(), this.documentItemRepository = new z(this), this.detectCurrentView(), window.addEventListener("hashchange", () => this.detectCurrentView()), window.addEventListener("popstate", () => this.detectCurrentView()), await this.loadMenuItemsFromDb();
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback(), window.removeEventListener("hashchange", () => this.detectCurrentView()), window.removeEventListener("popstate", () => this.detectCurrentView());
+  }
+  detectCurrentView() {
+    const e = window.location.hash;
+    if (e.includes("children/")) {
+      this.currentView = "children";
+      const t = e.match(/children\/([a-f0-9-]+)/i);
+      this.routeNodeId = t ? t[1] : "", this.requestUpdate();
+    } else if (e.includes("schedules/")) {
+      this.currentView = "schedules";
+      const t = e.match(/schedules\/([a-f0-9-]+)/i);
+      this.routeNodeId = t ? t[1] : "", this.requestUpdate();
+    } else e.includes("priorities") ? (this.currentView = "priorities", this.requestUpdate()) : (this.currentView = "main", this.requestUpdate());
   }
   async loadMenuItemsFromDb() {
     try {
       const e = await this.makeAuthenticatedRequest(
-        `${n.API_BASE}${n.ENDPOINTS.MENU_ITEMS}`
+        `${d.API_BASE}${d.ENDPOINTS.MENU_ITEMS}`
       ), t = await v.handleResponse(e);
       this.menuItems = t.items || [];
     } catch (e) {
       console.error("Error loading menu items from database:", e);
-      const t = localStorage.getItem(n.STORAGE_KEYS.MENU_ITEMS);
+      const t = localStorage.getItem(d.STORAGE_KEYS.MENU_ITEMS);
       this.menuItems = t ? JSON.parse(t) : [];
     }
   }
   async saveMenuItemsToDb() {
     try {
       const e = await this.makeAuthenticatedRequest(
-        `${n.API_BASE}${n.ENDPOINTS.MENU_ITEMS}`,
+        `${d.API_BASE}${d.ENDPOINTS.MENU_ITEMS}`,
         {
           method: "POST",
           body: JSON.stringify({ items: this.menuItems })
         }
       );
-      await v.handleResponse(e), localStorage.setItem(n.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
+      await v.handleResponse(e), localStorage.setItem(d.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
         detail: { menuItems: this.menuItems }
       }));
     } catch (e) {
-      console.error("Error saving menu items to database:", e), localStorage.setItem(n.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
+      console.error("Error saving menu items to database:", e), localStorage.setItem(d.STORAGE_KEYS.MENU_ITEMS, JSON.stringify(this.menuItems)), window.dispatchEvent(new CustomEvent("powerSortMenuUpdated", {
         detail: { menuItems: this.menuItems }
       }));
     }
@@ -89,13 +103,13 @@ const h = class h extends w {
     console.log("Content selected event:", e);
     const t = e;
     console.log("Custom event detail:", t.detail);
-    const i = e.target;
-    console.log("Picker element:", i), console.log("Picker selection:", i.selection), console.log("Picker value:", i.value);
-    let s = t.detail?.selection || i.selection || i.value;
-    console.log("Final selection:", s), s && Array.isArray(s) && s.length > 0 ? s.forEach(async (a) => {
-      const r = typeof a == "string" ? a : a.unique || a.id;
-      await this.fetchNodeDetails(r), this.addSelectedNodeToMenu();
-    }) : typeof s == "string" ? await this.fetchNodeDetails(s) : s && Array.isArray(s) && s.length === 0 ? this.clearSelection() : console.warn("Could not extract selection from event");
+    const o = e.target;
+    console.log("Picker element:", o), console.log("Picker selection:", o.selection), console.log("Picker value:", o.value);
+    let i = t.detail?.selection || o.selection || o.value;
+    console.log("Final selection:", i), i && Array.isArray(i) && i.length > 0 ? i.forEach(async (r) => {
+      const n = typeof r == "string" ? r : r.unique || r.id;
+      await this.fetchNodeDetails(n), this.addSelectedNodeToMenu();
+    }) : typeof i == "string" ? await this.fetchNodeDetails(i) : i && Array.isArray(i) && i.length === 0 ? this.clearSelection() : console.warn("Could not extract selection from event");
   }
   async fetchNodeDetails(e) {
     try {
@@ -105,8 +119,8 @@ const h = class h extends w {
       }
       const { data: t } = await this.documentItemRepository.requestItems([e]);
       if (t && t.length > 0) {
-        const i = t[0];
-        this.selectedNodeId = i.unique, this.selectedNodeName = i.variants?.[0]?.name || "Unnamed Node", console.log("Fetched node details:", i), this.saveSelection(), this.saveMessage = "";
+        const o = t[0];
+        this.selectedNodeId = o.unique, this.selectedNodeName = o.variants?.[0]?.name || "Unnamed Node", console.log("Fetched node details:", o), this.saveSelection(), this.saveMessage = "";
       } else
         console.error("No node data returned"), this.saveMessage = "Failed to load node details";
     } catch (t) {
@@ -130,7 +144,7 @@ const h = class h extends w {
       name: e.name || "Unnamed Node",
       icon: "icon-document"
     };
-    this.menuItems.some((s) => s.id === e.unique) ? (console.log("Menu item already exists"), this.saveMessage = `"${e.name}" is already in the menu`, setTimeout(() => {
+    this.menuItems.some((i) => i.id === e.unique) ? (console.log("Menu item already exists"), this.saveMessage = `"${e.name}" is already in the menu`, setTimeout(() => {
       this.saveMessage = "", this.requestUpdate();
     }, 3e3)) : (this.menuItems = [...this.menuItems, t], this.saveMenuItemsToDb(), console.log("Menu item added:", t));
   }
@@ -145,11 +159,34 @@ const h = class h extends w {
     e && t && (this.selectedNodeName = e, this.selectedNodeId = t, this.requestUpdate());
   }
   render() {
-    return l`
+    switch (this.currentView) {
+      case "children":
+        return this.renderChildrenView();
+      case "schedules":
+        return this.renderSchedulesView();
+      case "priorities":
+        return this.renderPrioritiesView();
+      default:
+        return this.renderMainView();
+    }
+  }
+  renderMainView() {
+    return c`
       <div class="dashboard-container">
         <div class="dashboard-header">
           <h1 aria-describedby="plugin-description">Power Sort Dashboard</h1>
           <h2 id="plugin-description">A plugin to enable scheduled sorting of child nodes</h2>
+          
+          <div style="margin-top: var(--uui-size-space-4);">
+            <uui-button
+              look="outline"
+              color="default"
+              label="Manage Enum Priorities"
+              @click=${() => window.location.hash = "priorities"}>
+              <uui-icon name="icon-ordered-list"></uui-icon>
+              Manage Priorities
+            </uui-button>
+          </div>
         </div>
 
         <div class="content-picker-section">
@@ -165,13 +202,13 @@ const h = class h extends w {
             </div>
           </div>
 
-          ${this.saveMessage ? l`
+          ${this.saveMessage ? c`
             <div class="save-message">
               ${this.saveMessage}
             </div>
           ` : ""}
 
-          ${this.selectedNodeName ? l`
+          ${this.selectedNodeName ? c`
             <div class="selected-info">
               <uui-icon name="icon-check"></uui-icon>
               <div>
@@ -189,8 +226,23 @@ const h = class h extends w {
       </div>
     `;
   }
+  renderChildrenView() {
+    return import("./children.element-CbxZTB3r.js"), c`
+      <power-sort-children-dashboard .id=${this.routeNodeId}></power-sort-children-dashboard>
+    `;
+  }
+  renderSchedulesView() {
+    return import("./schedules.element-D2ZbVfvJ.js"), c`
+      <power-sort-schedules .parentId=${this.routeNodeId}></power-sort-schedules>
+    `;
+  }
+  renderPrioritiesView() {
+    return import("./priority-section-view.element-DKX4g8T5.js"), c`
+      <power-sort-enum-priorities-dashboard></power-sort-enum-priorities-dashboard>
+    `;
+  }
 };
-h.styles = b`
+h.styles = I`
     :host {
       display: block;
       padding: var(--uui-size-space-5);
@@ -348,18 +400,24 @@ h.styles = b`
       margin-bottom: var(--uui-size-space-2);
     }
   `;
-let c = h;
-p([
-  m({ type: String })
-], c.prototype, "selectedNodeId");
-p([
-  m({ type: String })
-], c.prototype, "selectedNodeName");
-p([
-  m({ type: Array })
-], c.prototype, "menuItems");
-customElements.define("power-sort-dashboard", c);
+let a = h;
+l([
+  p({ type: String })
+], a.prototype, "selectedNodeId");
+l([
+  p({ type: String })
+], a.prototype, "selectedNodeName");
+l([
+  p({ type: Array })
+], a.prototype, "menuItems");
+l([
+  w()
+], a.prototype, "currentView");
+l([
+  w()
+], a.prototype, "routeNodeId");
+customElements.define("power-sort-dashboard", a);
 export {
-  c as default
+  a as default
 };
-//# sourceMappingURL=powersort.element-BaNxFkTW.js.map
+//# sourceMappingURL=powersort.element-Bkbi62iq.js.map
