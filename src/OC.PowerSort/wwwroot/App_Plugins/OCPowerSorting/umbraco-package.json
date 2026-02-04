@@ -1,0 +1,14 @@
+{
+  "id": "OC.PowerSort",
+  "name": "OC.PowerSort",
+  "version": "1.0.0",
+  "allowTelemetry": true,
+  "extensions": [
+    {
+      "name": "OCPower Sorting Bundle",
+      "alias": "OC.PowerSort.Bundle",
+      "type": "bundle",
+      "js": "/App_Plugins/OCPowerSort/oc-power-sort.js"
+    }
+  ]
+}
