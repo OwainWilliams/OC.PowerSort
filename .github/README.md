@@ -1,4 +1,4 @@
-# OC.Power Sorting 
+# OC.Power Sort
 
 [![Downloads](https://img.shields.io/nuget/dt/Umbraco.Community.OC.PowerSorting?color=cc9900)](https://www.nuget.org/packages/Umbraco.Community.OC.PowerSorting/)
 [![NuGet](https://img.shields.io/nuget/vpre/Umbraco.Community.OC.PowerSorting?color=0273B3)](https://www.nuget.org/packages/Umbraco.Community.OC.PowerSorting)
