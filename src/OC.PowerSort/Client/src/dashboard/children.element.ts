@@ -8,7 +8,6 @@ import {
 } from "@umbraco-cms/backoffice/external/lit";
 import { UmbAuthMixin } from "../mixins/auth.mixin.js";
 import { UmbUiMixin } from "../mixins/ui.mixin.js";
-import { RouteUtils } from "../utils/validation.utils.js";
 import { PowerSortConstants } from "../utils/constants.js";
 import { ApiResponseHandler } from "../utils/api-response.utils.js";
 import { powerSortSharedStyles } from "../styles/shared.styles.js";
@@ -56,6 +55,9 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
   @property({ type: Object })
   private editingSchedule: ScheduleResponse | null = null;
 
+  @property()
+  private contentId: string = "";
+
   private scheduleApi?: ScheduleApiClient;
 
   async connectedCallback() {
@@ -92,34 +94,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
   }
 
   private async saveAsDefaultOrder() {
-    if (!this.id) return;
-
-    if (
-      !ApiResponseHandler.confirmAction(
-        PowerSortConstants.MESSAGES.CONFIRM_SAVE_DEFAULT,
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const response = await this.makeAuthenticatedRequest(
-        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.DEFAULT_SORT_ORDER_SAVE}`,
-        {
-          method: "POST",
-          body: JSON.stringify({ parentId: this.id }),
-        },
-      );
-
-      await ApiResponseHandler.handleResponse(response);
-      await this.loadDefaultOrderInfo();
-      ApiResponseHandler.showSuccess("Current sort order saved as default!");
-    } catch (error) {
-      ApiResponseHandler.showError(error, "Failed to save default order");
-    }
-  }
-
-  private async takeOrderSnapshot() {
     if (!this.id) return;
 
     if (
@@ -229,21 +203,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     return this.activeSchedules.find((s) => s.contentId === childId);
   }
 
-  private navigateToSchedules() {
-    RouteUtils.navigateTo(RouteUtils.getDashboardPath("schedules", this.id));
-  }
-
-  async updated(changedProperties: Map<string, any>) {
-    super.updated(changedProperties);
-
-    // If id changes, reload all data
-    if (changedProperties.has("id") && this.id) {
-      await this.loadNodeChildren();
-      await this.loadSchedules();
-      await this.loadDefaultOrderInfo();
-    }
-  }
-
   async loadNodeChildren() {
     if (!this.id) return;
 
@@ -330,9 +289,10 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     (event.target as HTMLElement).style.opacity = "1";
   }
 
-  private openCreateDialog() {
+  private openCreateDialog(child: NodeChild) {
     this.showCreateDialog = true;
     this.editingSchedule = null;
+    this.contentId = child.id; // Pass the content ID of the child for which we're creating a schedule
   }
 
   private openEditDialog(schedule: ScheduleResponse) {
@@ -357,7 +317,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       parentIdFromRoute: this.id,
       parentNodeName: this.parentNodeName,
     });
-
+    console.log(this.editingSchedule);
     try {
       if (this.editingSchedule) {
         // Update existing
@@ -373,7 +333,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       } else {
         // Create new - use route parent ID since filter ensures content is a child
         const request: CreateScheduleRequest = {
-          contentId: formData.contentId,
+          contentId: this.contentId,
           parentId: this.id,
           targetPosition: formData.targetPosition,
           startDateTime: formData.startDateTime,
@@ -399,16 +359,11 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     }
   }
 
-  private async handleDeleteSchedule(scheduleId: string) {
+  private async handleDeleteSchedule(event: MouseEvent, scheduleId: string) {
     if (!this.scheduleApi) return;
-
-    if (
-      !ApiResponseHandler.confirmAction(
-        PowerSortConstants.MESSAGES.CONFIRM_DELETE,
-      )
-    ) {
-      return;
-    }
+    const item = event.currentTarget as HTMLElement;
+    const parentItem = item.closest(".js-child-row") as HTMLElement;
+    parentItem.classList.remove("hidden"); // Ensure accordion doesn't collapse on rerender after deletion
 
     try {
       await this.scheduleApi.deleteSchedule(scheduleId);
@@ -512,6 +467,10 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     return DateUtils.formatDateTime(dateString);
   }
 
+  private filterSchedulesByChild(childId: string): ScheduleResponse[] {
+    return this.activeSchedules.filter((s) => s.contentId === childId);
+  }
+
   private renderActiveScheduleBanner(hasActiveSchedules: boolean) {
     if (!hasActiveSchedules) return "";
 
@@ -531,18 +490,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
         </p>
       </div>
     `;
-
-    const actions = html`
-      <uui-button
-        look="outline"
-        label="View Schedules"
-        @click=${this.navigateToSchedules}
-      >
-        View Details
-      </uui-button>
-    `;
-
-    return this.renderInfoBanner("positive", content, actions);
+    return this.renderInfoBanner("positive", content);
   }
 
   private renderChildrenTable() {
@@ -558,11 +506,10 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
         <thead>
           <tr>
             <th width="50"></th>
-            <th>Name</th>
-            <th>Content Type</th>
             <th width="120">Sort Order</th>
-            <th>Schedules</th>
+            <th colspan="2">Name</th>
             <th>Create</th>
+            <th>View</th>
           </tr>
         </thead>
         <tbody>
@@ -576,6 +523,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                 @dragover=${this.handleDragOver}
                 @drop=${(e: DragEvent) => this.handleDrop(e, child)}
                 id="child-row-${index}"
+                class="js-child-row"
               >
                 <td>
                   <uui-icon
@@ -584,6 +532,9 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                   ></uui-icon>
                 </td>
                 <td>
+                  <span class="sort-order-badge">${child.sortOrder}</span>
+                </td>
+                <td colspan="2">
                   <div class="node-icon">
                     <uui-icon
                       name="${child.icon || PowerSortConstants.ICONS.DOCUMENT}"
@@ -602,19 +553,16 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                       : ""}
                   </div>
                 </td>
-                <td>${child.id || "N/A"}</td>
-                <td>
-                  <span class="sort-order-badge">${child.sortOrder}</span>
-                </td>
-
                 <td>
                   <uui-button
                     look="outline"
                     color="default"
                     label="create new schedule"
-                    @click=${() => this.openCreateDialog()}
+                    @click=${() => this.openCreateDialog(child)}
                   >
-                    Create New Schedule for ${child.name}
+                    <uui-icon name="add"></uui-icon>
+
+                    Add schedule for ${child.name}
                   </uui-button>
                 </td>
                 <td>
@@ -626,59 +574,81 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                           @click=${(e: MouseEvent) =>
                             this.toggleSchedules(e, index)}
                         >
-                          View Item Schedule
+                          <uui-icon name="see"></uui-icon>
+
+                          View
+                          Schedule${this.activeSchedules.length > 1 ? "s" : ""}
                           <uui-symbol-expand></uui-symbol-expand>
                         </uui-button>
                       `
                     : `Create a schedule`}
                 </td>
               </tr>
-              <tr
-                class="schedule-detail-row hidden"
-                id="schedule-details-${index}"
-              >
-                <th>Priority</th>
-                <th>Start time</th>
-                <th>End time</th>
-                <th>Creator</th>
-                <th>Edit</th>
-                <th>Delete</th>
-              </tr>
-              ${this.activeSchedules.map((schedule) => {
-                return html`
-                  <tr
-                    class="schedule-detail-row hidden"
-                    id="schedule-details-${index}"
-                  >
-                    <td>${schedule?.priority}</td>
-                    <td>${this.formatDateTime(schedule?.startDateTime)}</td>
-                    <td>${this.formatDateTime(schedule?.endDateTime)}</td>
-                    <td>
-                      Created by ${schedule.createdByName} on
-                      ${this.formatDateTime(schedule.created)}
-                    </td>
-                    <td>
-                      <uui-button
-                        look="outline"
-                        label="Edit"
-                        @click=${() => this.openEditDialog(schedule)}
-                      >
-                        <uui-icon name="icon-edit"></uui-icon>
-                      </uui-button>
-                    </td>
-                    <td>
-                      <uui-button
-                        look="outline"
-                        color="danger"
-                        label="Delete"
-                        @click=${() => this.handleDeleteSchedule(schedule.id)}
-                      >
-                        <uui-icon name="icon-trash"></uui-icon>
-                      </uui-button>
-                    </td>
-                  </tr>
-                `;
-              })}
+              <table>
+                <tr
+                  class="schedule-detail-row schedule-detail-head hidden"
+                  id="schedule-details-${index}"
+                >
+                  <th>Priority</th>
+                  <th>Edit</th>
+                  <th>Delete</th>
+                  <th>Start time</th>
+                  <th>End time</th>
+                  <th>Creator</th>
+                </tr>
+                ${this.filterSchedulesByChild(child.id).map((schedule) => {
+                  return html`
+                    <tr
+                      class="schedule-detail-row hidden"
+                      id="schedule-details-${index}"
+                    >
+                      <td>${schedule?.priority}</td>
+                      <td>
+                        <uui-button
+                          look="outline"
+                          label="Edit"
+                          @click=${() => this.openEditDialog(schedule)}
+                        >
+                          <uui-icon name="icon-edit"></uui-icon>
+                        </uui-button>
+                      </td>
+                      <td>
+                        <uui-button
+                          look="outline"
+                          color="danger"
+                          label="Delete"
+                          popovertarget="schedule-delete-popover-${schedule.id}"
+                        >
+                          <uui-icon name="icon-trash"></uui-icon>
+                        </uui-button>
+                        <uui-popover-container
+                          id="schedule-delete-popover-${schedule.id}"
+                          class="js-popover popover"
+                          placement="right-end"
+                        >
+                          Are you sure you want to delete?
+                          <uui-button
+                            class="ml-1"
+                            label="delete menu item"
+                            look="primary"
+                            color="danger"
+                            @click=${(e: MouseEvent) =>
+                              this.handleDeleteSchedule(e, schedule.id)}
+                          >
+                            Yes
+                          </uui-button>
+                        </uui-popover-container>
+                      </td>
+                      <td>${this.formatDateTime(schedule?.startDateTime)}</td>
+                      <td>${this.formatDateTime(schedule?.endDateTime)}</td>
+                      <td>
+                        Created by ${schedule.createdByName} on
+                        ${this.formatDateTime(schedule.created)}
+                      </td>
+                    </tr>
+                  `;
+                })}
+              </table>
             `;
           })}
         </tbody>
@@ -710,6 +680,10 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
 
       .children-table tbody tr {
         cursor: move;
+      }
+
+      .children-table td {
+        text-align: center;
       }
 
       .children-table tbody tr:active {
@@ -755,6 +729,21 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
         font-weight: 600;
         margin-left: var(--uui-size-space-2);
       }
+
+      .schedule-detail-head {
+        font-size: var(--uui-size-4);
+        background: var(--uui-palette-mine-grey-light);
+        color: var(--uui-palette-white-light);
+        font-weight: normal;
+
+        th {
+          padding: var(--uui-size-space-2) var(--uui-size-space-3);
+        }
+      }
+
+      .schedule-detail-head:hover {
+        background: var(--uui-palette-mine-grey-light) !important;
+      }
     `,
   ];
 
@@ -773,8 +762,11 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       <div class="dashboard-container">
         <div class="dashboard-header">
           <div class="header-content">
-            <h1>Sort Children of: ${this.parentNodeName}</h1>
-            <p>Drag and drop rows to reorder child nodes</p>
+            <h1>${this.parentNodeName} Schedules</h1>
+            <p>
+              Drag and drop rows to reorder child nodes, or toggle to see
+              schedule details
+            </p>
           </div>
           <div class="header-actions">
             ${this.hasDefaultOrder
@@ -801,24 +793,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
               <uui-icon name="${PowerSortConstants.ICONS.SAVE}"></uui-icon>
               Save Default Order
             </uui-button>
-            <uui-button
-              look="outline"
-              color="default"
-              label="Take Order Snapshot"
-              @click=${this.takeOrderSnapshot}
-            >
-              <uui-icon name="${PowerSortConstants.ICONS.SAVE}"></uui-icon>
-              Take Order Snapshot
-            </uui-button>
-            <uui-button
-              look="primary"
-              color="default"
-              label="Manage Schedules"
-              @click=${this.navigateToSchedules}
-            >
-              <uui-icon name="${PowerSortConstants.ICONS.CALENDAR}"></uui-icon>
-              Manage Schedules
-            </uui-button>
           </div>
         </div>
 
@@ -830,6 +804,10 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
               <schedule-dialog
                 .parentId=${this.id}
                 .schedule=${this.editingSchedule}
+                .contentId=${this.contentId}
+                .contentName=${this.nodeChildren.find(
+                  (c) => c.id === this.contentId,
+                )?.name || ""}
                 @save=${this.handleSaveSchedule}
                 @cancel=${this.closeDialog}
               >

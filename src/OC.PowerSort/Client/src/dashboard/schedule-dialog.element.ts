@@ -19,12 +19,6 @@ interface PriorityOption {
   label: string;
 }
 
-interface ChildContent {
-  id: string;
-  name: string;
-  parentId: string;
-}
-
 export default class ScheduleDialogElement extends UmbUiMixin(
   UmbAuthMixin(LitElement),
 ) {
@@ -33,6 +27,12 @@ export default class ScheduleDialogElement extends UmbUiMixin(
 
   @property({ type: Object })
   public schedule: ScheduleResponse | null = null;
+
+  @property({ type: String })
+  public contentId: string = "";
+
+  @property({ type: String })
+  public contentName: string = "";
 
   @state()
   private selectedContentId: string = "";
@@ -62,12 +62,6 @@ export default class ScheduleDialogElement extends UmbUiMixin(
   private noPriorityOptionsFound: boolean = false;
 
   @state()
-  private availableChildren: ChildContent[] = [];
-
-  @state()
-  private loadingChildren: boolean = false;
-
-  @state()
   private error: string = "";
 
   async connectedCallback() {
@@ -76,10 +70,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
     console.log("[Schedule Dialog] Connected with parentId:", this.parentId);
 
     // Load priority options and children
-    await Promise.all([
-      this.loadPriorityOptions(),
-      this.loadAvailableChildren(),
-    ]);
+    await Promise.all([this.loadPriorityOptions()]);
 
     if (this.schedule) {
       // Editing existing schedule
@@ -96,7 +87,8 @@ export default class ScheduleDialogElement extends UmbUiMixin(
       const now = new Date();
       const tomorrow = new Date(now);
       tomorrow.setDate(tomorrow.getDate() + 1);
-
+      this.selectedContentId = this.contentId;
+      this.selectedContentName = this.contentName;
       this.startDateTime = this.toLocalDateTimeString(now.toISOString());
       this.endDateTime = this.toLocalDateTimeString(tomorrow.toISOString());
       this.targetPosition = 0;
@@ -105,43 +97,6 @@ export default class ScheduleDialogElement extends UmbUiMixin(
       if (this.priorityOptions.length > 0) {
         this.priority = this.priorityOptions[0].value;
       }
-    }
-  }
-
-  private async loadAvailableChildren(): Promise<void> {
-    if (!this.parentId) {
-      console.warn(
-        "[Schedule Dialog] No parentId provided for loading children",
-      );
-      return;
-    }
-
-    this.loadingChildren = true;
-
-    try {
-      console.log(
-        "[Schedule Dialog] Loading children for parent:",
-        this.parentId,
-      );
-
-      const response = await this.makeAuthenticatedRequest(
-        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.CHILDREN}/${this.parentId}`,
-      );
-
-      const data = (await ApiResponseHandler.handleResponse(response)) as any;
-
-      this.availableChildren = (data.items || []).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        parentId: this.parentId,
-      }));
-
-      console.log("[Schedule Dialog] Loaded children:", this.availableChildren);
-    } catch (error) {
-      console.error("[Schedule Dialog] Error loading children:", error);
-      this.availableChildren = [];
-    } finally {
-      this.loadingChildren = false;
     }
   }
 
@@ -192,28 +147,6 @@ export default class ScheduleDialogElement extends UmbUiMixin(
   private toISOString(localDateTimeString: string): string {
     return new Date(localDateTimeString).toISOString();
   }
-
-  private handleChildrenDropdownChange(event: Event) {
-    const select = event.target as HTMLSelectElement;
-    const selectedId = select.value;
-
-    if (selectedId) {
-      const selectedChild = this.availableChildren.find(
-        (c) => c.id === selectedId,
-      );
-      if (selectedChild) {
-        this.selectedContentId = selectedChild.id;
-        this.selectedContentName = selectedChild.name;
-        this.error = "";
-
-        console.log("[Schedule Dialog] Selected from dropdown:", selectedChild);
-      }
-    } else {
-      this.selectedContentId = "";
-      this.selectedContentName = "";
-    }
-  }
-
   private handlePriorityChange(event: Event) {
     const input = event.target as HTMLInputElement;
     this.priority = parseInt(input.value);
@@ -258,17 +191,6 @@ export default class ScheduleDialogElement extends UmbUiMixin(
       return;
     }
 
-    // Double-check that selected content is a child of parent (for new schedules)
-    if (!this.schedule) {
-      const isValidChild = this.availableChildren.some(
-        (child) => child.id === this.selectedContentId,
-      );
-      if (!isValidChild) {
-        this.error = "Selected content is not a valid child of the parent";
-        return;
-      }
-    }
-
     // Dispatch save event
     this.dispatchEvent(
       new CustomEvent("save", {
@@ -292,61 +214,6 @@ export default class ScheduleDialogElement extends UmbUiMixin(
         composed: true,
       }),
     );
-  }
-
-  private renderContentSelector() {
-    if (this.loadingChildren) {
-      return html`
-        <div class="loading-content">
-          <uui-loader></uui-loader>
-          Loading available content...
-        </div>
-      `;
-    }
-
-    if (this.availableChildren.length === 0) {
-      return html`
-        <div class="no-content">
-          <uui-icon name="icon-alert"></uui-icon>
-          No child content found for the selected parent.
-        </div>
-      `;
-    }
-
-    // Provide both dropdown and document picker options
-    return html`
-      <div class="content-selector-options">
-        <!-- Dropdown selector (guaranteed to show only children) -->
-        <div class="selector-option">
-          ${!this.schedule
-            ? html`
-                <uui-label class="selector-label">
-                  <uui-icon name="icon-list"></uui-icon>
-                  Select from available children:
-                </uui-label>
-              `
-            : ""}
-          <select
-            class="children-dropdown"
-            @change=${this.handleChildrenDropdownChange}
-            .value=${this.selectedContentId}
-            .disabled=${this.schedule}
-          >
-            <option value="">-- Select a child item --</option>
-            ${this.availableChildren.map(
-              (child) => html`
-                <option
-                  value="${child.id}"
-                  ?selected="${child.id === this.selectedContentId}"
-                >
-                  ${child.name}
-                </option>
-              `,
-            )}
-          </select>
-        </div>
-      </div>
-    `;
   }
 
   static styles = css`
@@ -661,7 +528,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
         <div class="dialog-header">
           <h3>
             <uui-icon name="icon-calendar"></uui-icon>
-            ${this.schedule ? `Edit Schedule for ${this.selectedContentName}` : "Create Schedule"}
+            Edit Schedule for ${this.selectedContentName}
           </h3>
           <uui-button
             look="outline"
@@ -685,12 +552,6 @@ export default class ScheduleDialogElement extends UmbUiMixin(
         }
 
         <div class="grid">
-          <uui-label>
-            <uui-icon name="icon-document"></uui-icon>
-            Content to Boost
-          </uui-label>
-          ${this.renderContentSelector()}
-
           <div class="adsf">
             <uui-label>
               <uui-icon name="icon-navigation-up"></uui-icon>
@@ -702,6 +563,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
             </div>
             <uui-input
               type="number"
+              label="Position to boost to"
               .value=${this.targetPosition.toString()}
               @change=${(e: any) =>
                 (this.targetPosition = parseInt(e.target.value) || 0)}
@@ -826,7 +688,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
                 color="positive"
                 label="Save"
                 @click=${this.handleSave}
-                ?disabled=${this.loadingPriorities || this.loadingChildren}
+                ?disabled=${this.loadingPriorities}
               >
                 <uui-icon name="icon-check"></uui-icon>
                 ${this.schedule ? "Update" : "Create"} Schedule

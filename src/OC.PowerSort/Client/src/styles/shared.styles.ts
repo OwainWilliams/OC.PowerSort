@@ -1,4 +1,4 @@
-import { css } from '@umbraco-cms/backoffice/external/lit';
+import { css } from "@umbraco-cms/backoffice/external/lit";
 
 /**
  * Shared CSS styles for Power Sorting dashboard components
@@ -132,7 +132,7 @@ export const powerSortSharedStyles = css`
     background: var(--uui-color-surface);
     border-radius: var(--uui-border-radius);
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .data-table thead {
@@ -221,4 +221,25 @@ export const powerSortSharedStyles = css`
   .p-4 {
     padding: var(--uui-size-space-4);
   }
+
+  .sr-only:not(:focus):not(:active) {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+
+  .popover {
+    color: var(--uui-palette-maroon-flush-dark);
+    background-color: var(--uui-color-surface-emphasis);
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
+    padding: 8px !important;
+  }
+
+
 `;
