@@ -10,6 +10,7 @@ import { ApiResponseHandler } from "../utils/api-response.utils.js";
 import type { MenuItem } from "../types/index.js";
 import { UMB_SECTION_CONTEXT } from "@umbraco-cms/backoffice/section";
 import crudMixin from "../mixins/crud.mixin.js";
+import { powerSortSharedStyles } from "../styles/shared.styles.js";
 
 @customElement("oc-powersort-sidebar-app")
 export class OcPowerSortSidebarAppElement extends crudMixin {
@@ -110,55 +111,58 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
     }, 3000);
   }
 
-  static styles = css`
-    :host {
-      display: block;
-    }
+  static styles = [
+    powerSortSharedStyles,
+    css`
+      powerSortSharedStyles :host {
+        display: block;
+      }
 
-    .sidebar-header {
-      padding: var(--uui-size-space-4);
-      border-bottom: 1px solid var(--uui-color-border);
-    }
+      .sidebar-header {
+        padding: var(--uui-size-space-4);
+        border-bottom: 1px solid var(--uui-color-border);
+      }
 
-    .sidebar-header h3 {
-      margin: 0;
-      font-size: var(--uui-type-h5-size);
-      color: var(--uui-color-text);
-    }
+      .sidebar-header h3 {
+        margin: 0;
+        font-size: var(--uui-type-h5-size);
+        color: var(--uui-color-text);
+      }
 
-    .menu-list {
-      padding: var(--uui-size-space-2);
-    }
+      .menu-list {
+        padding: var(--uui-size-space-2);
+      }
 
-    .no-items {
-      padding: var(--uui-size-space-4);
-      text-align: center;
-      color: var(--uui-color-text-alt);
-      font-size: var(--uui-type-small-size);
-      font-style: italic;
-    }
+      .no-items {
+        padding: var(--uui-size-space-4);
+        text-align: center;
+        color: var(--uui-color-text-alt);
+        font-size: var(--uui-type-small-size);
+        font-style: italic;
+      }
 
-    .error-alert {
-      background-color: #f8d7da;
-      border: 1px solid #f5c6cb;
-      color: #721c24;
-      padding: 0.75rem 1.25rem;
-      margin: 1rem;
-      border-radius: 0.25rem;
-    }
+      .error-alert {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 0.75rem 1.25rem;
+        margin: 1rem;
+        border-radius: 0.25rem;
+      }
 
-    .hidden {
-      display: none;
-    }
+      .hidden {
+        display: none;
+      }
 
-    .relative {
-      position: relative;
-    }
+      .relative {
+        position: relative;
+      }
 
-    .ml-1 {
-      margin-left: 16px;
-    }
-  `;
+      .ml-1 {
+        margin-left: 16px;
+      }
+    `,
+  ];
 
   render() {
     return html`
