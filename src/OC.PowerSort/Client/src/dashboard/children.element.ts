@@ -507,7 +507,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
           <tr>
             <th width="50"></th>
             <th width="120">Sort Order</th>
-            <th colspan="2">Name</th>
+            <th colspan="3">Name</th>
             <th>Create</th>
             <th>View</th>
           </tr>
@@ -534,7 +534,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                 <td>
                   <span class="sort-order-badge">${child.sortOrder}</span>
                 </td>
-                <td colspan="2">
+                <td colspan="3">
                   <div class="node-icon">
                     <uui-icon
                       name="${child.icon || PowerSortConstants.ICONS.DOCUMENT}"
@@ -562,7 +562,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                   >
                     <uui-icon name="add"></uui-icon>
 
-                    Add schedule for ${child.name}
+                    Add schedule
                   </uui-button>
                 </td>
                 <td>
@@ -592,6 +592,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                   <th>Priority</th>
                   <th>Edit</th>
                   <th>Delete</th>
+                  <th>Sort Order</th>
                   <th>Start time</th>
                   <th>End time</th>
                   <th>Creator</th>
@@ -639,6 +640,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                           </uui-button>
                         </uui-popover-container>
                       </td>
+                      <td>${schedule.targetPosition}</td>
                       <td>${this.formatDateTime(schedule?.startDateTime)}</td>
                       <td>${this.formatDateTime(schedule?.endDateTime)}</td>
                       <td>
@@ -694,6 +696,11 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
         display: flex;
         align-items: center;
         gap: var(--uui-size-space-3);
+      }
+
+      uui-icon[name="add"] {
+        height: 24px;
+        width: 24px;
       }
 
       .sort-order-badge {
