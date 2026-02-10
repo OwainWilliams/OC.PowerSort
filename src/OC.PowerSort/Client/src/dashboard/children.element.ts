@@ -581,7 +581,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                           <uui-symbol-expand></uui-symbol-expand>
                         </uui-button>
                       `
-                    : `Create a schedule`}
+                    : `No active schedules for ${child.name}`}
                 </td>
               </tr>
               <table>
@@ -728,6 +728,14 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
         font-size: var(--uui-type-small-size);
         font-weight: 600;
         margin-left: var(--uui-size-space-2);
+      }
+
+      .schedule-detail-row {
+        background: var(--uui-palette-white-dark);
+
+        uui-button {
+          background: var(--uui-palette-white);
+        }
       }
 
       .schedule-detail-head {
