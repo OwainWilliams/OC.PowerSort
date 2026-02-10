@@ -147,10 +147,6 @@ export default class ScheduleDialogElement extends UmbUiMixin(
   private toISOString(localDateTimeString: string): string {
     return new Date(localDateTimeString).toISOString();
   }
-  private handlePriorityChange(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.priority = parseInt(input.value);
-  }
 
   private getPriorityLevel(priority: number): string {
     if (priority >= 500) return "high";
@@ -493,9 +489,12 @@ export default class ScheduleDialogElement extends UmbUiMixin(
     }
 
     .priority-level-badge {
-      display: inline-block;
-      padding: 4px var(--uui-size-space-2);
-      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 24px;
+      width: 45px;
+      height: 32px;
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
@@ -635,13 +634,16 @@ export default class ScheduleDialogElement extends UmbUiMixin(
                                 option.value
                                   ? "selected"
                                   : ""}"
+                                @click="${(e: Event) => {
+                                  e.preventDefault();
+                                  this.priority = option.value;
+                                }}"
                               >
                                 <input
                                   type="radio"
                                   name="priority"
                                   value="${option.value}"
-                                  ?checked="${this.priority === option.value}"
-                                  @change="${this.handlePriorityChange}"
+                                  .checked="${this.priority === option.value}"
                                 />
                                 <div class="priority-radio-content">
                                   <div class="priority-radio-details">
@@ -663,12 +665,6 @@ export default class ScheduleDialogElement extends UmbUiMixin(
                               </uui-label>
                             `,
                           )}
-                        </div>
-                        <div class="priority-info">
-                          <uui-icon name="icon-info"></uui-icon>
-                          ${this.priorityOptions.length} priority
-                          option${this.priorityOptions.length !== 1 ? "s" : ""}
-                          available
                         </div>
                       `
               }
