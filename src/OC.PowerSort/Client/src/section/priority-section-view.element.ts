@@ -1,23 +1,31 @@
-import { LitElement, html, css, customElement, state, property } from '@umbraco-cms/backoffice/external/lit';
-import { UmbAuthMixin } from '../mixins/auth.mixin.js';
-import { UmbUiMixin } from '../mixins/ui.mixin.js';
-import { PowerSortConstants, buildApiUrl } from '../utils/constants.js';
-import { ApiResponseHandler } from '../utils/api-response.utils.js';
-import { powerSortSharedStyles } from '../styles/shared.styles.js';
+import {
+  LitElement,
+  html,
+  css,
+  customElement,
+  state,
+  property,
+} from "@umbraco-cms/backoffice/external/lit";
+import { UmbAuthMixin } from "../mixins/auth.mixin.js";
+import { UmbUiMixin } from "../mixins/ui.mixin.js";
+import { PowerSortConstants, buildApiUrl } from "../utils/constants.js";
+import { ApiResponseHandler } from "../utils/api-response.utils.js";
+import { powerSortSharedStyles } from "../styles/shared.styles.js";
 import type {
   EnumPriorityResponse,
   EnumPriorityListResponse,
   CreateEnumPriorityRequest,
-  UpdateEnumPriorityRequest
-} from '../types/index.js';
+  UpdateEnumPriorityRequest,
+} from "../types/index.js";
 interface PriorityOption {
   value: number;
   label: string;
 }
 
-@customElement('power-sort-enum-priorities-dashboard')
-
-export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin(LitElement)) {
+@customElement("power-sort-enum-priorities-dashboard")
+export default class PowerSortSectionViewElement extends UmbUiMixin(
+  UmbAuthMixin(LitElement),
+) {
   @state()
   private enumPriorities: EnumPriorityResponse[] = [];
 
@@ -28,7 +36,7 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
   private loading = false;
 
   @state()
-  private error = '';
+  private error = "";
 
   @state()
   private showCreateDialog = false;
@@ -38,8 +46,8 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
 
   @state()
   private formData: CreateEnumPriorityRequest = {
-    name: '',
-    sortPriority: 100
+    name: "",
+    sortPriority: 100,
   };
 
   @state()
@@ -53,18 +61,23 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
 
   private async loadEnumPriorities() {
     this.loading = true;
-    this.error = '';
+    this.error = "";
 
     try {
       const response = await this.makeAuthenticatedRequest(
-        `${PowerSortConstants.API_BASE}/enum-priorities`
+        `${PowerSortConstants.API_BASE}/enum-priorities`,
       );
 
-      const data = await ApiResponseHandler.handleResponse(response) as EnumPriorityListResponse;
+      const data = (await ApiResponseHandler.handleResponse(
+        response,
+      )) as EnumPriorityListResponse;
       this.enumPriorities = data.items || [];
     } catch (error) {
-      this.error = error instanceof Error ? error.message : 'Failed to load enum priorities';
-      console.error('Error loading enum priorities:', error);
+      this.error =
+        error instanceof Error
+          ? error.message
+          : "Failed to load enum priorities";
+      console.error("Error loading enum priorities:", error);
     } finally {
       this.loading = false;
     }
@@ -73,8 +86,8 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
   private openCreateDialog() {
     this.editingItem = null;
     this.formData = {
-      name: '',
-      sortPriority: this.getNextAvailablePriority()
+      name: "",
+      sortPriority: this.getNextAvailablePriority(),
     };
     this.formErrors = {};
     this.showCreateDialog = true;
@@ -84,7 +97,7 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
     this.editingItem = item;
     this.formData = {
       name: item.name,
-      sortPriority: item.sortPriority
+      sortPriority: item.sortPriority,
     };
     this.formErrors = {};
     this.showCreateDialog = true;
@@ -93,14 +106,16 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
   private closeDialog() {
     this.showCreateDialog = false;
     this.editingItem = null;
-    this.formData = { name: '', sortPriority: 100 };
+    this.formData = { name: "", sortPriority: 100 };
     this.formErrors = {};
   }
 
   private getNextAvailablePriority(): number {
     if (this.enumPriorities.length === 0) return 100;
 
-    const usedPriorities = new Set(this.enumPriorities.map(ep => ep.sortPriority));
+    const usedPriorities = new Set(
+      this.enumPriorities.map((ep) => ep.sortPriority),
+    );
     let nextPriority = 100;
 
     while (usedPriorities.has(nextPriority)) {
@@ -116,20 +131,21 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
 
     // Validate name
     if (!this.formData.name.trim()) {
-      this.formErrors.name = 'Name is required';
+      this.formErrors.name = "Name is required";
       isValid = false;
     } else if (this.formData.name.trim().length < 2) {
-      this.formErrors.name = 'Name must be at least 2 characters';
+      this.formErrors.name = "Name must be at least 2 characters";
       isValid = false;
     } else if (this.formData.name.trim().length > 100) {
-      this.formErrors.name = 'Name must be less than 100 characters';
+      this.formErrors.name = "Name must be less than 100 characters";
       isValid = false;
     }
 
     // Check if name already exists (excluding current item when editing)
-    const existingWithSameName = this.enumPriorities.find(ep =>
-      ep.name.toLowerCase() === this.formData.name.trim().toLowerCase() &&
-      (!this.editingItem || ep.id !== this.editingItem.id)
+    const existingWithSameName = this.enumPriorities.find(
+      (ep) =>
+        ep.name.toLowerCase() === this.formData.name.trim().toLowerCase() &&
+        (!this.editingItem || ep.id !== this.editingItem.id),
     );
 
     if (existingWithSameName) {
@@ -139,17 +155,19 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
 
     // Validate sort priority
     if (this.formData.sortPriority < 0) {
-      this.formErrors.sortPriority = 'Sort priority must be 0 or greater';
+      this.formErrors.sortPriority = "Sort priority must be 0 or greater";
       isValid = false;
     } else if (this.formData.sortPriority > 999999) {
-      this.formErrors.sortPriority = 'Sort priority must be less than 1,000,000';
+      this.formErrors.sortPriority =
+        "Sort priority must be less than 1,000,000";
       isValid = false;
     }
 
     // Check if priority already exists (excluding current item when editing)
-    const existingWithSamePriority = this.enumPriorities.find(ep =>
-      ep.sortPriority === this.formData.sortPriority &&
-      (!this.editingItem || ep.id !== this.editingItem.id)
+    const existingWithSamePriority = this.enumPriorities.find(
+      (ep) =>
+        ep.sortPriority === this.formData.sortPriority &&
+        (!this.editingItem || ep.id !== this.editingItem.id),
     );
 
     if (existingWithSamePriority) {
@@ -171,79 +189,86 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
         // Update existing
         const updateData: UpdateEnumPriorityRequest = {
           name: this.formData.name.trim(),
-          sortPriority: this.formData.sortPriority
+          sortPriority: this.formData.sortPriority,
         };
 
         response = await this.makeAuthenticatedRequest(
           `${PowerSortConstants.API_BASE}/enum-priorities/${this.editingItem.id}`,
           {
-            method: 'PUT',
-            body: JSON.stringify(updateData)
-          }
+            method: "PUT",
+            body: JSON.stringify(updateData),
+          },
         );
       } else {
         // Create new
         response = await this.makeAuthenticatedRequest(
           `${PowerSortConstants.API_BASE}/enum-priorities`,
           {
-            method: 'POST',
-            body: JSON.stringify(this.formData)
-          }
+            method: "POST",
+            body: JSON.stringify(this.formData),
+          },
         );
       }
 
       await ApiResponseHandler.handleResponse(response);
       await this.loadEnumPriorities();
       this.closeDialog();
-
-      const action = this.editingItem ? 'updated' : 'created';
-      ApiResponseHandler.showSuccess(`Enum priority ${action} successfully!`);
     } catch (error) {
       // Server-side validation errors
-      if (error instanceof Error && error.message.includes('already in use')) {
-        if (error.message.includes('Sort priority')) {
+      if (error instanceof Error && error.message.includes("already in use")) {
+        if (error.message.includes("Sort priority")) {
           this.formErrors.sortPriority = error.message;
-        } else if (error.message.includes('Name')) {
+        } else if (error.message.includes("Name")) {
           this.formErrors.name = error.message;
         }
         this.requestUpdate();
       } else {
-        ApiResponseHandler.showError(error, `Failed to ${this.editingItem ? 'update' : 'create'} enum priority`);
+        ApiResponseHandler.showError(
+          error,
+          `Failed to ${this.editingItem ? "update" : "create"} enum priority`,
+        );
       }
     }
   }
 
   private async deleteItem(item: EnumPriorityResponse) {
-    if (!ApiResponseHandler.confirmAction(`Are you sure you want to delete '${item.name}'? This action cannot be undone.`)) {
+    if (
+      !ApiResponseHandler.confirmAction(
+        `Are you sure you want to delete '${item.name}'? This action cannot be undone.`,
+      )
+    ) {
       return;
     }
 
     try {
       const response = await this.makeAuthenticatedRequest(
         `${PowerSortConstants.API_BASE}/enum-priorities/${item.id}`,
-        { method: 'DELETE' }
+        { method: "DELETE" },
       );
 
       await ApiResponseHandler.handleResponse(response);
       await this.loadEnumPriorities();
-      ApiResponseHandler.showSuccess('Enum priority deleted successfully!');
+      ApiResponseHandler.showSuccess("Enum priority deleted successfully!");
     } catch (error) {
-      ApiResponseHandler.showError(error, 'Failed to delete enum priority');
+      ApiResponseHandler.showError(error, "Failed to delete enum priority");
     }
   }
 
-  private handleFormInput(event: Event, field: keyof CreateEnumPriorityRequest) {
+  private handleFormInput(
+    event: Event,
+    field: keyof CreateEnumPriorityRequest,
+  ) {
     const target = event.target as HTMLInputElement;
 
-    if (field === 'sortPriority') {
+    if (field === "sortPriority") {
       this.formData = {
         ...this.formData,
-        [field]: parseInt(target.value) || 0
+        [field]: parseInt(target.value) || 0,
       };
     } else {
       this.formData = {
         ...this.formData,
-        [field]: target.value
+        [field]: target.value,
       };
     }
 
@@ -251,7 +276,7 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
     if (this.formErrors[field]) {
       this.formErrors = {
         ...this.formErrors,
-        [field]: ''
+        [field]: "",
       };
       this.requestUpdate();
     }
@@ -259,23 +284,28 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
 
   private async loadPriorityOptions() {
     try {
+      console.log(
+        "[PowerSort Debug] Loading priority options from EnumPriorityAPIController...",
+      );
 
-
-      console.log('[PowerSort Debug] Loading priority options from EnumPriorityAPIController...');
-
-      const response = await fetch(buildApiUrl(PowerSortConstants.ENDPOINTS.ENUM_PRIORITIES), {
-        headers: {
-          'Authorization': `Bearer ${this.authToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch(
+        buildApiUrl(PowerSortConstants.ENDPOINTS.ENUM_PRIORITIES),
+        {
+          headers: {
+            Authorization: `Bearer ${this.authToken}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
       if (response.ok) {
         const data = await response.json();
-        console.log('[PowerSort Debug] Priority options response:', data);
+        console.log("[PowerSort Debug] Priority options response:", data);
 
         // Handle both direct array and wrapped response
-        const priorities: EnumPriorityResponse[] = Array.isArray(data) ? data : data.items || [];
+        const priorities: EnumPriorityResponse[] = Array.isArray(data)
+          ? data
+          : data.items || [];
 
         if (priorities.length > 0) {
           // Map enum priorities to dropdown options, sorted by sortPriority
@@ -283,38 +313,41 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
             .sort((a, b) => a.sortPriority - b.sortPriority)
             .map((priority) => ({
               value: priority.sortPriority, // Use the sortPriority as the value
-              label: priority.name
+              label: priority.name,
             }));
 
-          console.log('[PowerSort Debug] Mapped priority options:', this.priorityOptions);
+          console.log(
+            "[PowerSort Debug] Mapped priority options:",
+            this.priorityOptions,
+          );
         } else {
-          console.log('[PowerSort Debug] No priority options found in response');
-         
+          console.log(
+            "[PowerSort Debug] No priority options found in response",
+          );
         }
       } else {
-        console.error('[PowerSort Debug] Failed to load priority options:', response.status, response.statusText);
-
+        console.error(
+          "[PowerSort Debug] Failed to load priority options:",
+          response.status,
+          response.statusText,
+        );
       }
     } catch (error) {
-      console.error('[PowerSort Debug] Error loading priority options:', error);
-
+      console.error("[PowerSort Debug] Error loading priority options:", error);
     } finally {
-
     }
   }
 
-
-
   private renderDialog() {
-    if (!this.showCreateDialog) return '';
+    if (!this.showCreateDialog) return "";
 
-    const title = this.editingItem ? 'Edit Enum Priority' : 'Create Enum Priority';
-    const submitLabel = this.editingItem ? 'Update' : 'Create';
+    const title = this.editingItem
+      ? "Edit Enum Priority"
+      : "Create Enum Priority";
+    const submitLabel = this.editingItem ? "Update" : "Create";
 
     return html`
-      <uui-modal-dialog 
-        headline="${title}"
-        class="enum-priority-dialog">
+      <uui-modal-dialog headline="${title}" class="enum-priority-dialog">
         <div class="dialog-content">
           <div class="form-field">
             <uui-label for="name-input" slot="label" required>Name</uui-label>
@@ -323,17 +356,20 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
               type="text"
               placeholder="e.g., High Priority"
               .value=${this.formData.name}
-              @input=${(e: Event) => this.handleFormInput(e, 'name')}
+              @input=${(e: Event) => this.handleFormInput(e, "name")}
               ?error=${!!this.formErrors.name}
-              maxlength="100">
+              maxlength="100"
+            >
             </uui-input>
-            ${this.formErrors.name ? html`
-              <div class="error-message">${this.formErrors.name}</div>
-            ` : ''}
+            ${this.formErrors.name
+              ? html` <div class="error-message">${this.formErrors.name}</div> `
+              : ""}
           </div>
 
           <div class="form-field">
-            <uui-label for="priority-input" slot="label" required>Sort Priority (Weight)</uui-label>
+            <uui-label for="priority-input" slot="label" required
+              >Sort Priority (Weight)</uui-label
+            >
             <uui-input
               id="priority-input"
               type="number"
@@ -341,15 +377,21 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
               min="0"
               max="999999"
               .value=${this.formData.sortPriority.toString()}
-              @input=${(e: Event) => this.handleFormInput(e, 'sortPriority')}
-              ?error=${!!this.formErrors.sortPriority}>
+              @input=${(e: Event) => this.handleFormInput(e, "sortPriority")}
+              ?error=${!!this.formErrors.sortPriority}
+            >
             </uui-input>
             <div class="field-description">
-              Higher numbers = higher priority. Each weight can only be used once.
+              Higher numbers = higher priority. Each weight can only be used
+              once.
             </div>
-            ${this.formErrors.sortPriority ? html`
-              <div class="error-message">${this.formErrors.sortPriority}</div>
-            ` : ''}
+            ${this.formErrors.sortPriority
+              ? html`
+                  <div class="error-message">
+                    ${this.formErrors.sortPriority}
+                  </div>
+                `
+              : ""}
           </div>
 
           <!-- Actions moved inside content -->
@@ -357,14 +399,16 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
             <uui-button
               label="Cancel"
               look="secondary"
-              @click=${this.closeDialog}>
+              @click=${this.closeDialog}
+            >
               Cancel
             </uui-button>
             <uui-button
               label="${submitLabel}"
               look="primary"
               color="positive"
-              @click=${this.saveItem}>
+              @click=${this.saveItem}
+            >
               ${submitLabel}
             </uui-button>
           </div>
@@ -376,8 +420,8 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
   private renderEnumPrioritiesTable() {
     if (this.enumPriorities.length === 0) {
       return this.renderEmptyState(
-        'No enum priorities have been created yet.',
-        PowerSortConstants.ICONS.SETTINGS
+        "No enum priorities have been created yet.",
+        PowerSortConstants.ICONS.SETTINGS,
       );
     }
 
@@ -393,63 +437,73 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
           </tr>
         </thead>
         <tbody>
-          ${this.enumPriorities.map(item => html`
-            <tr>
-              <td>
-                <div class="item-name">
-                  <strong>${item.name}</strong>
-                </div>
-              </td>
-              <td>
-                <span class="priority-badge priority-${this.getPriorityLevel(item.sortPriority)}">
-                  ${item.sortPriority}
-                </span>
-              </td>
-              <td>
-                <div class="date-info">
-                  <div>${new Date(item.created).toLocaleDateString()}</div>
-                  <small>by ${item.createdByName}</small>
-                </div>
-              </td>
-              <td>
-                <div class="date-info">
-                  <div>${new Date(item.updated).toLocaleDateString()}</div>
-                  <small>by ${item.updatedByName}</small>
-                </div>
-              </td>
-              <td>
-                <div class="action-buttons">
-                  <uui-button
-                    compact
-                    look="outline"
-                    label="Edit"
-                    @click=${() => this.openEditDialog(item)}>
-                    <uui-icon name="${PowerSortConstants.ICONS.EDIT}"></uui-icon>
-                  </uui-button>
-                  <uui-button
-                    compact
-                    look="outline"
-                    color="danger"
-                    label="Delete"
-                    @click=${() => this.deleteItem(item)}>
-                    <uui-icon name="${PowerSortConstants.ICONS.DELETE}"></uui-icon>
-                  </uui-button>
-                </div>
-              </td>
-            </tr>
-          `)}
+          ${this.enumPriorities.map(
+            (item) => html`
+              <tr>
+                <td>
+                  <div class="item-name">
+                    <strong>${item.name}</strong>
+                  </div>
+                </td>
+                <td>
+                  <span
+                    class="priority-badge priority-${this.getPriorityLevel(
+                      item.sortPriority,
+                    )}"
+                  >
+                    ${item.sortPriority}
+                  </span>
+                </td>
+                <td>
+                  <div class="date-info">
+                    <div>${new Date(item.created).toLocaleDateString()}</div>
+                    <small>by ${item.createdByName}</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="date-info">
+                    <div>${new Date(item.updated).toLocaleDateString()}</div>
+                    <small>by ${item.updatedByName}</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <uui-button
+                      compact
+                      look="outline"
+                      label="Edit"
+                      @click=${() => this.openEditDialog(item)}
+                    >
+                      <uui-icon
+                        name="${PowerSortConstants.ICONS.EDIT}"
+                      ></uui-icon>
+                    </uui-button>
+                    <uui-button
+                      compact
+                      look="outline"
+                      color="danger"
+                      label="Delete"
+                      @click=${() => this.deleteItem(item)}
+                    >
+                      <uui-icon
+                        name="${PowerSortConstants.ICONS.DELETE}"
+                      ></uui-icon>
+                    </uui-button>
+                  </div>
+                </td>
+              </tr>
+            `,
+          )}
         </tbody>
       </table>
     `;
   }
 
   private getPriorityLevel(priority: number): string {
-    if (priority >= 500) return 'high';
-    if (priority >= 200) return 'medium';
-    return 'low';
+    if (priority >= 500) return "high";
+    if (priority >= 200) return "medium";
+    return "low";
   }
-
- 
 
   static styles = [
     powerSortSharedStyles,
@@ -650,12 +704,41 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
         color: var(--uui-color-text-alt);
         font-size: var(--uui-type-small-size);
       }
-    `
+
+      .dashboard__header {
+        margin-bottom: 45px;
+        padding: var(--uui-size-space-6);
+        background: var(--uui-color-surface);
+        border: 1px solid var(--uui-color-border);
+        border-radius: var(--uui-border-radius);
+      }
+
+      .dashboard__intro {
+        width: 60%;
+        margin-top: 20px;
+      }
+
+      .header__actions {
+        flex-shrink: 0;
+      }
+
+      .header__container {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+      }
+
+      .header__top-level {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+    `,
   ];
 
   render() {
     if (this.loading) {
-      return this.renderLoadingState('Loading enum priorities...');
+      return this.renderLoadingState("Loading priority tags...");
     }
 
     if (this.error) {
@@ -664,25 +747,37 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
 
     return html`
       <div class="dashboard-container">
-        <div class="dashboard-header">
-          <div class="header-content">
-            <h1>Enum Priorities</h1>
-            <p>Manage priority enum values and their weights. Higher numbers get higher priority.</p>
+        <div class="dashboard__header">
+          <div class="header__top-level">
+            <div class="header__container">
+              <uui-icon name="icon-ordered-list"></uui-icon>
+              <h1>Priority Tags</h1>
+            </div>
+            <div class="header__actions">
+              <uui-button
+                look="primary"
+                color="positive"
+                label="Create Priority"
+                @click=${this.openCreateDialog}
+              >
+                <uui-icon name="${PowerSortConstants.ICONS.ADD}"></uui-icon>
+                Create Priority
+              </uui-button>
+            </div>
           </div>
-          <div class="header-actions">
-            <uui-button
-              look="primary"
-              color="positive"
-              label="Create Priority"
-              @click=${this.openCreateDialog}>
-              <uui-icon name="${PowerSortConstants.ICONS.ADD}"></uui-icon>
-              Create Priority
-            </uui-button>
+          <div class="dashboard__intro">
+            <p>
+              Here you can create and edit priority tags. These are applied to
+              list items in the scheduling view. The priority tag weighting
+              provides a fallback mechanism when no explicit priority is set, or
+              if any conflicts in priority arise. The higher the number applied,
+              the higher priority (and rank in the sort order) the item is
+              given.
+            </p>
           </div>
         </div>
 
-        ${this.renderEnumPrioritiesTable()}
-        ${this.renderDialog()}
+        ${this.renderEnumPrioritiesTable()} ${this.renderDialog()}
       </div>
     `;
   }
@@ -690,6 +785,6 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(UmbAuthMixin
 
 declare global {
   interface HTMLElementTagNameMap {
-    'power-sort-enum-priorities-dashboard': PowerSortSectionViewElement;
+    "power-sort-enum-priorities-dashboard": PowerSortSectionViewElement;
   }
 }

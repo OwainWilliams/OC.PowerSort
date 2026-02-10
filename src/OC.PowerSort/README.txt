@@ -26,6 +26,10 @@
 * Run `npm run build` to build the project
 * The build output is copied to `wwwroot\App_Plugins\OCPowerSort\oc-power-sort.js`
 
+== Permissions ==
+* On launch of Umbraco, you will need to add permission to access PowerSort extension. 
+* Users > User Groups > [User Group Name] > Sections
+
 == File Watching ==
 * Add this Razor Class Library Project as a project reference to an Umbraco Website project
 * From the `\Client` folder run the command `npm run watch` this will monitor the changes to the *.ts files and rebuild the project

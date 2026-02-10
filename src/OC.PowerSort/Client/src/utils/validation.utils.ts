@@ -2,7 +2,8 @@
  * Validation utilities for common operations
  */
 export class ValidationUtils {
-  private static readonly GUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  private static readonly GUID_REGEX =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
   /**
    * Check if a string is a valid GUID
@@ -14,8 +15,10 @@ export class ValidationUtils {
   /**
    * Extract GUID from URL path segments
    */
-  static extractGuidFromPath(path: string = window.location.pathname): string | null {
-    const segments = path.split('/').filter(Boolean);
+  static extractGuidFromPath(
+    path: string = window.location.pathname,
+  ): string | null {
+    const segments = path.split("/").filter(Boolean);
     const maybeGuid = segments[segments.length - 1];
     return this.isGuid(maybeGuid) ? maybeGuid : null;
   }
@@ -31,13 +34,15 @@ export class ValidationUtils {
   /**
    * Check if date range is valid (start before end)
    */
-  static isValidDateRange(startDate: Date | string, endDate: Date | string): boolean {
+  static isValidDateRange(
+    startDate: Date | string,
+    endDate: Date | string,
+  ): boolean {
     const start = new Date(startDate);
     const end = new Date(endDate);
     return start < end;
   }
 }
-
 
 /**
  * URL and routing utilities
@@ -47,15 +52,18 @@ export class RouteUtils {
    * Navigate using Umbraco's routing system
    */
   static navigateTo(path: string): void {
-    history.pushState(null, '', path);
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    history.pushState(null, "", path);
+    window.dispatchEvent(new PopStateEvent("popstate"));
   }
 
   /**
    * Generate dashboard path for Power Sort sections
    * Now routes to main dashboard with view type and ID in path
    */
-  static getDashboardPath(dashboardType: 'children' | 'schedules', id: string): string {
+  static getDashboardPath(
+    dashboardType: "children" | "schedules",
+    id: string,
+  ): string {
     // Use hash-based routing within the main dashboard
     return `/umbraco/section/power-sort/dashboard/power-sort-dashboard#${dashboardType}/${id}`;
   }
@@ -70,7 +78,14 @@ export class DateUtils {
    */
   static formatDateTime(dateString: string | Date): string {
     const date = new Date(dateString);
-    return date.toLocaleString();
+    return date.toLocaleString(undefined, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
   }
 
   /**

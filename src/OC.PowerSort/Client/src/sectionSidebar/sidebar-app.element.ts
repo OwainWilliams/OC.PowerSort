@@ -1,12 +1,18 @@
-import { html, customElement, css, state } from '@umbraco-cms/backoffice/external/lit';
-import { RouteUtils } from '../utils/validation.utils.js';
-import { PowerSortConstants } from '../utils/constants.js';
-import { ApiResponseHandler } from '../utils/api-response.utils.js';
-import type { MenuItem } from '../types/index.js';
-import { UMB_SECTION_CONTEXT } from '@umbraco-cms/backoffice/section';
+import {
+  html,
+  customElement,
+  css,
+  state,
+} from "@umbraco-cms/backoffice/external/lit";
+import { RouteUtils } from "../utils/validation.utils.js";
+import { PowerSortConstants } from "../utils/constants.js";
+import { ApiResponseHandler } from "../utils/api-response.utils.js";
+import type { MenuItem } from "../types/index.js";
+import { UMB_SECTION_CONTEXT } from "@umbraco-cms/backoffice/section";
 import crudMixin from "../mixins/crud.mixin.js";
+import { powerSortSharedStyles } from "../styles/shared.styles.js";
 
-@customElement('oc-powersort-sidebar-app')
+@customElement("oc-powersort-sidebar-app")
 export class OcPowerSortSidebarAppElement extends crudMixin {
   @state()
   private menuItems: MenuItem[] = [];
@@ -17,8 +23,10 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
   constructor() {
     super();
     // Listen for menu updates
-    window.addEventListener('powerSortMenuUpdated', this.handleMenuUpdate.bind(this));
-
+    window.addEventListener(
+      "powerSortMenuUpdated",
+      this.handleMenuUpdate.bind(this),
+    );
   }
 
   async connectedCallback() {
@@ -29,7 +37,10 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    window.removeEventListener('powerSortMenuUpdated', this.handleMenuUpdate.bind(this));
+    window.removeEventListener(
+      "powerSortMenuUpdated",
+      this.handleMenuUpdate.bind(this),
+    );
   }
 
   private async setupSectionContext(): Promise<void> {
@@ -40,7 +51,7 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
       })
         .asPromise({ preventTimeout: true })
         .catch(() => {
-          console.warn('Section context not available');
+          console.warn("Section context not available");
           resolve();
         });
     });
@@ -56,101 +67,102 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
   private async loadMenuItemsFromDb() {
     try {
       const response = await this.makeAuthenticatedRequest(
-        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.MENU_ITEMS}`
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.MENU_ITEMS}`,
       );
 
-      const data = await ApiResponseHandler.handleResponse<{ items: MenuItem[] }>(response);
+      const data = await ApiResponseHandler.handleResponse<{
+        items: MenuItem[];
+      }>(response);
       this.menuItems = data.items || [];
     } catch (error) {
-      console.error('Error loading menu items from database:', error);
+      console.error("Error loading menu items from database:", error);
       this.loadMenuItems();
     }
   }
 
   private loadMenuItems() {
-    const saved = localStorage.getItem(PowerSortConstants.STORAGE_KEYS.MENU_ITEMS);
+    const saved = localStorage.getItem(
+      PowerSortConstants.STORAGE_KEYS.MENU_ITEMS,
+    );
     this.menuItems = saved ? JSON.parse(saved) : [];
   }
 
   private handleMenuItemClick(nodeId: string) {
-    RouteUtils.navigateTo(RouteUtils.getDashboardPath('children', nodeId));
+    RouteUtils.navigateTo(RouteUtils.getDashboardPath("children", nodeId));
   }
 
   private removeMenuItem(e: Event, id: any) {
     const item = e.currentTarget as HTMLElement;
-    const popover = item?.closest(".js-popover")
+    const popover = item?.closest(".js-popover");
 
-    const itemToRemove = this.menuItems.find((item: MenuItem) => item.id === id);
+    const itemToRemove = this.menuItems.find(
+      (item: MenuItem) => item.id === id,
+    );
     this.menuItems = this.menuItems.filter((item: MenuItem) => item.id !== id);
     this.saveMenuItemsToDb(this.menuItems);
-    console.log('Menu item removed:', id);
+    console.log("Menu item removed:", id);
 
     // Show feedback
     this.saveMessage = `✓ "${itemToRemove?.name}" removed from menu`;
-    popover?.setAttribute("close", "true")
+    popover?.setAttribute("close", "true");
     setTimeout(() => {
-      this.saveMessage = '';
+      this.saveMessage = "";
       this.requestUpdate();
     }, 3000);
   }
 
-  static styles = css`
-    :host {
-      display: block;
-    }
+  static styles = [
+    powerSortSharedStyles,
+    css`
+      powerSortSharedStyles :host {
+        display: block;
+      }
 
-    .sidebar-header {
-      padding: var(--uui-size-space-4);
-      border-bottom: 1px solid var(--uui-color-border);
-    }
+      .sidebar-header {
+        padding: var(--uui-size-space-4);
+        border-bottom: 1px solid var(--uui-color-border);
+      }
 
-    .sidebar-header h3 {
-      margin: 0;
-      font-size: var(--uui-type-h5-size);
-      color: var(--uui-color-text);
-    }
+      .sidebar-header h3 {
+        margin: 0;
+        font-size: var(--uui-type-h5-size);
+        color: var(--uui-color-text);
+      }
 
-    .menu-list {
-      padding: var(--uui-size-space-2);
-    }
+      .menu-list {
+        padding: var(--uui-size-space-2);
+      }
 
-    .no-items {
-      padding: var(--uui-size-space-4);
-      text-align: center;
-      color: var(--uui-color-text-alt);
-      font-size: var(--uui-type-small-size);
-      font-style: italic;
-    }
+      .no-items {
+        padding: var(--uui-size-space-4);
+        text-align: center;
+        color: var(--uui-color-text-alt);
+        font-size: var(--uui-type-small-size);
+        font-style: italic;
+      }
 
-    .error-alert {
-      background-color: #f8d7da;
-      border: 1px solid #f5c6cb;
-      color: #721c24;
-      padding: 0.75rem 1.25rem;
-      margin: 1rem;
-      border-radius: 0.25rem;
-    }
+      .error-alert {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 0.75rem 1.25rem;
+        margin: 1rem;
+        border-radius: 0.25rem;
+      }
 
-    
-  .popover {
-    color: var(--uui-palette-maroon-flush-dark);
-    background-color: var(--uui-color-surface-emphasis);
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    padding: 8px !important;
-  }
+      .hidden {
+        display: none;
+      }
 
-  .hidden {
-    display: none;
-  }
+      .relative {
+        position: relative;
+      }
 
-    .relative {
-    position: relative;
-  }
-
-  .ml-1 {
-    margin-left: 16px;
-  }
-  `;
+      .ml-1 {
+        margin-left: 16px;
+      }
+    `,
+  ];
 
   render() {
     return html`
@@ -158,8 +170,10 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
         <h3>Power Sort Nodes</h3>
       </div>
       <div class="menu-list">
-        ${this.menuItems.length > 0 ? html`
-          ${this.menuItems.map(item => html`
+        ${this.menuItems.length > 0
+          ? html`
+              ${this.menuItems.map(
+                (item) => html`
           <div class="js-menu-item relative">
             <uui-menu-item 
               label="${item.name}"
@@ -176,19 +190,20 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
                
             <uui-popover-container id="my-popover" class="js-popover popover" placement="right-end">
               Are you sure you want to delete?
-              <uui-button class="ml-1" label="delete menu item" look="primary" color="danger" @click=${(e:Event) => this.removeMenuItem(e, item.id)}>
+              <uui-button class="ml-1" label="delete menu item" look="primary" color="danger" @click=${(e: Event) => this.removeMenuItem(e, item.id)}>
                 Yes
               </uui-button>
             </uui-popover-container>
-          `)}
-        ` : html`
-          <div class="no-items">
-            No menu items yet.<br>
-            Add nodes from the dashboard.
-          </div>
-        `}
+          `,
+              )}
+            `
+          : html`
+              <div class="no-items">
+                No menu items yet.<br />
+                Add nodes from the dashboard.
+              </div>
+            `}
       </div>
-
     `;
   }
 }
@@ -197,7 +212,6 @@ export default OcPowerSortSidebarAppElement;
 
 declare global {
   interface HTMLElementTagNameMap {
-    'oc-powersort-sidebar-app': OcPowerSortSidebarAppElement;
+    "oc-powersort-sidebar-app": OcPowerSortSidebarAppElement;
   }
 }
-

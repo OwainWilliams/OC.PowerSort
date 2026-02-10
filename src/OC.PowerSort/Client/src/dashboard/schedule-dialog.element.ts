@@ -1,42 +1,53 @@
-import { LitElement, html, css, property, state } from '@umbraco-cms/backoffice/external/lit';
-import { UmbAuthMixin } from '../mixins/auth.mixin.js';
-import { UmbUiMixin } from '../mixins/ui.mixin.js';
-import { PowerSortConstants } from '../utils/constants.js';
-import { ApiResponseHandler } from '../utils/api-response.utils.js';
-import type { ScheduleResponse, EnumPriorityListResponse } from '../types/index.js';
+import {
+  LitElement,
+  html,
+  css,
+  property,
+  state,
+} from "@umbraco-cms/backoffice/external/lit";
+import { UmbAuthMixin } from "../mixins/auth.mixin.js";
+import { UmbUiMixin } from "../mixins/ui.mixin.js";
+import { PowerSortConstants } from "../utils/constants.js";
+import { ApiResponseHandler } from "../utils/api-response.utils.js";
+import type {
+  ScheduleResponse,
+  EnumPriorityListResponse,
+} from "../types/index.js";
 
 interface PriorityOption {
   value: number;
   label: string;
 }
 
-interface ChildContent {
-  id: string;
-  name: string;
-  parentId: string;
-}
-
-export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitElement)) {
+export default class ScheduleDialogElement extends UmbUiMixin(
+  UmbAuthMixin(LitElement),
+) {
   @property({ type: String })
-  public parentId: string = '';
+  public parentId: string = "";
 
   @property({ type: Object })
   public schedule: ScheduleResponse | null = null;
 
-  @state()
-  private selectedContentId: string = '';
+  @property({ type: String })
+  public contentId: string = "";
+
+  @property({ type: String })
+  public contentName: string = "";
 
   @state()
-  private selectedContentName: string = '';
+  private selectedContentId: string = "";
+
+  @state()
+  private selectedContentName: string = "";
 
   @state()
   private targetPosition: number = 0;
 
   @state()
-  private startDateTime: string = '';
+  private startDateTime: string = "";
 
   @state()
-  private endDateTime: string = '';
+  private endDateTime: string = "";
 
   @state()
   private priority: number = 0;
@@ -51,31 +62,24 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
   private noPriorityOptionsFound: boolean = false;
 
   @state()
-  private availableChildren: ChildContent[] = [];
-
-  @state()
-  private loadingChildren: boolean = false;
-
-  @state()
-  private error: string = '';
+  private error: string = "";
 
   async connectedCallback() {
     super.connectedCallback();
 
-    console.log('[Schedule Dialog] Connected with parentId:', this.parentId);
+    console.log("[Schedule Dialog] Connected with parentId:", this.parentId);
 
     // Load priority options and children
-    await Promise.all([
-      this.loadPriorityOptions(),
-      this.loadAvailableChildren()
-    ]);
+    await Promise.all([this.loadPriorityOptions()]);
 
     if (this.schedule) {
       // Editing existing schedule
       this.selectedContentId = this.schedule.contentId;
       this.selectedContentName = this.schedule.contentName;
       this.targetPosition = this.schedule.targetPosition;
-      this.startDateTime = this.toLocalDateTimeString(this.schedule.startDateTime);
+      this.startDateTime = this.toLocalDateTimeString(
+        this.schedule.startDateTime,
+      );
       this.endDateTime = this.toLocalDateTimeString(this.schedule.endDateTime);
       this.priority = this.schedule.priority;
     } else {
@@ -83,47 +87,16 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
       const now = new Date();
       const tomorrow = new Date(now);
       tomorrow.setDate(tomorrow.getDate() + 1);
-
+      this.selectedContentId = this.contentId;
+      this.selectedContentName = this.contentName;
       this.startDateTime = this.toLocalDateTimeString(now.toISOString());
       this.endDateTime = this.toLocalDateTimeString(tomorrow.toISOString());
       this.targetPosition = 0;
-      
+
       // Set default priority after priorities are loaded
       if (this.priorityOptions.length > 0) {
         this.priority = this.priorityOptions[0].value;
       }
-    }
-  }
-
-  private async loadAvailableChildren(): Promise<void> {
-    if (!this.parentId) {
-      console.warn('[Schedule Dialog] No parentId provided for loading children');
-      return;
-    }
-
-    this.loadingChildren = true;
-
-    try {
-      console.log('[Schedule Dialog] Loading children for parent:', this.parentId);
-      
-      const response = await this.makeAuthenticatedRequest(
-        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.CHILDREN}/${this.parentId}`
-      );
-
-      const data = await ApiResponseHandler.handleResponse(response) as any;
-      
-      this.availableChildren = (data.items || []).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        parentId: this.parentId
-      }));
-
-      console.log('[Schedule Dialog] Loaded children:', this.availableChildren);
-    } catch (error) {
-      console.error('[Schedule Dialog] Error loading children:', error);
-      this.availableChildren = [];
-    } finally {
-      this.loadingChildren = false;
     }
   }
 
@@ -133,10 +106,12 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
 
     try {
       const response = await this.makeAuthenticatedRequest(
-        `${PowerSortConstants.API_BASE}/enum-priorities`
+        `${PowerSortConstants.API_BASE}/enum-priorities`,
       );
 
-      const data = await ApiResponseHandler.handleResponse(response) as EnumPriorityListResponse;
+      const data = (await ApiResponseHandler.handleResponse(
+        response,
+      )) as EnumPriorityListResponse;
       const priorities = data.items || [];
 
       if (priorities.length > 0) {
@@ -144,7 +119,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
           .sort((a, b) => a.sortPriority - b.sortPriority)
           .map((priority) => ({
             value: priority.sortPriority,
-            label: priority.name
+            label: priority.name,
           }));
 
         // Set default priority if not editing and no priority set
@@ -155,7 +130,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
         this.noPriorityOptionsFound = true;
       }
     } catch (error) {
-      console.error('[Schedule Dialog] Error loading priority options:', error);
+      console.error("[Schedule Dialog] Error loading priority options:", error);
       this.noPriorityOptionsFound = true;
     } finally {
       this.loadingPriorities = false;
@@ -173,60 +148,34 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
     return new Date(localDateTimeString).toISOString();
   }
 
-
-
-  private handleChildrenDropdownChange(event: Event) {
-    const select = event.target as HTMLSelectElement;
-    const selectedId = select.value;
-    
-    if (selectedId) {
-      const selectedChild = this.availableChildren.find(c => c.id === selectedId);
-      if (selectedChild) {
-        this.selectedContentId = selectedChild.id;
-        this.selectedContentName = selectedChild.name;
-        this.error = '';
-        
-        console.log('[Schedule Dialog] Selected from dropdown:', selectedChild);
-      }
-    } else {
-      this.selectedContentId = '';
-      this.selectedContentName = '';
-    }
-  }
-
-  private handlePriorityChange(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.priority = parseInt(input.value);
-  }
-
   private getPriorityLevel(priority: number): string {
-    if (priority >= 500) return 'high';
-    if (priority >= 200) return 'medium';
-    return 'low';
+    if (priority >= 500) return "high";
+    if (priority >= 200) return "medium";
+    return "low";
   }
 
   private getPriorityLevelText(priority: number): string {
-    if (priority >= 500) return 'High';
-    if (priority >= 200) return 'Medium';
-    return 'Low';
+    if (priority >= 500) return "High";
+    if (priority >= 200) return "Medium";
+    return "Low";
   }
 
   private async handleSave() {
-    this.error = '';
+    this.error = "";
 
     // Validation
     if (!this.schedule && !this.selectedContentId) {
-      this.error = 'Please select a content item';
+      this.error = "Please select a content item";
       return;
     }
 
     if (this.targetPosition < 0) {
-      this.error = 'Target position must be non-negative';
+      this.error = "Target position must be non-negative";
       return;
     }
 
     if (!this.startDateTime || !this.endDateTime) {
-      this.error = 'Start and end dates are required';
+      this.error = "Start and end dates are required";
       return;
     }
 
@@ -234,105 +183,33 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
     const end = new Date(this.endDateTime);
 
     if (start >= end) {
-      this.error = 'End date must be after start date';
+      this.error = "End date must be after start date";
       return;
-    }
-
-    // Double-check that selected content is a child of parent (for new schedules)
-    if (!this.schedule) {
-      const isValidChild = this.availableChildren.some(child => child.id === this.selectedContentId);
-      if (!isValidChild) {
-        this.error = 'Selected content is not a valid child of the parent';
-        return;
-      }
     }
 
     // Dispatch save event
     this.dispatchEvent(
-      new CustomEvent('save', {
+      new CustomEvent("save", {
         detail: {
           contentId: this.selectedContentId,
           targetPosition: this.targetPosition,
           startDateTime: this.toISOString(this.startDateTime),
           endDateTime: this.toISOString(this.endDateTime),
-          priority: this.priority
+          priority: this.priority,
         },
         bubbles: true,
-        composed: true
-      })
+        composed: true,
+      }),
     );
   }
 
   private handleCancel() {
     this.dispatchEvent(
-      new CustomEvent('cancel', {
+      new CustomEvent("cancel", {
         bubbles: true,
-        composed: true
-      })
+        composed: true,
+      }),
     );
-  }
-
-  private renderContentSelector() {
-    if (this.schedule) {
-      return html`
-        <div class="selected-content">
-          <strong>${this.selectedContentName}</strong>    
-          <div class="description">Cannot change content when editing</div>
-        </div>
-      `;
-    }
-
-    if (this.loadingChildren) {
-      return html`
-        <div class="loading-content">
-          <uui-loader></uui-loader>
-          Loading available content...
-        </div>
-      `;
-    }
-
-    if (this.availableChildren.length === 0) {
-      return html`
-        <div class="no-content">
-          <uui-icon name="icon-alert"></uui-icon>
-          No child content found for the selected parent.
-        </div>
-      `;
-    }
-
-    // Provide both dropdown and document picker options
-    return html`
-      <div class="content-selector-options">
-        <!-- Dropdown selector (guaranteed to show only children) -->
-        <div class="selector-option">
-          <label class="selector-label">
-            <uui-icon name="icon-list"></uui-icon>
-            Select from available children:
-          </label>
-          <select 
-            class="children-dropdown"
-            @change=${this.handleChildrenDropdownChange}
-            .value=${this.selectedContentId}>
-            <option value="">-- Select a child content --</option>
-            ${this.availableChildren.map(child => html`
-              <option 
-                value="${child.id}"
-                ?selected="${child.id === this.selectedContentId}">
-                ${child.name}
-              </option>
-            `)}
-          </select>
-        </div>
-
-        ${this.selectedContentName ? html`
-          <div class="selected-content">
-            <uui-icon name="icon-check"></uui-icon>
-            Selected: <strong>${this.selectedContentName}</strong>
-          </div>
-        ` : ''}
-        
-      </div>
-    `;
   }
 
   static styles = css`
@@ -348,6 +225,15 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
       display: flex;
       align-items: center;
       justify-content: center;
+      --uui-input-height: var(--uui-size-11, 33px);
+      --uui-select-height: var(--uui-size-11, 33px);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      grid-column-gap: var(--uui-size-layout-2);
+      grid-row-gap: 36px;
     }
 
     .dialog {
@@ -364,7 +250,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: var(--uui-size-space-5);
+      margin-bottom: var(--uui-size-14);
     }
 
     .dialog-header h3 {
@@ -373,7 +259,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
     }
 
     .form-field {
-      margin-bottom: var(--uui-size-space-4);
+      margin-bottom: var(--uui-size-space-6);
     }
 
     .form-field label {
@@ -404,10 +290,11 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
       box-shadow: 0 0 0 2px var(--uui-color-focus-outline);
     }
 
-    .form-field .description {
+    .description {
       font-size: var(--uui-type-small-size);
       color: var(--uui-color-text-alt);
       margin-top: var(--uui-size-space-1);
+      padding-left: 20px;
     }
 
     .dialog-actions {
@@ -602,9 +489,12 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
     }
 
     .priority-level-badge {
-      display: inline-block;
-      padding: 4px var(--uui-size-space-2);
-      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 24px;
+      width: 45px;
+      height: 32px;
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
@@ -625,6 +515,10 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
       background: var(--uui-color-positive);
       color: white;
     }
+
+    .flex {
+      display: flex;
+    }
   `;
 
   render() {
@@ -633,141 +527,173 @@ export default class ScheduleDialogElement extends UmbUiMixin(UmbAuthMixin(LitEl
         <div class="dialog-header">
           <h3>
             <uui-icon name="icon-calendar"></uui-icon>
-            ${this.schedule ? 'Edit Schedule' : 'Create Schedule'}
+            Edit Schedule for ${this.selectedContentName}
           </h3>
           <uui-button
             look="outline"
             label="Close"
             compact
-            @click=${this.handleCancel}>
+            @click=${this.handleCancel}
+          >
             <uui-icon name="icon-delete"></uui-icon>
           </uui-button>
         </div>
 
-        ${this.error
-          ? html`
-              <div class="error-message">
-                <uui-icon name="icon-alert"></uui-icon>
-                ${this.error}
-              </div>
-            `
-          : ''}
-
-        <div class="form-field">
-          <label>
-            <uui-icon name="icon-document"></uui-icon>
-            Content to Boost
-          </label>
-          ${this.renderContentSelector()}
-        </div>
-
-        <div class="form-field">
-          <label>
-            <uui-icon name="icon-navigation-up"></uui-icon>
-            Target Position
-          </label>
-          <uui-input
-            type="number"
-            .value=${this.targetPosition.toString()}
-            @change=${(e: any) => (this.targetPosition = parseInt(e.target.value) || 0)}
-            min="0">
-          </uui-input>
-          <div class="description">Position to boost the content to (0 = first)</div>
-        </div>
-
-        <div class="date-grid">
-          <div class="form-field">
-            <label>
-              <uui-icon name="icon-calendar-alt"></uui-icon>
-              Start Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              .value=${this.startDateTime}
-              @change=${(e: any) => (this.startDateTime = e.target.value)} />
-            <div class="description">When the schedule becomes active</div>
-          </div>
-
-          <div class="form-field">
-            <label>
-              <uui-icon name="icon-calendar-alt"></uui-icon>
-              End Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              .value=${this.endDateTime}
-              @change=${(e: any) => (this.endDateTime = e.target.value)} />
-            <div class="description">When the schedule expires</div>
-          </div>
-        </div>
-
-        <div class="form-field">
-          <label>
-            <uui-icon name="icon-settings"></uui-icon>
-            Priority
-          </label>
-          ${this.loadingPriorities
+        ${
+          this.error
             ? html`
-                <div class="priority-loading">
-                  <uui-loader></uui-loader>
-                  Loading priority options...
-                </div>
-              `
-            : this.noPriorityOptionsFound
-            ? html`
-                <div class="no-priority-options">
+                <div class="error-message">
                   <uui-icon name="icon-alert"></uui-icon>
-                  No priority options have been configured yet
+                  ${this.error}
                 </div>
               `
-            : html`
-                <div class="priority-radio-group">
-                  ${this.priorityOptions.map(option => html`
-                    <label class="priority-radio-option ${this.priority === option.value ? 'selected' : ''}">
-                      <input
-                        type="radio"
-                        name="priority"
-                        value="${option.value}"
-                        ?checked="${this.priority === option.value}"
-                        @change="${this.handlePriorityChange}"
-                      />
-                      <div class="priority-radio-content">
-                        <div class="priority-radio-details">
-                          <div class="priority-radio-label">${option.label}</div>
-                          <div class="priority-radio-value">Priority Weight: ${option.value}</div>
-                        </div>
-                        <div class="priority-level-badge priority-${this.getPriorityLevel(option.value)}">
-                          ${this.getPriorityLevelText(option.value)}
-                        </div>
-                      </div>
-                    </label>
-                  `)}
-                </div>
-                <div class="priority-info">
-                  <uui-icon name="icon-info"></uui-icon>
-                  ${this.priorityOptions.length} priority option${this.priorityOptions.length !== 1 ? 's' : ''} available
-                </div>
-              `}
-          <div class="description">Choose the priority level for this schedule</div>
-        </div>
+            : ""
+        }
 
-        <div class="dialog-actions">
-          <uui-button look="outline" label="Cancel" @click=${this.handleCancel}>
-            Cancel
-          </uui-button>
-          <uui-button
-            look="primary"
-            color="positive"
-            label="Save"
-            @click=${this.handleSave}
-            ?disabled=${this.loadingPriorities || this.loadingChildren}>
-            <uui-icon name="icon-check"></uui-icon>
-            ${this.schedule ? 'Update' : 'Create'} Schedule
-          </uui-button>
+        <div class="grid">
+          <div class="adsf">
+            <uui-label>
+              <uui-icon name="icon-navigation-up"></uui-icon>
+              Target Position
+            </uui-label>
+            <div class="description">
+              Position to boost the content to (0 = first)
+            </div>
+            </div>
+            <uui-input
+              type="number"
+              label="Position to boost to"
+              .value=${this.targetPosition.toString()}
+              @change=${(e: any) =>
+                (this.targetPosition = parseInt(e.target.value) || 0)}
+              min="0"
+            >
+            </uui-input>
+<div>
+                <uui-label>
+                  <uui-icon name="icon-calendar-alt"></uui-icon>
+                  Start Date & Time
+                </uui-label>
+                                <div class="description">When the schedule becomes active</div>
+
+                </div>
+                <uui-input
+                  pristine=""
+                  label="Label"
+                  placeholder="Placeholder"
+                  type="datetime-local"
+                  .value=${this.startDateTime}
+                  @change=${(e: any) => (this.startDateTime = e.target.value)}
+                ></uui-input>
+                <div>
+                <uui-label>
+                  <uui-icon name="icon-calendar-alt"></uui-icon>
+                  End Date & Time
+                </uui-label>
+                <div class="description">When the schedule expires</div>
+                  </div>
+
+                <uui-input
+                  pristine=""
+                  label="Label"
+                  placeholder="Placeholder"
+                  type="datetime-local"
+                  .value=${this.endDateTime}
+                  @change=${(e: any) => (this.endDateTime = e.target.value)}
+                ></uui-input>
+              <div>
+              <uui-label>
+                <uui-icon name="icon-settings"></uui-icon>
+                Priority
+              </uui-label>
+                            <div class="description">
+                Choose the priority level for this schedule
+              </div>
+              </div>
+              ${
+                this.loadingPriorities
+                  ? html`
+                      <div class="priority-loading">
+                        <uui-loader></uui-loader>
+                        Loading priority options...
+                      </div>
+                    `
+                  : this.noPriorityOptionsFound
+                    ? html`
+                        <div class="no-priority-options">
+                          <uui-icon name="icon-alert"></uui-icon>
+                          No priority options have been configured yet
+                        </div>
+                      `
+                    : html`
+                        <div class="priority-radio-group">
+                          ${this.priorityOptions.map(
+                            (option) => html`
+                              <uui-label
+                                class="priority-radio-option ${this.priority ===
+                                option.value
+                                  ? "selected"
+                                  : ""}"
+                                @click="${(e: Event) => {
+                                  e.preventDefault();
+                                  this.priority = option.value;
+                                }}"
+                              >
+                                <input
+                                  type="radio"
+                                  name="priority"
+                                  value="${option.value}"
+                                  .checked="${this.priority === option.value}"
+                                />
+                                <div class="priority-radio-content">
+                                  <div class="priority-radio-details">
+                                    <div class="priority-radio-label">
+                                      ${option.label}
+                                    </div>
+                                    <div class="priority-radio-value">
+                                      Priority Weight: ${option.value}
+                                    </div>
+                                  </div>
+                                  <div
+                                    class="priority-level-badge priority-${this.getPriorityLevel(
+                                      option.value,
+                                    )}"
+                                  >
+                                    ${this.getPriorityLevelText(option.value)}
+                                  </div>
+                                </div>
+                              </uui-label>
+                            `,
+                          )}
+                        </div>
+                      `
+              }
+          </div>
+
+
+            <div class="dialog-actions">
+              <uui-button
+                look="outline"
+                label="Cancel"
+                @click=${this.handleCancel}
+              >
+                Cancel
+              </uui-button>
+              <uui-button
+                look="primary"
+                color="positive"
+                label="Save"
+                @click=${this.handleSave}
+                ?disabled=${this.loadingPriorities}
+              >
+                <uui-icon name="icon-check"></uui-icon>
+                ${this.schedule ? "Update" : "Create"} Schedule
+              </uui-button>
+            </div>
         </div>
       </div>
     `;
   }
 }
 
-customElements.define('schedule-dialog', ScheduleDialogElement);
+customElements.define("schedule-dialog", ScheduleDialogElement);
