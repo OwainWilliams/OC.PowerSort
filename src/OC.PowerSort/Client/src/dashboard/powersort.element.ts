@@ -396,23 +396,14 @@ export default class PowerSortDashboardElement extends crudMixin {
 
   // This method handles the selection event with full node data
   async handleContentSelected(event: Event) {
-    console.log("Content selected event:", event);
-
-    // Try to get the custom event detail
     const customEvent = event as CustomEvent;
-    console.log("Custom event detail:", customEvent.detail);
 
     // The umb-input-document component uses 'selection' property directly on the element
     const picker = event.target as any;
-    console.log("Picker element:", picker);
-    console.log("Picker selection:", picker.selection);
-    console.log("Picker value:", picker.value);
 
     // Try to get selection from different possible sources
     let selection =
       customEvent.detail?.selection || picker.selection || picker.value;
-
-    console.log("Final selection:", selection);
 
     if (selection && Array.isArray(selection) && selection.length > 0) {
       // The picker returns an array of IDs, not full objects
@@ -432,7 +423,6 @@ export default class PowerSortDashboardElement extends crudMixin {
       // Selection was cleared
       this.clearSelection();
     } else {
-      console.warn("Could not extract selection from event");
     }
   }
 
@@ -451,20 +441,15 @@ export default class PowerSortDashboardElement extends crudMixin {
         this.selectedNodeId = nodeData.unique;
         this.selectedNodeName = nodeData.variants?.[0]?.name || "Unnamed Node";
 
-        console.log("Fetched node details:", nodeData);
-
         // Save the selected node info to localStorage
         this.saveSelection();
-
-        // Clear any previous messages
-        this.saveMessage = "";
       } else {
         console.error("No node data returned");
-        this.saveMessage = "Failed to load node details";
+        this.showMessage("Error loading node details", "danger");
       }
     } catch (error) {
       console.error("Error fetching node details:", error);
-      this.saveMessage = "Error loading node details";
+      this.showMessage("Error loading node details", "danger");
     }
   }
 
@@ -480,12 +465,10 @@ export default class PowerSortDashboardElement extends crudMixin {
 
     this.addMenuItemForNode(node);
 
-    // Show success message
-    this.saveMessage = `✓ "${this.selectedNodeName}" added to sidebar menu!`;
+    this.showMessage(`✓ "${this.selectedNodeName}" added to sidebar menu`);
 
     // Clear message after 3 seconds
     setTimeout(() => {
-      this.saveMessage = "";
       this.requestUpdate();
     }, 3000);
   }
@@ -505,12 +488,9 @@ export default class PowerSortDashboardElement extends crudMixin {
     if (!exists) {
       this.menuItems = [...this.menuItems, newMenuItem];
       this.saveMenuItemsToDb();
-      console.log("Menu item added:", newMenuItem);
     } else {
-      console.log("Menu item already exists");
-      this.saveMessage = `"${node.name}" is already in the menu`;
+      this.showMessage(`"${node.name}" is already in the menu`);
       setTimeout(() => {
-        this.saveMessage = "";
         this.requestUpdate();
       }, 3000);
     }
@@ -567,18 +547,24 @@ export default class PowerSortDashboardElement extends crudMixin {
 
   render() {
     // Conditionally render based on current view
+    let viewContent;
     switch (this.currentView) {
       case "children":
-        return this.renderChildrenView();
+        viewContent = this.renderChildrenView();
+        break;
       case "priorities":
-        return this.renderPrioritiesView();
+        viewContent = this.renderPrioritiesView();
+        break;
       default:
-        return this.renderMainView();
+        viewContent = this.renderMainView();
     }
+
+    return html` ${viewContent} ${this.renderToastContainer()} `;
   }
 
   private renderMainView() {
     return html`
+      ${this.renderToastContainer()}
       <div class="dashboard-container">
         <div class="dashboard-header">
           <div>

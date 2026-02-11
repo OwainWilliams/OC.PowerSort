@@ -4,11 +4,10 @@ import {
   css,
   customElement,
   state,
-  property,
 } from "@umbraco-cms/backoffice/external/lit";
 import { UmbAuthMixin } from "../mixins/auth.mixin.js";
 import { UmbUiMixin } from "../mixins/ui.mixin.js";
-import { PowerSortConstants, buildApiUrl } from "../utils/constants.js";
+import { PowerSortConstants } from "../utils/constants.js";
 import { ApiResponseHandler } from "../utils/api-response.utils.js";
 import { powerSortSharedStyles } from "../styles/shared.styles.js";
 import type {
@@ -17,10 +16,6 @@ import type {
   CreateEnumPriorityRequest,
   UpdateEnumPriorityRequest,
 } from "../types/index.js";
-interface PriorityOption {
-  value: number;
-  label: string;
-}
 
 @customElement("power-sort-enum-priorities-dashboard")
 export default class PowerSortSectionViewElement extends UmbUiMixin(
@@ -29,8 +24,8 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(
   @state()
   private enumPriorities: EnumPriorityResponse[] = [];
 
-  @property({ type: Array })
-  private priorityOptions: PriorityOption[] = [];
+  // @property({ type: Array })
+  // private priorityOptions: PriorityOption[] = [];
 
   @state()
   private loading = false;
@@ -56,7 +51,6 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(
   async connectedCallback() {
     super.connectedCallback();
     await this.loadEnumPriorities();
-    await this.loadPriorityOptions();
   }
 
   private async loadEnumPriorities() {
@@ -212,6 +206,10 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(
 
       await ApiResponseHandler.handleResponse(response);
       await this.loadEnumPriorities();
+      this.showMessage(
+        `Priority tag ${this.editingItem ? "updated" : "created"} successfully`,
+        "positive",
+      );
       this.closeDialog();
     } catch (error) {
       // Server-side validation errors
@@ -223,23 +221,15 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(
         }
         this.requestUpdate();
       } else {
-        ApiResponseHandler.showError(
-          error,
-          `Failed to ${this.editingItem ? "update" : "create"} enum priority`,
+        this.showMessage(
+          `Failed to ${this.editingItem ? "update" : "create"} priority tag`,
+          "danger",
         );
       }
     }
   }
 
   private async deleteItem(item: EnumPriorityResponse) {
-    if (
-      !ApiResponseHandler.confirmAction(
-        `Are you sure you want to delete '${item.name}'? This action cannot be undone.`,
-      )
-    ) {
-      return;
-    }
-
     try {
       const response = await this.makeAuthenticatedRequest(
         `${PowerSortConstants.API_BASE}/enum-priorities/${item.id}`,
@@ -248,9 +238,9 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(
 
       await ApiResponseHandler.handleResponse(response);
       await this.loadEnumPriorities();
-      ApiResponseHandler.showSuccess("Enum priority deleted successfully!");
+      this.showMessage(`${item.name} deleted successfully!`, "positive");
     } catch (error) {
-      ApiResponseHandler.showError(error, "Failed to delete enum priority");
+      this.showMessage(`Failed to delete ${item.name}`, "danger");
     }
   }
 
@@ -279,62 +269,6 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(
         [field]: "",
       };
       this.requestUpdate();
-    }
-  }
-
-  private async loadPriorityOptions() {
-    try {
-      console.log(
-        "[PowerSort Debug] Loading priority options from EnumPriorityAPIController...",
-      );
-
-      const response = await fetch(
-        buildApiUrl(PowerSortConstants.ENDPOINTS.ENUM_PRIORITIES),
-        {
-          headers: {
-            Authorization: `Bearer ${this.authToken}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("[PowerSort Debug] Priority options response:", data);
-
-        // Handle both direct array and wrapped response
-        const priorities: EnumPriorityResponse[] = Array.isArray(data)
-          ? data
-          : data.items || [];
-
-        if (priorities.length > 0) {
-          // Map enum priorities to dropdown options, sorted by sortPriority
-          this.priorityOptions = priorities
-            .sort((a, b) => a.sortPriority - b.sortPriority)
-            .map((priority) => ({
-              value: priority.sortPriority, // Use the sortPriority as the value
-              label: priority.name,
-            }));
-
-          console.log(
-            "[PowerSort Debug] Mapped priority options:",
-            this.priorityOptions,
-          );
-        } else {
-          console.log(
-            "[PowerSort Debug] No priority options found in response",
-          );
-        }
-      } else {
-        console.error(
-          "[PowerSort Debug] Failed to load priority options:",
-          response.status,
-          response.statusText,
-        );
-      }
-    } catch (error) {
-      console.error("[PowerSort Debug] Error loading priority options:", error);
-    } finally {
     }
   }
 
@@ -746,6 +680,7 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(
     }
 
     return html`
+      ${this.renderToastContainer()}
       <div class="dashboard-container">
         <div class="dashboard__header">
           <div class="header__top-level">

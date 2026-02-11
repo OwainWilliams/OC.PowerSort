@@ -42,9 +42,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
   private hasDefaultOrder: boolean = false;
 
   @state()
-  private defaultOrderInfo: any = null;
-
-  @state()
   private loading: boolean = false;
 
   @state()
@@ -119,7 +116,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       );
 
       const data = (await ApiResponseHandler.handleResponse(response)) as any;
-      this.defaultOrderInfo = data;
       this.hasDefaultOrder = data.isSet;
     } catch (error) {
       console.error("Error loading default order info:", error);
@@ -128,14 +124,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
 
   private async saveAsDefaultOrder() {
     if (!this.id) return;
-
-    if (
-      !ApiResponseHandler.confirmAction(
-        PowerSortConstants.MESSAGES.CONFIRM_SAVE_DEFAULT,
-      )
-    ) {
-      return;
-    }
 
     try {
       const response = await this.makeAuthenticatedRequest(
@@ -148,22 +136,14 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
 
       await ApiResponseHandler.handleResponse(response);
       await this.loadDefaultOrderInfo();
-      ApiResponseHandler.showSuccess("Current sort order saved as default!");
+      this.showMessage("Current sort order saved as default", "positive");
     } catch (error) {
-      ApiResponseHandler.showError(error, "Failed to save default order");
+      this.showMessage("Failed to save default order", "danger");
     }
   }
 
   private async restoreDefaultOrder() {
     if (!this.id) return;
-
-    if (
-      !ApiResponseHandler.confirmAction(
-        PowerSortConstants.MESSAGES.CONFIRM_RESTORE_DEFAULT,
-      )
-    ) {
-      return;
-    }
 
     try {
       const response = await this.makeAuthenticatedRequest(
@@ -173,47 +153,11 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
 
       await ApiResponseHandler.handleResponse(response);
       await this.loadNodeChildren();
-      ApiResponseHandler.showSuccess("Default sort order restored!");
+      this.showMessage("Default sort order restored", "positive");
     } catch (error) {
-      ApiResponseHandler.showError(error, "Failed to restore default order");
+      this.showMessage("Failed to restore default sort order", "danger");
     }
   }
-
-  private async clearDefaultOrder() {
-    if (!this.id) return;
-
-    if (
-      !ApiResponseHandler.confirmAction(
-        PowerSortConstants.MESSAGES.CONFIRM_CLEAR_DEFAULT,
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const response = await this.makeAuthenticatedRequest(
-        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.DEFAULT_SORT_ORDER}/${this.id}`,
-        { method: "DELETE" },
-      );
-
-      await ApiResponseHandler.handleResponse(response);
-      await this.loadDefaultOrderInfo();
-      ApiResponseHandler.showSuccess("Default sort order cleared!");
-    } catch (error) {
-      ApiResponseHandler.showError(error, "Failed to clear default order");
-    }
-  }
-
-  // private async loadActiveSchedules() {
-  //   if (!this.id || !this.scheduleApi) return;
-
-  //   try {
-  //     this.activeSchedules = await this.scheduleApi.getSchedules(this.id);
-  //   } catch (error) {
-  //     console.error("Error loading active schedules:", error);
-  //     // Don't show error to user, just log it
-  //   }
-  // }
 
   private async loadSchedules() {
     if (!this.scheduleApi || !this.id) return;
@@ -226,7 +170,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       this.activeSchedules = response.items;
     } catch (error) {
       console.error("Error loading schedules:", error);
-      this.error = "Failed to load schedules";
+      this.showMessage("Failed to load schedules", "danger");
     } finally {
       this.loading = false;
     }
@@ -342,15 +286,8 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     if (!this.scheduleApi) return;
 
     const formData = event.detail;
-
+    const itemName = this.findItemNameById(this.contentId);
     // Add debugging to understand the IDs being used
-    console.log("[PowerSort Debug] Schedule save attempt:", {
-      isEditing: !!this.editingSchedule,
-      formData: formData,
-      parentIdFromRoute: this.id,
-      parentNodeName: this.parentNodeName,
-    });
-    console.log(this.editingSchedule);
     try {
       if (this.editingSchedule) {
         // Update existing
@@ -360,8 +297,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
           endDateTime: formData.endDateTime,
           priority: formData.priority || PowerSortConstants.DEFAULTS.PRIORITY,
         };
-
-        console.log("[PowerSort Debug] Update request:", request);
         await this.scheduleApi.updateSchedule(this.editingSchedule.id, request);
       } else {
         // Create new - use route parent ID since filter ensures content is a child
@@ -374,20 +309,24 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
           priority: formData.priority || PowerSortConstants.DEFAULTS.PRIORITY,
         };
 
-        console.log("[PowerSort Debug] Create request:", request);
         await this.scheduleApi.createSchedule(request);
       }
 
       this.closeDialog();
       await this.loadSchedules();
+
+      const successMessage = this.editingSchedule
+        ? "Schedule updated successfully"
+        : `Schedule for ${this.findItemNameById(this.contentId)} created successfully`;
+      this.showMessage(successMessage, "positive");
     } catch (error) {
       console.error("[PowerSort Debug] Error saving schedule:", error);
-
+      this.showMessage(`Failed to save schedule for ${itemName}`, "danger");
       // Show more detailed error message
       if (error instanceof Error && error.message.includes("API Error")) {
         this.error = `Failed to save schedule: ${error.message}`;
       } else {
-        this.error = "Failed to save schedule";
+        this.error = `Failed to save schedule for ${itemName}`;
       }
     }
   }
@@ -397,12 +336,15 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     const item = event.currentTarget as HTMLElement;
     const parentItem = item.closest(".js-child-row") as HTMLElement;
     parentItem.classList.remove("hidden"); // Ensure accordion doesn't collapse on rerender after deletion
+    const itemName = this.findItemNameById(this.contentId);
 
     try {
       await this.scheduleApi.deleteSchedule(scheduleId);
       await this.loadSchedules();
+      this.showMessage(`Schedule for ${itemName} deleted successfully`, "positive");
     } catch (error) {
       ApiResponseHandler.showError(error, "Failed to delete schedule");
+      this.showMessage(`Failed to delete schedule for ${itemName}`, "danger");
     }
   }
 
@@ -440,42 +382,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     await this.updateSortOrder();
   }
 
-  private renderDefaultOrderBanner() {
-    if (!this.hasDefaultOrder) return "";
-
-    const content = html`
-      <uui-icon
-        class="icon"
-        name="${PowerSortConstants.ICONS.BOOKMARK}"
-      ></uui-icon>
-      <div class="content">
-        <strong>Default Order Saved</strong>
-        <p
-          style="margin: var(--uui-size-space-1) 0 0 0; font-size: var(--uui-type-small-size);"
-        >
-          ${this.defaultOrderInfo?.itemCount || 0} items • Last updated:
-          ${new Date(this.defaultOrderInfo?.updated).toLocaleDateString()}
-          ${this.activeSchedules.length === 0
-            ? " • Will restore automatically when schedules expire"
-            : ""}
-        </p>
-      </div>
-    `;
-
-    const actions = html`
-      <uui-button
-        look="outline"
-        label="Clear"
-        compact
-        @click=${this.clearDefaultOrder}
-      >
-        <uui-icon name="${PowerSortConstants.ICONS.DELETE}"></uui-icon>
-      </uui-button>
-    `;
-
-    return this.renderInfoBanner("default", content, actions);
-  }
-
   private toggleSchedules(e: MouseEvent, index: number) {
     const el = e.currentTarget as HTMLElement;
     const expandItem = el.querySelector("uui-symbol-expand") as HTMLElement;
@@ -504,26 +410,8 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     return this.activeSchedules.filter((s) => s.contentId === childId);
   }
 
-  private renderActiveScheduleBanner(hasActiveSchedules: boolean) {
-    if (!hasActiveSchedules) return "";
-
-    const content = html`
-      <uui-icon
-        name="${PowerSortConstants.ICONS.CALENDAR}"
-        style="color: var(--uui-color-positive); font-size: 24px;"
-      ></uui-icon>
-      <div class="content">
-        <strong>Active Schedules</strong>
-        <p
-          style="margin: var(--uui-size-space-1) 0 0 0; font-size: var(--uui-type-small-size);"
-        >
-          ${this.activeSchedules.length}
-          schedule${this.activeSchedules.length === 1 ? "" : "s"} currently
-          active. Some items are automatically sorted to specific positions.
-        </p>
-      </div>
-    `;
-    return this.renderInfoBanner("positive", content);
+  private findItemNameById(id: string): string {
+    return this.nodeChildren.find((c) => c.id === id)?.name || "Unknown Item";
   }
 
   private renderChildrenTable() {
@@ -603,6 +491,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                     ? html`
                         <uui-button
                           look="outline"
+                          label="View Schedule"
                           color="default"
                           @click=${(e: MouseEvent) =>
                             this.toggleSchedules(e, index)}
@@ -804,8 +693,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       return this.renderErrorState(this.error, () => this.loadNodeChildren());
     }
 
-    const hasActiveSchedules = this.activeSchedules.length > 0;
-
     return html`
       <div class="dashboard-container">
         <div class="dashboard-header">
@@ -823,13 +710,32 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                     look="outline"
                     color="default"
                     label="Restore Default Order"
-                    @click=${this.restoreDefaultOrder}
+                    popovertarget="restore-default-popover"
                   >
                     <uui-icon
                       name="${PowerSortConstants.ICONS.UNDO}"
                     ></uui-icon>
                     Restore Default
                   </uui-button>
+                  <uui-popover-container
+                    id="restore-default-popover"
+                    class="js-popover popover popover--sm"
+                    placement="right-start"
+                  >
+                    <div class="mb-4">
+                      Are you sure you want to restore the default sort order?
+                      This will overwrite the current order.
+                    </div>
+                    <uui-button
+                      class="ml-1"
+                      label="Restore Default Order"
+                      look="primary"
+                      color="danger"
+                      @click=${this.restoreDefaultOrder}
+                    >
+                      Yes
+                    </uui-button>
+                  </uui-popover-container>
                 `
               : ""}
             <uui-button
@@ -844,18 +750,15 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
           </div>
         </div>
 
-        ${this.renderDefaultOrderBanner()}
-        ${this.renderActiveScheduleBanner(hasActiveSchedules)}
         ${this.renderChildrenTable()}
+        ${this.renderToastContainer()}
         ${this.showCreateDialog
           ? html`
               <schedule-dialog
                 .parentId=${this.id}
                 .schedule=${this.editingSchedule}
                 .contentId=${this.contentId}
-                .contentName=${this.nodeChildren.find(
-                  (c) => c.id === this.contentId,
-                )?.name || ""}
+                .contentName=${this.findItemNameById(this.contentId)}
                 @save=${this.handleSaveSchedule}
                 @cancel=${this.closeDialog}
               >

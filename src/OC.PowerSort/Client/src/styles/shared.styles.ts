@@ -241,5 +241,7 @@ export const powerSortSharedStyles = css`
     padding: 8px !important;
   }
 
-
+  .popover--sm {
+    width: 350px;
+  }
 `;
