@@ -88,7 +88,8 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
   }
 
   private handleMenuItemClick(nodeId: string) {
-    RouteUtils.navigateTo(RouteUtils.getDashboardPath("children", nodeId));
+    const path = RouteUtils.getDashboardPath("children", nodeId);
+    RouteUtils.navigateTo(path);
   }
 
   private removeMenuItem(e: Event, id: any) {
