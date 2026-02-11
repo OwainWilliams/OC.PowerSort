@@ -97,7 +97,7 @@ public class SortingFlagServiceTests
             .Returns(new[] { child1, child2, child3 });
 
         // Act
-        var result = await _service.HasCustomSortOrderAsync(documentId);
+        var result = await _service.IsPowerSortManagedAsync(documentId);
 
         // Assert
         result.Should().BeTrue("because the sort order differs from creation date order");

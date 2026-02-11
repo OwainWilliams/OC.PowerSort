@@ -1,5 +1,4 @@
 using OC.PowerSort.Interfaces;
-using OC.PowerSort.Models;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Persistence;
 
@@ -20,7 +19,7 @@ namespace OC.PowerSort.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> HasCustomSortOrderAsync(Guid documentId)
+        public async Task<bool> IsPowerSortManagedAsync(Guid documentId)
         {
             try
             {
@@ -50,9 +49,9 @@ namespace OC.PowerSort.Services
             try
             {
                 using var database = _databaseFactory.CreateDatabase();
-                
+
                 var now = DateTime.UtcNow;
-                
+
                 // Check if this document is either the ContentId OR the ParentId of an active schedule
                 var activeScheduleCount = database.ExecuteScalar<int>(
                     @"SELECT COUNT(*) FROM ocPowerSortSchedule 
@@ -100,7 +99,8 @@ namespace OC.PowerSort.Services
             var now = DateTime.UtcNow;
             var docIdList = documentIds.ToList();
 
-            if (docIdList.Count == 0) return result;
+            if (docIdList.Count == 0)
+                return result;
 
             // Initialize all documents with default flag info
             foreach (var docId in docIdList)

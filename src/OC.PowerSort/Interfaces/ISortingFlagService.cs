@@ -10,7 +10,7 @@ namespace OC.PowerSort.Interfaces
         /// </summary>
         /// <param name="documentId">Document ID to check</param>
         /// <returns>True if document has custom sort order</returns>
-        public Task<bool> HasCustomSortOrderAsync(Guid documentId);
+        public Task<bool> IsPowerSortManagedAsync(Guid documentId);
 
         /// <summary>
         /// Check if a document is currently scheduled for sorting
