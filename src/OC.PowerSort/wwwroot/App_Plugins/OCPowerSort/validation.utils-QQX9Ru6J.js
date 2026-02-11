@@ -1,4 +1,4 @@
-class s {
+class r {
   /**
    * Navigate using Umbraco's routing system
    */
@@ -13,12 +13,19 @@ class s {
     return `/umbraco/section/power-sort/dashboard/power-sort-dashboard#${t}/${e}`;
   }
 }
-class n {
+class s {
   /**
    * Format date to local string
    */
   static formatDateTime(t) {
-    return new Date(t).toLocaleString();
+    return new Date(t).toLocaleString(void 0, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: !1
+    });
   }
   /**
    * Format date for input fields (YYYY-MM-DDTHH:mm)
@@ -46,7 +53,7 @@ class n {
   }
 }
 export {
-  n as D,
-  s as R
+  s as D,
+  r as R
 };
-//# sourceMappingURL=validation.utils-BMdJXB5x.js.map
+//# sourceMappingURL=validation.utils-QQX9Ru6J.js.map

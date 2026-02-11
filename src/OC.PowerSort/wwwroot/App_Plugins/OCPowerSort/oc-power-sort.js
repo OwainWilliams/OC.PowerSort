@@ -119,7 +119,7 @@ const o = [
     alias: "OC.PowerSort-Dashboard",
     label: "Power Sort",
     pathname: "power-sort-dashboard",
-    jsImport: () => import("./powersort.element-CouKEYEO.js")
+    jsImport: () => import("./powersort.element-C_SMHDNg.js")
   })
 ], l = [
   e.createSidebarAppManifest({
@@ -127,7 +127,7 @@ const o = [
     alias: "OC.PowerSort.SectionSidebar",
     label: "Power Sort Sidebar",
     icon: "icon-sort",
-    jsImport: () => import("./sidebar-app.element-BwvtbaCw.js"),
+    jsImport: () => import("./sidebar-app.element-DxTD6g5s.js"),
     menus: ["OC.PowerSort.Menu"]
   })
 ], i = "Umb.", m = [
@@ -183,7 +183,6 @@ const o = [
 ], c = [
   ...o,
   ...s,
-  // Main PowerSort dashboard - conditionally renders Children/Schedules
   ...r,
   ...l,
   ...m

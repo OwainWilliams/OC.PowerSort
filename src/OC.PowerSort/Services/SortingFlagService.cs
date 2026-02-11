@@ -24,28 +24,18 @@ namespace OC.PowerSort.Services
         {
             try
             {
-                // Check if this document has been manually sorted (different from creation date order)
-                var document = _contentService.GetById(documentId);
-                if (document == null) return false;
+                using var database = _databaseFactory.CreateDatabase();
 
-                // If document has no parent, it can't have custom sort order
-                if (document.ParentId == -1) return false;
+                // Only return true if this document is actually managed by PowerSort
+                // Check if there are any schedules (current or future) or default orders for this document as a parent
+                var isPowerSortManaged = database.ExecuteScalar<int>(
+                    @"SELECT CASE 
+                        WHEN EXISTS (SELECT 1 FROM ocPowerSortSchedule WHERE ParentId = @0)
+                        OR EXISTS (SELECT 1 FROM ocPowerSortDefaultOrder WHERE ParentId = @0)
+                        THEN 1 ELSE 0 END",
+                    documentId);
 
-                // Get all siblings ordered by creation date (default Umbraco order)
-                var siblings = _contentService.GetPagedChildren(document.ParentId, 0, int.MaxValue, out _)
-                    .OrderBy(c => c.CreateDate)
-                    .ToList();
-
-                // If there's only one child, no custom sorting possible
-                if (siblings.Count <= 1) return false;
-
-                // Check if current sort order differs from creation date order
-                var currentSortOrder = siblings.OrderBy(c => c.SortOrder).Select(c => c.Key).ToList();
-                var creationDateOrder = siblings.OrderBy(c => c.CreateDate).Select(c => c.Key).ToList();
-
-                var hasCustomSort = !currentSortOrder.SequenceEqual(creationDateOrder);
-
-                return hasCustomSort;
+                return isPowerSortManaged > 0;
             }
             catch (Exception ex)
             {
@@ -160,17 +150,22 @@ namespace OC.PowerSort.Services
                             result[docId].HasDefaultSortOrder = true;
                             result[docId].DefaultOrderItemCount = defaultOrderCount;
                         }
+
+                        // Check if this document is managed by PowerSort (has any schedules or default orders as a parent)
+                        // This includes both active and future schedules
+                        var isPowerSortManaged = database.ExecuteScalar<int>(
+                            @"SELECT CASE 
+                                WHEN EXISTS (SELECT 1 FROM ocPowerSortSchedule WHERE ParentId = @0)
+                                OR EXISTS (SELECT 1 FROM ocPowerSortDefaultOrder WHERE ParentId = @0)
+                                THEN 1 ELSE 0 END",
+                            docId);
+
+                        result[docId].HasCustomSortOrder = isPowerSortManaged > 0;
                     }
                     catch (Exception ex)
                     {
                         System.Console.WriteLine($"[PowerSort] Error checking flags for {docId}: {ex.Message}");
                     }
-                }
-
-                // Check for custom sort orders
-                foreach (var documentId in docIdList)
-                {
-                    result[documentId].HasCustomSortOrder = await HasCustomSortOrderAsync(documentId);
                 }
 
                 return result;

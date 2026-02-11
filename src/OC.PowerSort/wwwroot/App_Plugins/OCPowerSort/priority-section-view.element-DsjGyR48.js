@@ -1,13 +1,14 @@
 import { LitElement as p, html as d, css as h, state as u, property as g, customElement as y } from "@umbraco-cms/backoffice/external/lit";
-import { U as f, P as s, A as l, b as v } from "./crud.mixin-WeBWptlA.js";
-import { U as b } from "./ui.mixin-DutlRF0v.js";
-import { p as P } from "./shared.styles-7p8CFe0X.js";
-var E = Object.defineProperty, w = Object.getOwnPropertyDescriptor, n = (i, r, t, e) => {
-  for (var a = e > 1 ? void 0 : e ? w(r, t) : r, m = i.length - 1, c; m >= 0; m--)
-    (c = i[m]) && (a = (e ? c(r, t, a) : c(a)) || a);
-  return e && a && E(r, t, a), a;
+import { U as f, P as s, A as l, b as v, p as b } from "./shared.styles-BdnPOy5W.js";
+import { U as P } from "./ui.mixin-C1ziC5Yq.js";
+var w = Object.defineProperty, x = Object.getOwnPropertyDescriptor, n = (i, r, e, t) => {
+  for (var a = t > 1 ? void 0 : t ? x(r, e) : r, c = i.length - 1, m; c >= 0; c--)
+    (m = i[c]) && (a = (t ? m(r, e, a) : m(a)) || a);
+  return t && a && w(r, e, a), a;
 };
-let o = class extends b(f(p)) {
+let o = class extends P(
+  f(p)
+) {
   constructor() {
     super(...arguments), this.enumPriorities = [], this.priorityOptions = [], this.loading = !1, this.error = "", this.showCreateDialog = !1, this.editingItem = null, this.formData = {
       name: "",
@@ -22,7 +23,9 @@ let o = class extends b(f(p)) {
     try {
       const i = await this.makeAuthenticatedRequest(
         `${s.API_BASE}/enum-priorities`
-      ), r = await l.handleResponse(i);
+      ), r = await l.handleResponse(
+        i
+      );
       this.enumPriorities = r.items || [];
     } catch (i) {
       this.error = i instanceof Error ? i.message : "Failed to load enum priorities", console.error("Error loading enum priorities:", i);
@@ -47,7 +50,9 @@ let o = class extends b(f(p)) {
   }
   getNextAvailablePriority() {
     if (this.enumPriorities.length === 0) return 100;
-    const i = new Set(this.enumPriorities.map((t) => t.sortPriority));
+    const i = new Set(
+      this.enumPriorities.map((e) => e.sortPriority)
+    );
     let r = 100;
     for (; i.has(r); )
       r += 100;
@@ -57,19 +62,19 @@ let o = class extends b(f(p)) {
     this.formErrors = {};
     let i = !0;
     this.formData.name.trim() ? this.formData.name.trim().length < 2 ? (this.formErrors.name = "Name must be at least 2 characters", i = !1) : this.formData.name.trim().length > 100 && (this.formErrors.name = "Name must be less than 100 characters", i = !1) : (this.formErrors.name = "Name is required", i = !1), this.enumPriorities.find(
-      (e) => e.name.toLowerCase() === this.formData.name.trim().toLowerCase() && (!this.editingItem || e.id !== this.editingItem.id)
+      (t) => t.name.toLowerCase() === this.formData.name.trim().toLowerCase() && (!this.editingItem || t.id !== this.editingItem.id)
     ) && (this.formErrors.name = `Name '${this.formData.name.trim()}' is already in use`, i = !1), this.formData.sortPriority < 0 ? (this.formErrors.sortPriority = "Sort priority must be 0 or greater", i = !1) : this.formData.sortPriority > 999999 && (this.formErrors.sortPriority = "Sort priority must be less than 1,000,000", i = !1);
-    const t = this.enumPriorities.find(
-      (e) => e.sortPriority === this.formData.sortPriority && (!this.editingItem || e.id !== this.editingItem.id)
+    const e = this.enumPriorities.find(
+      (t) => t.sortPriority === this.formData.sortPriority && (!this.editingItem || t.id !== this.editingItem.id)
     );
-    return t && (this.formErrors.sortPriority = `Sort priority ${this.formData.sortPriority} is already in use by '${t.name}'`, i = !1), this.requestUpdate(), i;
+    return e && (this.formErrors.sortPriority = `Sort priority ${this.formData.sortPriority} is already in use by '${e.name}'`, i = !1), this.requestUpdate(), i;
   }
   async saveItem() {
     if (this.validateForm())
       try {
         let i;
         if (this.editingItem) {
-          const t = {
+          const r = {
             name: this.formData.name.trim(),
             sortPriority: this.formData.sortPriority
           };
@@ -77,7 +82,7 @@ let o = class extends b(f(p)) {
             `${s.API_BASE}/enum-priorities/${this.editingItem.id}`,
             {
               method: "PUT",
-              body: JSON.stringify(t)
+              body: JSON.stringify(r)
             }
           );
         } else
@@ -89,14 +94,17 @@ let o = class extends b(f(p)) {
             }
           );
         await l.handleResponse(i), await this.loadEnumPriorities(), this.closeDialog();
-        const r = this.editingItem ? "updated" : "created";
-        l.showSuccess(`Enum priority ${r} successfully!`);
       } catch (i) {
-        i instanceof Error && i.message.includes("already in use") ? (i.message.includes("Sort priority") ? this.formErrors.sortPriority = i.message : i.message.includes("Name") && (this.formErrors.name = i.message), this.requestUpdate()) : l.showError(i, `Failed to ${this.editingItem ? "update" : "create"} enum priority`);
+        i instanceof Error && i.message.includes("already in use") ? (i.message.includes("Sort priority") ? this.formErrors.sortPriority = i.message : i.message.includes("Name") && (this.formErrors.name = i.message), this.requestUpdate()) : l.showError(
+          i,
+          `Failed to ${this.editingItem ? "update" : "create"} enum priority`
+        );
       }
   }
   async deleteItem(i) {
-    if (l.confirmAction(`Are you sure you want to delete '${i.name}'? This action cannot be undone.`))
+    if (l.confirmAction(
+      `Are you sure you want to delete '${i.name}'? This action cannot be undone.`
+    ))
       try {
         const r = await this.makeAuthenticatedRequest(
           `${s.API_BASE}/enum-priorities/${i.id}`,
@@ -108,13 +116,13 @@ let o = class extends b(f(p)) {
       }
   }
   handleFormInput(i, r) {
-    const t = i.target;
+    const e = i.target;
     r === "sortPriority" ? this.formData = {
       ...this.formData,
-      [r]: parseInt(t.value) || 0
+      [r]: parseInt(e.value) || 0
     } : this.formData = {
       ...this.formData,
-      [r]: t.value
+      [r]: e.value
     }, this.formErrors[r] && (this.formErrors = {
       ...this.formErrors,
       [r]: ""
@@ -122,24 +130,38 @@ let o = class extends b(f(p)) {
   }
   async loadPriorityOptions() {
     try {
-      console.log("[PowerSort Debug] Loading priority options from EnumPriorityAPIController...");
-      const i = await fetch(v(s.ENDPOINTS.ENUM_PRIORITIES), {
-        headers: {
-          Authorization: `Bearer ${this.authToken}`,
-          "Content-Type": "application/json"
+      console.log(
+        "[PowerSort Debug] Loading priority options from EnumPriorityAPIController..."
+      );
+      const i = await fetch(
+        v(s.ENDPOINTS.ENUM_PRIORITIES),
+        {
+          headers: {
+            Authorization: `Bearer ${this.authToken}`,
+            "Content-Type": "application/json"
+          }
         }
-      });
+      );
       if (i.ok) {
         const r = await i.json();
         console.log("[PowerSort Debug] Priority options response:", r);
-        const t = Array.isArray(r) ? r : r.items || [];
-        t.length > 0 ? (this.priorityOptions = t.sort((e, a) => e.sortPriority - a.sortPriority).map((e) => ({
-          value: e.sortPriority,
+        const e = Array.isArray(r) ? r : r.items || [];
+        e.length > 0 ? (this.priorityOptions = e.sort((t, a) => t.sortPriority - a.sortPriority).map((t) => ({
+          value: t.sortPriority,
           // Use the sortPriority as the value
-          label: e.name
-        })), console.log("[PowerSort Debug] Mapped priority options:", this.priorityOptions)) : console.log("[PowerSort Debug] No priority options found in response");
+          label: t.name
+        })), console.log(
+          "[PowerSort Debug] Mapped priority options:",
+          this.priorityOptions
+        )) : console.log(
+          "[PowerSort Debug] No priority options found in response"
+        );
       } else
-        console.error("[PowerSort Debug] Failed to load priority options:", i.status, i.statusText);
+        console.error(
+          "[PowerSort Debug] Failed to load priority options:",
+          i.status,
+          i.statusText
+        );
     } catch (i) {
       console.error("[PowerSort Debug] Error loading priority options:", i);
     }
@@ -148,9 +170,7 @@ let o = class extends b(f(p)) {
     if (!this.showCreateDialog) return "";
     const i = this.editingItem ? "Edit Enum Priority" : "Create Enum Priority", r = this.editingItem ? "Update" : "Create";
     return d`
-      <uui-modal-dialog 
-        headline="${i}"
-        class="enum-priority-dialog">
+      <uui-modal-dialog headline="${i}" class="enum-priority-dialog">
         <div class="dialog-content">
           <div class="form-field">
             <uui-label for="name-input" slot="label" required>Name</uui-label>
@@ -159,17 +179,18 @@ let o = class extends b(f(p)) {
               type="text"
               placeholder="e.g., High Priority"
               .value=${this.formData.name}
-              @input=${(t) => this.handleFormInput(t, "name")}
+              @input=${(e) => this.handleFormInput(e, "name")}
               ?error=${!!this.formErrors.name}
-              maxlength="100">
+              maxlength="100"
+            >
             </uui-input>
-            ${this.formErrors.name ? d`
-              <div class="error-message">${this.formErrors.name}</div>
-            ` : ""}
+            ${this.formErrors.name ? d` <div class="error-message">${this.formErrors.name}</div> ` : ""}
           </div>
 
           <div class="form-field">
-            <uui-label for="priority-input" slot="label" required>Sort Priority (Weight)</uui-label>
+            <uui-label for="priority-input" slot="label" required
+              >Sort Priority (Weight)</uui-label
+            >
             <uui-input
               id="priority-input"
               type="number"
@@ -177,15 +198,19 @@ let o = class extends b(f(p)) {
               min="0"
               max="999999"
               .value=${this.formData.sortPriority.toString()}
-              @input=${(t) => this.handleFormInput(t, "sortPriority")}
-              ?error=${!!this.formErrors.sortPriority}>
+              @input=${(e) => this.handleFormInput(e, "sortPriority")}
+              ?error=${!!this.formErrors.sortPriority}
+            >
             </uui-input>
             <div class="field-description">
-              Higher numbers = higher priority. Each weight can only be used once.
+              Higher numbers = higher priority. Each weight can only be used
+              once.
             </div>
             ${this.formErrors.sortPriority ? d`
-              <div class="error-message">${this.formErrors.sortPriority}</div>
-            ` : ""}
+                  <div class="error-message">
+                    ${this.formErrors.sortPriority}
+                  </div>
+                ` : ""}
           </div>
 
           <!-- Actions moved inside content -->
@@ -193,14 +218,16 @@ let o = class extends b(f(p)) {
             <uui-button
               label="Cancel"
               look="secondary"
-              @click=${this.closeDialog}>
+              @click=${this.closeDialog}
+            >
               Cancel
             </uui-button>
             <uui-button
               label="${r}"
               look="primary"
               color="positive"
-              @click=${this.saveItem}>
+              @click=${this.saveItem}
+            >
               ${r}
             </uui-button>
           </div>
@@ -224,51 +251,63 @@ let o = class extends b(f(p)) {
           </tr>
         </thead>
         <tbody>
-          ${this.enumPriorities.map((i) => d`
-            <tr>
-              <td>
-                <div class="item-name">
-                  <strong>${i.name}</strong>
-                </div>
-              </td>
-              <td>
-                <span class="priority-badge priority-${this.getPriorityLevel(i.sortPriority)}">
-                  ${i.sortPriority}
-                </span>
-              </td>
-              <td>
-                <div class="date-info">
-                  <div>${new Date(i.created).toLocaleDateString()}</div>
-                  <small>by ${i.createdByName}</small>
-                </div>
-              </td>
-              <td>
-                <div class="date-info">
-                  <div>${new Date(i.updated).toLocaleDateString()}</div>
-                  <small>by ${i.updatedByName}</small>
-                </div>
-              </td>
-              <td>
-                <div class="action-buttons">
-                  <uui-button
-                    compact
-                    look="outline"
-                    label="Edit"
-                    @click=${() => this.openEditDialog(i)}>
-                    <uui-icon name="${s.ICONS.EDIT}"></uui-icon>
-                  </uui-button>
-                  <uui-button
-                    compact
-                    look="outline"
-                    color="danger"
-                    label="Delete"
-                    @click=${() => this.deleteItem(i)}>
-                    <uui-icon name="${s.ICONS.DELETE}"></uui-icon>
-                  </uui-button>
-                </div>
-              </td>
-            </tr>
-          `)}
+          ${this.enumPriorities.map(
+      (i) => d`
+              <tr>
+                <td>
+                  <div class="item-name">
+                    <strong>${i.name}</strong>
+                  </div>
+                </td>
+                <td>
+                  <span
+                    class="priority-badge priority-${this.getPriorityLevel(
+        i.sortPriority
+      )}"
+                  >
+                    ${i.sortPriority}
+                  </span>
+                </td>
+                <td>
+                  <div class="date-info">
+                    <div>${new Date(i.created).toLocaleDateString()}</div>
+                    <small>by ${i.createdByName}</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="date-info">
+                    <div>${new Date(i.updated).toLocaleDateString()}</div>
+                    <small>by ${i.updatedByName}</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <uui-button
+                      compact
+                      look="outline"
+                      label="Edit"
+                      @click=${() => this.openEditDialog(i)}
+                    >
+                      <uui-icon
+                        name="${s.ICONS.EDIT}"
+                      ></uui-icon>
+                    </uui-button>
+                    <uui-button
+                      compact
+                      look="outline"
+                      color="danger"
+                      label="Delete"
+                      @click=${() => this.deleteItem(i)}
+                    >
+                      <uui-icon
+                        name="${s.ICONS.DELETE}"
+                      ></uui-icon>
+                    </uui-button>
+                  </div>
+                </td>
+              </tr>
+            `
+    )}
         </tbody>
       </table>
     `;
@@ -277,33 +316,45 @@ let o = class extends b(f(p)) {
     return i >= 500 ? "high" : i >= 200 ? "medium" : "low";
   }
   render() {
-    return this.loading ? this.renderLoadingState("Loading enum priorities...") : this.error ? this.renderErrorState(this.error, () => this.loadEnumPriorities()) : d`
+    return this.loading ? this.renderLoadingState("Loading priority tags...") : this.error ? this.renderErrorState(this.error, () => this.loadEnumPriorities()) : d`
       <div class="dashboard-container">
-        <div class="dashboard-header">
-          <div class="header-content">
-            <h1>Enum Priorities</h1>
-            <p>Manage priority enum values and their weights. Higher numbers get higher priority.</p>
+        <div class="dashboard__header">
+          <div class="header__top-level">
+            <div class="header__container">
+              <uui-icon name="icon-ordered-list"></uui-icon>
+              <h1>Priority Tags</h1>
+            </div>
+            <div class="header__actions">
+              <uui-button
+                look="primary"
+                color="positive"
+                label="Create Priority"
+                @click=${this.openCreateDialog}
+              >
+                <uui-icon name="${s.ICONS.ADD}"></uui-icon>
+                Create Priority
+              </uui-button>
+            </div>
           </div>
-          <div class="header-actions">
-            <uui-button
-              look="primary"
-              color="positive"
-              label="Create Priority"
-              @click=${this.openCreateDialog}>
-              <uui-icon name="${s.ICONS.ADD}"></uui-icon>
-              Create Priority
-            </uui-button>
+          <div class="dashboard__intro">
+            <p>
+              Here you can create and edit priority tags. These are applied to
+              list items in the scheduling view. The priority tag weighting
+              provides a fallback mechanism when no explicit priority is set, or
+              if any conflicts in priority arise. The higher the number applied,
+              the higher priority (and rank in the sort order) the item is
+              given.
+            </p>
           </div>
         </div>
 
-        ${this.renderEnumPrioritiesTable()}
-        ${this.renderDialog()}
+        ${this.renderEnumPrioritiesTable()} ${this.renderDialog()}
       </div>
     `;
   }
 };
 o.styles = [
-  P,
+  b,
   h`
       :host {
         display: block;
@@ -501,6 +552,35 @@ o.styles = [
         color: var(--uui-color-text-alt);
         font-size: var(--uui-type-small-size);
       }
+
+      .dashboard__header {
+        margin-bottom: 45px;
+        padding: var(--uui-size-space-6);
+        background: var(--uui-color-surface);
+        border: 1px solid var(--uui-color-border);
+        border-radius: var(--uui-border-radius);
+      }
+
+      .dashboard__intro {
+        width: 60%;
+        margin-top: 20px;
+      }
+
+      .header__actions {
+        flex-shrink: 0;
+      }
+
+      .header__container {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+      }
+
+      .header__top-level {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
     `
 ];
 n([
@@ -533,4 +613,4 @@ o = n([
 export {
   o as default
 };
-//# sourceMappingURL=priority-section-view.element-C_ByeR8A.js.map
+//# sourceMappingURL=priority-section-view.element-DsjGyR48.js.map

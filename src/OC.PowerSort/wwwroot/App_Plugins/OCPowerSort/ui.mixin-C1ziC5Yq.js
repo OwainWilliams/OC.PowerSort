@@ -1,5 +1,5 @@
 import { html as i } from "@umbraco-cms/backoffice/external/lit";
-import { P as r } from "./crud.mixin-WeBWptlA.js";
+import { P as r } from "./shared.styles-BdnPOy5W.js";
 const l = (o) => {
   class t extends o {
     /**
@@ -93,4 +93,4 @@ const l = (o) => {
 export {
   l as U
 };
-//# sourceMappingURL=ui.mixin-DutlRF0v.js.map
+//# sourceMappingURL=ui.mixin-C1ziC5Yq.js.map

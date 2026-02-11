@@ -91,19 +91,37 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
     RouteUtils.navigateTo(RouteUtils.getDashboardPath("children", nodeId));
   }
 
-  private removeMenuItem(e: Event, id: any) {
+  private async removeMenuItem(e: Event, id: any) {
     const item = e.currentTarget as HTMLElement;
     const popover = item?.closest(".js-popover");
 
     const itemToRemove = this.menuItems.find(
       (item: MenuItem) => item.id === id,
     );
+
+    try {
+      // Call the API to delete the menu item and cancel all associated schedules
+      const response = await this.makeAuthenticatedRequest(
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.MENU_ITEMS}/${id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        console.error("Failed to delete menu item from server");
+      }
+    } catch (error) {
+      console.error("Error deleting menu item:", error);
+    }
+
+    // Remove from local state
     this.menuItems = this.menuItems.filter((item: MenuItem) => item.id !== id);
     this.saveMenuItemsToDb(this.menuItems);
     console.log("Menu item removed:", id);
 
     // Show feedback
-    this.saveMessage = `✓ "${itemToRemove?.name}" removed from menu`;
+    this.saveMessage = `✓ "${itemToRemove?.name}" removed from menu and schedules cancelled`;
     popover?.setAttribute("close", "true");
     setTimeout(() => {
       this.saveMessage = "";

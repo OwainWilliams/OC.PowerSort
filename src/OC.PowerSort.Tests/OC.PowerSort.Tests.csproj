@@ -30,6 +30,10 @@
     <ProjectReference Include="..\OC.PowerSort.TestSite\OC.PowerSort.TestSite.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="NotificationHandlers\" />
+  </ItemGroup>
+
  
 
 </Project>
