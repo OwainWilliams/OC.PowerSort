@@ -62,11 +62,8 @@ public class ContentDeletingHandler :
         {
             _scheduleService.CancelSchedulesForNodes(descendantGuids);
 
-            // Also cancel schedules where any descendant is the parent
-            foreach (var descendantGuid in descendantGuids)
-            {
-                _scheduleService.CancelSchedulesForParent(descendantGuid);
-            }
+            // Also cancel schedules where any descendant is the parent, using a batch operation
+            _scheduleService.CancelSchedulesForParents(descendantGuids);
         }
 
         // Cancel schedules for the deleted node itself
