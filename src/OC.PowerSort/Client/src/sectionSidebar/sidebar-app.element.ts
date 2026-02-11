@@ -20,13 +20,13 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
   // @ts-expect-error TS6133: stored for future use
   #sectionContext?: typeof UMB_SECTION_CONTEXT.TYPE;
 
+  // Store bound handler reference for proper cleanup
+  private _onMenuUpdated = this.handleMenuUpdate.bind(this);
+
   constructor() {
     super();
     // Listen for menu updates
-    window.addEventListener(
-      "powerSortMenuUpdated",
-      this.handleMenuUpdate.bind(this),
-    );
+    window.addEventListener("powerSortMenuUpdated", this._onMenuUpdated);
   }
 
   async connectedCallback() {
@@ -37,10 +37,7 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    window.removeEventListener(
-      "powerSortMenuUpdated",
-      this.handleMenuUpdate.bind(this),
-    );
+    window.removeEventListener("powerSortMenuUpdated", this._onMenuUpdated);
   }
 
   private async setupSectionContext(): Promise<void> {
@@ -88,22 +85,41 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
   }
 
   private handleMenuItemClick(nodeId: string) {
-    RouteUtils.navigateTo(RouteUtils.getDashboardPath("children", nodeId));
+    const path = RouteUtils.getDashboardPath("children", nodeId);
+    RouteUtils.navigateTo(path);
   }
 
-  private removeMenuItem(e: Event, id: any) {
+  private async removeMenuItem(e: Event, id: any) {
     const item = e.currentTarget as HTMLElement;
     const popover = item?.closest(".js-popover");
 
     const itemToRemove = this.menuItems.find(
       (item: MenuItem) => item.id === id,
     );
+
+    try {
+      // Call the API to delete the menu item and cancel all associated schedules
+      const response = await this.makeAuthenticatedRequest(
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.MENU_ITEMS}/${id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        console.error("Failed to delete menu item from server");
+      }
+    } catch (error) {
+      console.error("Error deleting menu item:", error);
+    }
+
+    // Remove from local state
     this.menuItems = this.menuItems.filter((item: MenuItem) => item.id !== id);
     this.saveMenuItemsToDb(this.menuItems);
     console.log("Menu item removed:", id);
 
     // Show feedback
-    this.saveMessage = `✓ "${itemToRemove?.name}" removed from menu`;
+    this.saveMessage = `✓ "${itemToRemove?.name}" removed from menu and schedules cancelled`;
     popover?.setAttribute("close", "true");
     setTimeout(() => {
       this.saveMessage = "";
@@ -174,27 +190,43 @@ export class OcPowerSortSidebarAppElement extends crudMixin {
           ? html`
               ${this.menuItems.map(
                 (item) => html`
-          <div class="js-menu-item relative">
-            <uui-menu-item 
-              label="${item.name}"
-              @click=${() => this.handleMenuItemClick(item.id)}
-              <uui-icon slot="icon" name="${item.icon}"></uui-icon>
-              <uui-action-bar slot="actions">
-                <uui-button label="open popover" class="" popovertarget="my-popover">
-                  <uui-icon-registry-essential>
-                    <uui-icon name="delete"> </uui-icon>
-                  </uui-icon-registry-essential>
-                </uui-button>
-              </uui-action-bar>
-            </uui-menu-item>
-               
-            <uui-popover-container id="my-popover" class="js-popover popover" placement="right-end">
-              Are you sure you want to delete?
-              <uui-button class="ml-1" label="delete menu item" look="primary" color="danger" @click=${(e: Event) => this.removeMenuItem(e, item.id)}>
-                Yes
-              </uui-button>
-            </uui-popover-container>
-          `,
+                  <div class="js-menu-item relative">
+                    <uui-menu-item
+                      label=${item.name}
+                      @click=${() => this.handleMenuItemClick(item.id)}
+                    >
+                      <uui-icon slot="icon" name=${item.icon}></uui-icon>
+                      <uui-action-bar slot="actions">
+                        <uui-button
+                          label="open popover"
+                          class=""
+                          popovertarget="my-popover"
+                        >
+                          <uui-icon-registry-essential>
+                            <uui-icon name="delete"> </uui-icon>
+                          </uui-icon-registry-essential>
+                        </uui-button>
+                      </uui-action-bar>
+                    </uui-menu-item>
+
+                    <uui-popover-container
+                      id="my-popover"
+                      class="js-popover popover"
+                      placement="right-end"
+                    >
+                      Are you sure you want to delete?
+                      <uui-button
+                        class="ml-1"
+                        label="delete menu item"
+                        look="primary"
+                        color="danger"
+                        @click=${(e: Event) => this.removeMenuItem(e, item.id)}
+                      >
+                        Yes
+                      </uui-button>
+                    </uui-popover-container>
+                  </div>
+                `,
               )}
             `
           : html`

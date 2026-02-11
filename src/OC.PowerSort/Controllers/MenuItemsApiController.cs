@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OC.PowerSort.Controllers.Base;
 using OC.PowerSort.DTOs;
+using OC.PowerSort.Interfaces;
 using OC.PowerSort.Models;
 using Umbraco.Cms.Api.Management.Routing;
 using Umbraco.Cms.Core.Security;
@@ -19,15 +20,17 @@ namespace OC.PowerSort.Controllers
     {
        
         private const string MENU_ITEMS_KEY = "PowerSortMenuItems_";
-
+        private readonly IScheduleService _scheduleService;
 
         public MenuItemsApiController(
             IBackOfficeSecurityAccessor backOfficeSecurityAccessor,
             IUmbracoDatabaseFactory databaseFactory,
             IContentService contentService,
-            IUserService userService)
+            IUserService userService,
+            IScheduleService scheduleService)
             : base(backOfficeSecurityAccessor, databaseFactory, contentService, userService)
         {
+            _scheduleService = scheduleService;
         }
 
         #region Menu Items Endpoints
@@ -93,6 +96,36 @@ namespace OC.PowerSort.Controllers
 
                 return new { success = true, itemCount = request.Items.Count };
             });
+        }
+
+        /// <summary>
+        /// Deletes a menu item and cancels all schedules where this node is the parent.
+        /// This ensures that when a parent node is removed from the PowerSort menu,
+        /// all scheduled sorting for its children is also cancelled.
+        /// </summary>
+        [HttpDelete("menu-items/{parentId:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult DeleteMenuItem(Guid parentId)
+        {
+            var authResult = ValidateUserAccess(out var userId);
+            if (authResult != null)
+                return authResult;
+
+            try
+            {
+                // Cancel all schedules where this node is the parent
+                _scheduleService.CancelSchedulesForParent(parentId);
+
+                // Also cancel any schedules where this node itself is scheduled
+                _scheduleService.CancelSchedule(parentId);
+
+                return Ok(new { success = true, message = "Menu item removed and all associated schedules cancelled" });
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
 
         #endregion

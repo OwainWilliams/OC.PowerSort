@@ -354,3 +354,5 @@ MigrationBackup/
 
 # Rider
 src/.idea
+# PowerSort build output
+OC.PowerSort/wwwroot/App_Plugins/

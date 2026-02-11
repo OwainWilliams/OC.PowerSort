@@ -5,6 +5,7 @@ import {
   customElement,
   state,
   property,
+  PropertyValues,
 } from "@umbraco-cms/backoffice/external/lit";
 import { UmbAuthMixin } from "../mixins/auth.mixin.js";
 import { UmbUiMixin } from "../mixins/ui.mixin.js";
@@ -59,24 +60,56 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
   private contentId: string = "";
 
   private scheduleApi?: ScheduleApiClient;
+  private _lastLoadedId: string = "";
+  private _isLoading: boolean = false;
 
+  protected override async willUpdate(
+    changedProperties: PropertyValues,
+  ): Promise<void> {
+    super.willUpdate(changedProperties);
+
+    // Only trigger data load when id actually changes to a new value
+    if (
+      changedProperties.has("id") &&
+      this.id &&
+      this.id !== this._lastLoadedId
+    ) {
+      console.log("[children] ID changed, loading data for:", this.id);
+      this._lastLoadedId = this.id;
+      await this.loadChildrenData();
+    }
+  }
+
+  private async loadChildrenData() {
+    if (this._isLoading) return;
+
+    this._isLoading = true;
+    this._lastLoadedId = this.id;
+
+    try {
+      await this.loadNodeChildren();
+      await this.loadSchedules();
+      await this.loadDefaultOrderInfo();
+    } finally {
+      this._isLoading = false;
+    }
+  }
   async connectedCallback() {
     super.connectedCallback(); // This now handles auth setup via mixin
 
     // Initialize schedule API
     this.scheduleApi = new ScheduleApiClient(() => this.getAuthToken());
 
-    // Don't extract ID from route here - it's passed as a property from parent dashboard
-    // The updated() lifecycle method will handle loading when the id property is set
-
     // If ID is already set (shouldn't happen on first connect), load data
-    if (this.id) {
-      await this.loadNodeChildren();
-      await this.loadSchedules();
-      await this.loadDefaultOrderInfo();
+    if (this.id && this.id !== this._lastLoadedId) {
+      this._lastLoadedId = this.id;
+      await this.loadChildrenData();
     }
   }
 
+  disconnectedCallback() {
+    super.disconnectedCallback();
+  }
   private async loadDefaultOrderInfo() {
     if (!this.id) return;
 
