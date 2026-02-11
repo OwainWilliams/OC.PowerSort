@@ -5,7 +5,7 @@ using Umbraco.Cms.Core.Services;
 
 namespace OC.PowerSort.NotificationHandlers;
 
-public class ContentDeletingHandler : 
+public class ContentDeletingHandler :
     INotificationHandler<ContentDeletingNotification>,
     INotificationHandler<ContentMovedToRecycleBinNotification>
 {
@@ -63,7 +63,10 @@ public class ContentDeletingHandler :
             _scheduleService.CancelSchedulesForNodes(descendantGuids);
 
             // Also cancel schedules where any descendant is the parent, using a batch operation
-            _scheduleService.CancelSchedulesForParents(descendantGuids);
+            foreach (var descendantGuid in descendantGuids)
+            {
+                _scheduleService.CancelSchedulesForParent(descendantGuid);
+            }
         }
 
         // Cancel schedules for the deleted node itself
