@@ -30,6 +30,7 @@ export default class PowerSortDashboardElement extends crudMixin {
   private routeNodeId: string = "";
 
   private documentItemRepository?: UmbDocumentItemRepository;
+  private childrenComponentLoaded: boolean = false;
 
   constructor() {
     super();
@@ -46,6 +47,13 @@ export default class PowerSortDashboardElement extends crudMixin {
 
     // Determine which view to show based on route
     this.detectCurrentView();
+
+    // preload dashboard components for faster navigation
+    await Promise.all([
+      import("./children.element.js"),
+      import("../section/priority-section-view.element.js"),
+    ]);
+    this.childrenComponentLoaded = true;
 
     // Listen for hash changes to update view
     window.addEventListener("hashchange", () => this.detectCurrentView());
@@ -710,7 +718,10 @@ export default class PowerSortDashboardElement extends crudMixin {
 
   private renderChildrenView() {
     // Dynamically import and render the children element
-    import("./children.element.js");
+    if (!this.childrenComponentLoaded) {
+      return html`<p>Loading...</p>`;
+    }
+
     return html`
       <power-sort-children-dashboard
         .id=${this.routeNodeId}
