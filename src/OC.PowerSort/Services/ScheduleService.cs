@@ -22,17 +22,7 @@ public class ScheduleService : IScheduleService
     }
 
     /// <inheritdoc/>
-    public void CancelSchedule(int contentId)
-    {
-        // This method is not used - schedules use Guid identifiers
-        // Kept for interface compatibility
-        _logger.LogWarning("CancelSchedule(int) called but schedules use Guid identifiers");
-    }
-
-    /// <summary>
-    /// Cancels all schedules for a specific content node by its Guid
-    /// </summary>
-    public void CancelScheduleByGuid(Guid contentId)
+    public void CancelSchedule(Guid contentId)
     {
         try
         {
@@ -56,9 +46,7 @@ public class ScheduleService : IScheduleService
         }
     }
 
-    /// <summary>
-    /// Cancels all schedules where the specified node is the parent
-    /// </summary>
+    /// <inheritdoc/>
     public void CancelSchedulesForParent(Guid parentId)
     {
         try
@@ -84,16 +72,7 @@ public class ScheduleService : IScheduleService
     }
 
     /// <inheritdoc/>
-    public void CancelSchedulesForNodes(IEnumerable<int> contentIds)
-    {
-        // This method is not used - schedules use Guid identifiers
-        _logger.LogWarning("CancelSchedulesForNodes(IEnumerable<int>) called but schedules use Guid identifiers");
-    }
-
-    /// <summary>
-    /// Cancels all schedules for multiple content nodes by their Guids
-    /// </summary>
-    public void CancelSchedulesForNodesByGuid(IEnumerable<Guid> contentIds)
+    public void CancelSchedulesForNodes(IEnumerable<Guid> contentIds)
     {
         try
         {
@@ -121,17 +100,7 @@ public class ScheduleService : IScheduleService
     }
 
     /// <inheritdoc/>
-    public bool HasActiveSchedule(int contentId)
-    {
-        // This method is not used - schedules use Guid identifiers
-        _logger.LogWarning("HasActiveSchedule(int) called but schedules use Guid identifiers");
-        return false;
-    }
-
-    /// <summary>
-    /// Checks if a content node has an active schedule by its Guid
-    /// </summary>
-    public bool HasActiveScheduleByGuid(Guid contentId)
+    public bool HasActiveSchedule(Guid contentId)
     {
         try
         {

@@ -2,7 +2,8 @@ namespace OC.PowerSort.Interfaces;
 
 public interface IScheduleService
 {
-    public void CancelSchedule(int contentId);
-    public void CancelSchedulesForNodes(IEnumerable<int> contentIds);
-    public bool HasActiveSchedule(int contentId);
+    void CancelSchedule(Guid contentId);
+    void CancelSchedulesForNodes(IEnumerable<Guid> contentIds);
+    void CancelSchedulesForParent(Guid parentId);
+    bool HasActiveSchedule(Guid contentId);
 }

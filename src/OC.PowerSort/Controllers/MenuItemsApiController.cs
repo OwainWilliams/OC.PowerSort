@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OC.PowerSort.Controllers.Base;
 using OC.PowerSort.DTOs;
+using OC.PowerSort.Interfaces;
 using OC.PowerSort.Models;
-using OC.PowerSort.Services;
 using Umbraco.Cms.Api.Management.Routing;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;
@@ -20,14 +20,14 @@ namespace OC.PowerSort.Controllers
     {
        
         private const string MENU_ITEMS_KEY = "PowerSortMenuItems_";
-        private readonly ScheduleService _scheduleService;
+        private readonly IScheduleService _scheduleService;
 
         public MenuItemsApiController(
             IBackOfficeSecurityAccessor backOfficeSecurityAccessor,
             IUmbracoDatabaseFactory databaseFactory,
             IContentService contentService,
             IUserService userService,
-            ScheduleService scheduleService)
+            IScheduleService scheduleService)
             : base(backOfficeSecurityAccessor, databaseFactory, contentService, userService)
         {
             _scheduleService = scheduleService;
@@ -118,7 +118,7 @@ namespace OC.PowerSort.Controllers
                 _scheduleService.CancelSchedulesForParent(parentId);
 
                 // Also cancel any schedules where this node itself is scheduled
-                _scheduleService.CancelScheduleByGuid(parentId);
+                _scheduleService.CancelSchedule(parentId);
 
                 return Ok(new { success = true, message = "Menu item removed and all associated schedules cancelled" });
             }
