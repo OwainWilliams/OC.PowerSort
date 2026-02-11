@@ -55,8 +55,7 @@ export default class PowerSortDashboardElement extends crudMixin {
     ]);
     this.childrenComponentLoaded = true;
 
-    // Listen for hash changes to update view
-    window.addEventListener("hashchange", () => this.detectCurrentView());
+    // Listen for popstate event to update view
     window.addEventListener("popstate", () => this.detectCurrentView());
 
     await this.loadMenuItemsFromDb();
@@ -64,28 +63,17 @@ export default class PowerSortDashboardElement extends crudMixin {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    window.removeEventListener("hashchange", () => this.detectCurrentView());
     window.removeEventListener("popstate", () => this.detectCurrentView());
   }
 
   private detectCurrentView() {
     const hash = window.location.hash;
-
     // Check if we're on a children route (hash: #children/:id)
     if (hash.includes("children/")) {
       this.currentView = "children";
       // Extract ID from hash
       const matches = hash.match(/children\/([a-f0-9-]+)/i);
       this.routeNodeId = matches ? matches[1] : "";
-      this.requestUpdate();
-    }
-    // Check if we're on a schedules route (hash: #schedules/:id)
-    else if (hash.includes("schedules/")) {
-      this.currentView = "schedules";
-      // Extract ID from hash
-      const matches = hash.match(/schedules\/([a-f0-9-]+)/i);
-      this.routeNodeId = matches ? matches[1] : "";
-      this.requestUpdate();
     }
     // Check if we're on the priorities route (hash: #priorities)
     else if (hash.includes("priorities")) {
@@ -582,8 +570,6 @@ export default class PowerSortDashboardElement extends crudMixin {
     switch (this.currentView) {
       case "children":
         return this.renderChildrenView();
-      case "schedules":
-        return this.renderSchedulesView();
       case "priorities":
         return this.renderPrioritiesView();
       default:
@@ -726,16 +712,6 @@ export default class PowerSortDashboardElement extends crudMixin {
       <power-sort-children-dashboard
         .id=${this.routeNodeId}
       ></power-sort-children-dashboard>
-    `;
-  }
-
-  private renderSchedulesView() {
-    // Dynamically import and render the schedules element
-    import("./schedules.element.js");
-    return html`
-      <power-sort-schedules
-        .parentId=${this.routeNodeId}
-      ></power-sort-schedules>
     `;
   }
 
