@@ -562,8 +562,6 @@ export default class PowerSortDashboardElement extends crudMixin {
     switch (this.currentView) {
       case "children":
         return this.renderChildrenView();
-      case "schedules":
-        return this.renderSchedulesView();
       case "priorities":
         return this.renderPrioritiesView();
       default:
@@ -703,16 +701,6 @@ export default class PowerSortDashboardElement extends crudMixin {
       <power-sort-children-dashboard
         .id=${this.routeNodeId}
       ></power-sort-children-dashboard>
-    `;
-  }
-
-  private renderSchedulesView() {
-    // Dynamically import and render the schedules element
-    import("./schedules.element.js");
-    return html`
-      <power-sort-schedules
-        .parentId=${this.routeNodeId}
-      ></power-sort-schedules>
     `;
   }
 
