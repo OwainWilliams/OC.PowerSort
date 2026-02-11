@@ -1,0 +1,9 @@
+# Build output
+**/wwwroot/App_Plugins/OCPowerSort/
+
+# Common IDE and build artifacts
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
