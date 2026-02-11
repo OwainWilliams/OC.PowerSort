@@ -630,20 +630,21 @@ export default class ScheduleDialogElement extends UmbUiMixin(
                           ${this.priorityOptions.map(
                             (option) => html`
                               <uui-label
-                                class="priority-radio-option ${this.priority ===
-                                option.value
-                                  ? "selected"
-                                  : ""}"
-                                @click="${(e: Event) => {
+                                class="priority-radio-option ${
+                                  this.priority === option.value
+                                    ? "selected"
+                                    : ""
+                                }"
+                                @click=${(e: Event) => {
                                   e.preventDefault();
                                   this.priority = option.value;
-                                }}"
+                                }}
                               >
                                 <input
                                   type="radio"
                                   name="priority"
-                                  value="${option.value}"
-                                  .checked="${this.priority === option.value}"
+                                  value=${option.value}"
+                                  .checked=${this.priority === option.value}
                                 />
                                 <div class="priority-radio-content">
                                   <div class="priority-radio-details">
