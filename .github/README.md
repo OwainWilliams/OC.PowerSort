@@ -1,8 +1,10 @@
-# OC.PowerSort
+# <img alt="OC.PowerSort Logo" src="https://github.com/OwainWilliams/OC.PowerSort/blob/main/assets/ocPowerSortLogo.png" style="width: 50px;">OC.PowerSort
 
 [![Downloads](https://img.shields.io/nuget/dt/OC.PowerSort?color=cc9900)](https://www.nuget.org/packages/OC.PowerSort/)
 [![NuGet](https://img.shields.io/nuget/vpre/OC.PowerSort?color=0273B3)](https://www.nuget.org/packages/OC.PowerSort/)
 [![GitHub license](https://img.shields.io/github/license/OwainWilliams/OC.PowerSort?color=8AB803)](../LICENSE)
+
+
 
 A powerful sorting extension for Umbraco CMS that provides enhanced sorting capabilities for content nodes in the backoffice.
 
@@ -14,7 +16,7 @@ If you put images into /docs/screenshots, then you would reference them in this 
 <img alt="..." src="https://github.com/OwainWilliams/OC.PowerSort/blob/develop/docs/screenshots/screenshot.png">
 -->
 
-<img alt="OC.PowerSort Logo" src="https://github.com/OwainWilliams/OC.PowerSort/blob/main/assets/ocPowerSortLogo.png">
+
 
 ## Features
 
