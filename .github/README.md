@@ -14,6 +14,8 @@ If you put images into /docs/screenshots, then you would reference them in this 
 <img alt="..." src="https://github.com/OwainWilliams/OC.PowerSort/blob/develop/docs/screenshots/screenshot.png">
 -->
 
+<img alt="OC.PowerSort Logo" src="https://github.com/OwainWilliams/OC.PowerSort/blob/main/assets/ocpowersortlogo.png">
+
 ## Features
 
 - Enhanced sorting options for Umbraco content nodes
