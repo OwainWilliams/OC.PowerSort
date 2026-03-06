@@ -1,0 +1,21 @@
+@using Umbraco.Cms.Web.Common.PublishedModels;
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Home>
+@{
+	Layout = "master.cshtml";
+}
+
+
+@if(Model.Children().Any())
+{
+    <ul>
+        @foreach(var child in Model.Children())
+        {
+            <li>@child.Name</li>
+        }
+    </ul>
+}
+else
+{
+    <p>No children found.</p>
+}
+
