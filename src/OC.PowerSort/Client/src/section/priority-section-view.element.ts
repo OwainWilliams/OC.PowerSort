@@ -420,7 +420,7 @@ export default class PowerSortSectionViewElement extends UmbUiMixin(
   private renderEnumPrioritiesTable() {
     if (this.enumPriorities.length === 0) {
       return this.renderEmptyState(
-        "No enum priorities have been created yet.",
+        "No priorities have been created yet.",
         PowerSortConstants.ICONS.SETTINGS,
       );
     }
