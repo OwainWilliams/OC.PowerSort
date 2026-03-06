@@ -50,14 +50,13 @@ Once this is done, the package will automatically integrate with your Umbraco ba
 ### Video Demonstration
 
 Basic usage
-
 [![Basic Setup](https://img.youtube.com/vi/eeddTabJyII/0.jpg)](https://www.youtube.com/watch?v=eeddTabJyII)
 
 Set Default Sort Order
-
 [![Default Sort Order](https://img.youtube.com/vi/UVH7d-s_1nk/0.jpg)](https://www.youtube.com/watch?v=UVH7d-s_1nk)
 
-
+Setup Schedules 
+[![Setup Schedules](https://img.youtube.com/vi/wg4VjALjMSs/0.jpg)](https://www.youtube.com/watch?v=wg4VjALjMSs)
 
 
 ## Configuration
