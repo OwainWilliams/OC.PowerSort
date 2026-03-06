@@ -396,7 +396,10 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     if (!this.scheduleApi) return;
     const item = event.currentTarget as HTMLElement;
     const parentItem = item.closest(".js-child-row") as HTMLElement;
-    parentItem.classList.remove("hidden"); // Ensure accordion doesn't collapse on rerender after deletion
+
+    if (parentItem) {
+      parentItem.classList.remove("hidden");
+    }
 
     try {
       await this.scheduleApi.deleteSchedule(scheduleId);
