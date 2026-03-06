@@ -51,6 +51,8 @@ Once this is done, the package will automatically integrate with your Umbraco ba
 
  TODO: Add Video Demonstration of the package in action
 
+ <iframe src="https://youtu.be/eeddTabJyII"></iframe>
+
 ## Configuration
 
 No additional configuration is required. The package works out of the box after installation.
