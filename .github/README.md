@@ -8,25 +8,16 @@
 
 A powerful sorting extension for Umbraco CMS that provides enhanced sorting capabilities for content nodes in the backoffice.
 
-<!--
-Including screenshots is a really good idea! 
-
-If you put images into /docs/screenshots, then you would reference them in this readme as, for example:
-
-<img alt="..." src="https://github.com/OwainWilliams/OC.PowerSort/blob/develop/docs/screenshots/screenshot.png">
--->
-
-
 
 ## Features
 
 - Enhanced sorting options for Umbraco content nodes
 - Easy-to-use backoffice integration
-- Compatible with Umbraco v15+
+- Compatible with Umbraco v17+
 
 ## Installation
 
-Add the package to an existing Umbraco website (v15+) from nuget:
+Add the package to an existing Umbraco website (v17+) from nuget:
 
 `dotnet add package OC.PowerSort`
 
@@ -49,23 +40,23 @@ Once this is done, the package will automatically integrate with your Umbraco ba
 
 ### Video Demonstration
 
-Basic usage
+#### Basic usage
 [![Basic Setup](https://img.youtube.com/vi/eeddTabJyII/0.jpg)](https://www.youtube.com/watch?v=eeddTabJyII)
 
-Set Default Sort Order
+#### Set Default Sort Order
 [![Default Sort Order](https://img.youtube.com/vi/UVH7d-s_1nk/0.jpg)](https://www.youtube.com/watch?v=UVH7d-s_1nk)
 
-Setup Schedules 
+#### Setup Schedules 
 [![Setup Schedules](https://img.youtube.com/vi/wg4VjALjMSs/0.jpg)](https://www.youtube.com/watch?v=wg4VjALjMSs)
 
 
 ## Configuration
 
-No additional configuration is required. The package works out of the box after installation.
+No additional configuration is required other than granting access to the section for the relevant user groups as described in the usage section. The package will automatically integrate with your Umbraco backoffice and provide enhanced sorting capabilities for content nodes.
 
 ## Requirements
 
-- Umbraco v15 or higher
+- Umbraco v17+
 - .NET 10
 
 ## Contributing
