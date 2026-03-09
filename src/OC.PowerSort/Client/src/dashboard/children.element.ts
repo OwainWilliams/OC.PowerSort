@@ -9,6 +9,7 @@ import {
 } from "@umbraco-cms/backoffice/external/lit";
 import { UmbAuthMixin } from "../mixins/auth.mixin.js";
 import { UmbUiMixin } from "../mixins/ui.mixin.js";
+import { UMB_MODAL_MANAGER_CONTEXT } from "@umbraco-cms/backoffice/modal";
 import { PowerSortConstants } from "../utils/constants.js";
 import { ApiResponseHandler } from "../utils/api-response.utils.js";
 import { powerSortSharedStyles } from "../styles/shared.styles.js";
@@ -21,6 +22,7 @@ import type {
 import { ScheduleApiClient } from "../api/schedule-api.client.js";
 import { DateUtils } from "../utils/validation.utils.js";
 import "./schedule-dialog.element.js";
+import "../components/confirm-modal.element.js";
 
 @customElement("power-sort-children-dashboard")
 export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
@@ -63,6 +65,8 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
   private _lastLoadedId: string = "";
   private _isLoading: boolean = false;
 
+  private _modalManagerContext?: typeof UMB_MODAL_MANAGER_CONTEXT.TYPE;
+
   protected override async willUpdate(
     changedProperties: PropertyValues,
   ): Promise<void> {
@@ -95,12 +99,17 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     }
   }
   async connectedCallback() {
-    super.connectedCallback(); // This now handles auth setup via mixin
+    super.connectedCallback();
+
+    // Consume modal manager context
+    this.consumeContext(UMB_MODAL_MANAGER_CONTEXT, (context) => {
+      this._modalManagerContext = context;
+    });
 
     // Initialize schedule API
     this.scheduleApi = new ScheduleApiClient(() => this.getAuthToken());
 
-    // If ID is already set (shouldn't happen on first connect), load data
+    // If ID is already set, load data
     if (this.id && this.id !== this._lastLoadedId) {
       this._lastLoadedId = this.id;
       await this.loadChildrenData();
@@ -126,14 +135,49 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     }
   }
 
+  private async clearDefaultOrder() {
+    if (!this.id) return;
+
+    const confirmed = await this._showConfirmModal({
+      headline: "Clear Default Sort Order",
+      message: "Clear the saved default sort order? You won't be able to restore it anymore.",
+      confirmLabel: "Clear",
+      cancelLabel: "Cancel",
+      color: "danger",
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await this.makeAuthenticatedRequest(
+        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.DEFAULT_SORT_ORDER}/${this.id}`,
+        { method: "DELETE" },
+      );
+
+      await ApiResponseHandler.handleResponse(response);
+      await this.loadDefaultOrderInfo();
+      // Show success modal (don't await it)
+      ApiResponseHandler.showSuccess("Default sort order cleared!", this._modalManagerContext);
+    } catch (error) {
+      // Show error modal (don't await it)
+      ApiResponseHandler.showError(error, "Failed to clear default order", this._modalManagerContext);
+    }
+  }
+
   private async saveAsDefaultOrder() {
     if (!this.id) return;
 
-    if (
-      !ApiResponseHandler.confirmAction(
-        PowerSortConstants.MESSAGES.CONFIRM_SAVE_DEFAULT,
-      )
-    ) {
+    const confirmed = await this._showConfirmModal({
+      headline: "Save Default Sort Order",
+      message: "Save the current sort order as default? This will overwrite any existing default order.",
+      confirmLabel: "Save",
+      cancelLabel: "Cancel",
+      color: "positive",
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -148,20 +192,26 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
 
       await ApiResponseHandler.handleResponse(response);
       await this.loadDefaultOrderInfo();
-      ApiResponseHandler.showSuccess("Current sort order saved as default!");
+      // Show success modal (don't await it)
+      ApiResponseHandler.showSuccess("Current sort order saved as default!", this._modalManagerContext);
     } catch (error) {
-      ApiResponseHandler.showError(error, "Failed to save default order");
+      // Show error modal (don't await it)
+      ApiResponseHandler.showError(error, "Failed to save default order", this._modalManagerContext);
     }
   }
 
   private async restoreDefaultOrder() {
     if (!this.id) return;
 
-    if (
-      !ApiResponseHandler.confirmAction(
-        PowerSortConstants.MESSAGES.CONFIRM_RESTORE_DEFAULT,
-      )
-    ) {
+    const confirmed = await this._showConfirmModal({
+      headline: "Restore Default Sort Order",
+      message: "Restore the saved default sort order? This will overwrite the current order.",
+      confirmLabel: "Restore",
+      cancelLabel: "Cancel",
+      color: "warning",
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -173,35 +223,64 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
 
       await ApiResponseHandler.handleResponse(response);
       await this.loadNodeChildren();
-      ApiResponseHandler.showSuccess("Default sort order restored!");
+      // Show success modal (don't await it)
+      ApiResponseHandler.showSuccess("Default sort order restored!", this._modalManagerContext);
     } catch (error) {
-      ApiResponseHandler.showError(error, "Failed to restore default order");
+      // Show error modal (don't await it)
+      ApiResponseHandler.showError(error, "Failed to restore default order", this._modalManagerContext);
     }
   }
 
-  private async clearDefaultOrder() {
-    if (!this.id) return;
+ 
 
-    if (
-      !ApiResponseHandler.confirmAction(
-        PowerSortConstants.MESSAGES.CONFIRM_CLEAR_DEFAULT,
-      )
-    ) {
-      return;
+
+
+  private async _showConfirmModal(options: {
+    headline: string;
+    message: string;
+    confirmLabel: string;
+    cancelLabel: string;
+    color: "default" | "positive" | "warning" | "danger";
+  }): Promise<boolean> {
+    if (!this._modalManagerContext) {
+      // Fallback to browser confirm if modal context not available
+      return confirm(options.message);
     }
 
-    try {
-      const response = await this.makeAuthenticatedRequest(
-        `${PowerSortConstants.API_BASE}${PowerSortConstants.ENDPOINTS.DEFAULT_SORT_ORDER}/${this.id}`,
-        { method: "DELETE" },
-      );
+    return new Promise((resolve) => {
+      const modalToken = this._modalManagerContext!.open(this, "Umb.Modal.Confirm", {
+        data: {
+          headline: options.headline,
+          content: options.message,
+          color: options.color,
+          confirmLabel: options.confirmLabel,
+        },
+      });
 
-      await ApiResponseHandler.handleResponse(response);
-      await this.loadDefaultOrderInfo();
-      ApiResponseHandler.showSuccess("Default sort order cleared!");
-    } catch (error) {
-      ApiResponseHandler.showError(error, "Failed to clear default order");
-    }
+      // Handle submit (user clicked confirm)
+      modalToken?.onSubmit().then(() => resolve(true));
+      
+      // Cast to any to bypass incomplete typing issues
+      const token = modalToken as any;
+      
+      // Try multiple possible close/cancel methods
+      if (token?.onReject) {
+        token.onReject().then(() => resolve(false));
+      } else if (token?.onClose) {
+        token.onClose().then(() => resolve(false));
+      } else if (token?.onCancel) {
+        token.onCancel().then(() => resolve(false));
+      } else {
+        // Last resort fallback - resolve false after submit resolves or timeout
+        Promise.race([
+          modalToken?.onSubmit().then(() => {}), // Don't resolve here, let the submit handler above resolve true
+          new Promise(resolve => setTimeout(resolve, 30000)) // 30 second timeout
+        ]).then(() => {
+          // Only resolve false if submit hasn't already resolved true
+          setTimeout(() => resolve(false), 100);
+        });
+      }
+    });
   }
 
   // private async loadActiveSchedules() {
@@ -232,7 +311,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     }
   }
 
-  private getScheduleForChild(childId: string): ScheduleResponse | undefined {
+  private getScheduleForChild(childId: String): ScheduleResponse | undefined {
     return this.activeSchedules.find((s) => s.contentId === childId);
   }
 
@@ -305,7 +384,8 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       await this.loadNodeChildren();
     } catch (error) {
       this.error = "Failed to update sort order";
-      ApiResponseHandler.showError(error, "Sort order update failed");
+      // Show error modal (don't await it)
+      ApiResponseHandler.showError(error, "Sort order update failed", this._modalManagerContext);
     }
   }
 
@@ -405,7 +485,8 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       await this.scheduleApi.deleteSchedule(scheduleId);
       await this.loadSchedules();
     } catch (error) {
-      ApiResponseHandler.showError(error, "Failed to delete schedule");
+      // Show error modal (don't await it)
+      ApiResponseHandler.showError(error, "Failed to delete schedule", this._modalManagerContext);
     }
   }
 

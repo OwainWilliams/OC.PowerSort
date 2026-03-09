@@ -27,26 +27,67 @@ export class ApiResponseHandler {
   }
 
   /**
-   * Show user-friendly error message
+   * Show user-friendly error message using modal
    */
-  static showError(error: unknown, context: string = ''): void {
+  static showError(error: unknown, context: string = '', modalContext?: any): void {
     const message = error instanceof Error ? error.message : 'An unexpected error occurred';
     const fullMessage = context ? `${context}: ${message}` : message;
     
     console.error(fullMessage, error);
-    alert(fullMessage); // Could be replaced with toast notifications
+    
+    if (modalContext) {
+      try {
+        // Just open the modal, don't wait for it
+        modalContext.open(this, "Umb.Modal.Confirm", {
+          data: {
+            headline: "Error",
+            content: fullMessage,
+            color: "danger",
+            confirmLabel: "OK",
+          },
+        });
+      } catch (err) {
+        // Fallback to alert if modal fails
+        console.warn("Modal failed, falling back to alert:", err);
+        alert(fullMessage);
+      }
+    } else {
+      // Fallback to alert
+      alert(fullMessage);
+    }
   }
 
   /**
-   * Show success message
+   * Show success message using modal
    */
-  static showSuccess(message: string): void {
+  static showSuccess(message: string, modalContext?: any): void {
     console.log('Success:', message);
-    alert(message); // Could be replaced with toast notifications
+    
+    if (modalContext) {
+      try {
+        // Just open the modal, don't wait for it
+        modalContext.open(this, "Umb.Modal.Confirm", {
+          data: {
+            headline: "Success",
+            content: message,
+            color: "positive",
+            confirmLabel: "OK",
+          },
+        });
+      } catch (err) {
+        // Fallback to alert if modal fails
+        console.warn("Modal failed, falling back to alert:", err);
+        alert(message);
+      }
+    } else {
+      // Fallback to alert
+      alert(message);
+    }
   }
 
   /**
    * Confirm action with user
+   * @deprecated Use modal-based confirmations instead
    */
   static confirmAction(message: string): boolean {
     return confirm(message);
