@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Umbraco.Cms.Api.Management.Controllers;
-using Umbraco.Cms.Api.Management.Routing;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;
@@ -38,7 +37,7 @@ namespace OC.PowerSort.Controllers.Base
         {
             userId = 0;
             var currentUser = backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
-            
+
             if (currentUser == null)
             {
                 return Unauthorized();
@@ -65,8 +64,8 @@ namespace OC.PowerSort.Controllers.Base
             {
                 using var database = databaseFactory.CreateDatabase();
                 var result = await operation(database);
-                
-                return successMessage != null 
+
+                return successMessage != null
                     ? Ok(new { success = true, message = successMessage, data = result })
                     : Ok(result);
             }
@@ -93,8 +92,8 @@ namespace OC.PowerSort.Controllers.Base
             {
                 using var database = databaseFactory.CreateDatabase();
                 var result = operation(database);
-                
-                return successMessage != null 
+
+                return successMessage != null
                     ? Ok(new { success = true, message = successMessage, data = result })
                     : Ok(result);
             }
@@ -120,8 +119,8 @@ namespace OC.PowerSort.Controllers.Base
             try
             {
                 var result = await operation(userId);
-                
-                return successMessage != null 
+
+                return successMessage != null
                     ? Ok(new { success = true, message = successMessage, data = result })
                     : Ok(result);
             }
@@ -170,10 +169,12 @@ namespace OC.PowerSort.Controllers.Base
                     // Get the actual parent for better error reporting
                     var actualParent = contentService.GetById(content.ParentId);
                     Console.WriteLine($"[PowerSort] ValidateParentChildRelationship: Content {content.Key} ('{content.Name}') has parent {content.ParentId} ({actualParent?.Key}:'{actualParent?.Name}'), expected parent {expectedParent.Id} ({expectedParent.Key}:'{expectedParent.Name}')");
-                    
-                    return BadRequest(new { 
+
+                    return BadRequest(new
+                    {
                         error = "Content is not a child of the specified parent",
-                        details = new {
+                        details = new
+                        {
                             contentId = content.Key,
                             contentName = content.Name,
                             actualParentId = actualParent?.Key,
@@ -225,12 +226,13 @@ namespace OC.PowerSort.Controllers.Base
         {
             // Log the exception (could be injected logger)
             Console.WriteLine($"Controller error: {ex.Message}");
-            
+
             var message = customMessage ?? ex.Message;
-            
-            return StatusCode(500, new { 
-                error = message, 
-                stackTrace = ex.StackTrace 
+
+            return StatusCode(500, new
+            {
+                error = message,
+                stackTrace = ex.StackTrace
             });
         }
 
@@ -247,10 +249,11 @@ namespace OC.PowerSort.Controllers.Base
         /// </summary>
         protected IActionResult CreatedResult<T>(string actionName, object routeValues, T data, string? message = null)
         {
-            return CreatedAtAction(actionName, routeValues, new { 
-                success = true, 
-                message = message ?? "Created successfully", 
-                data 
+            return CreatedAtAction(actionName, routeValues, new
+            {
+                success = true,
+                message = message ?? "Created successfully",
+                data
             });
         }
 
@@ -270,7 +273,7 @@ namespace OC.PowerSort.Controllers.Base
                 var children = contentService.GetPagedChildren(parent!.Id, 0, int.MaxValue, out _)
                     .OrderBy(c => c.SortOrder)
                     .ToList();
-                
+
                 return (null, children);
             }
             catch (Exception ex)

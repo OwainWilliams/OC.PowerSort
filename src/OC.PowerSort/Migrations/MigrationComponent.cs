@@ -5,6 +5,7 @@ using Umbraco.Cms.Core.Migrations;
 using Umbraco.Cms.Core.Notifications;
 using Umbraco.Cms.Core.Scoping;
 using Umbraco.Cms.Core.Services;
+using Umbraco.Cms.Infrastructure.Migrations;
 using Umbraco.Cms.Infrastructure.Migrations.Upgrade;
 
 namespace OC.PowerSort.Migrations
@@ -43,19 +44,19 @@ namespace OC.PowerSort.Migrations
             {
                 _logger.LogInformation("OC.PowerSort: Starting migration execution");
 
-                var plan = new PowerSortMigrationPlan();
+                var plan = new MigrationPlan("OC.PowerSort");
+
+                plan.From(string.Empty)
+                    .To<CreateSortScheduleTableMigration>("create-sort-schedule-table-v1")
+                    .To<CreateDefaultSortOrderTableMigration>("create-default-sort-order-table-v1")
+                    .To<CreateEnumPriorityTableMigration>("create-enum-priority-table-v1");
+
+
                 var upgrader = new Upgrader(plan);
 
-                var result = await upgrader.ExecuteAsync(_migrationPlanExecutor, _coreScopeProvider, _keyValueService);
+                await upgrader.ExecuteAsync(_migrationPlanExecutor, _coreScopeProvider, _keyValueService);
 
-                if (result?.Successful == true)
-                {
-                    _logger.LogInformation("OC.PowerSort: Migration execution completed successfully");
-                }
-                else
-                {
-                    _logger.LogError("OC.PowerSort: Migration failed. Result: {@Result}", result);
-                }
+                _logger.LogInformation("OC.PowerSort: Migration execution completed successfully");
             }
             catch (Exception ex)
             {

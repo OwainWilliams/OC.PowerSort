@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Infrastructure.Migrations;
 
 namespace OC.PowerSort.Migrations
@@ -10,25 +11,31 @@ namespace OC.PowerSort.Migrations
 
         protected override async Task MigrateAsync()
         {
-            if (!TableExists("ocPowerSortSchedule"))
+            var tableName = "ocPowerSortSchedule";
+            Logger.LogInformation("OC.PowerSort: Checking if table {TableName} exists", tableName);
+
+            if (!TableExists(tableName))
             {
-                Create.Table("ocPowerSortSchedule")
+                Create.Table(tableName)
                     .WithColumn("Id").AsGuid().NotNullable().PrimaryKey("PK_ocPowerSortSchedule")
                     .WithColumn("ContentId").AsGuid().NotNullable()
                     .WithColumn("ParentId").AsGuid().NotNullable()
                     .WithColumn("TargetPosition").AsInt32().NotNullable()
                     .WithColumn("StartDateTime").AsDateTime().NotNullable()
                     .WithColumn("EndDateTime").AsDateTime().NotNullable()
-                    .WithColumn("IsActive").AsBoolean().NotNullable().WithDefaultValue(false)
+                    .WithColumn("IsActive").AsBoolean().NotNullable().WithDefaultValue(0)
                     .WithColumn("Priority").AsInt32().NotNullable().WithDefaultValue(0)
                     .WithColumn("Created").AsDateTime().NotNullable()
                     .WithColumn("CreatedBy").AsInt32().NotNullable()
                     .Do();
-
+                Logger.LogInformation("OC.PowerSort: Table {TableName} created successfully", tableName);
 
             }
+            else
+            {
+                Logger.LogInformation("OC.PowerSort: Table {TableName} already exists, skipping creation", tableName);
+            }
 
-            await Task.CompletedTask;
         }
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Infrastructure.Migrations;
 
 namespace OC.PowerSort.Migrations
@@ -10,9 +11,12 @@ namespace OC.PowerSort.Migrations
 
         protected override async Task MigrateAsync()
         {
-            if (!TableExists("ocPowerSortEnumPriority"))
+            var tableName = "ocPowerSortEnumPriority";
+            Logger.LogInformation("OC.PowerSort: Checking if table {TableName} exists", tableName);
+
+            if (!TableExists(tableName))
             {
-                Create.Table("ocPowerSortEnumPriority")
+                Create.Table(tableName)
                     .WithColumn("Id").AsGuid().NotNullable().PrimaryKey("PK_ocPowerSortEnumPriority")
                     .WithColumn("Name").AsString().NotNullable()
                     .WithColumn("SortPriority").AsInt32().NotNullable()
@@ -21,9 +25,13 @@ namespace OC.PowerSort.Migrations
                     .WithColumn("Updated").AsDateTime().NotNullable()
                     .WithColumn("UpdatedBy").AsInt32().NotNullable()
                     .Do();
-            }
+                Logger.LogInformation("OC.PowerSort: Table {TableName} created successfully", tableName);
 
-            await Task.CompletedTask;
+            }
+            else
+            {
+                Logger.LogInformation("OC.PowerSort: Table {TableName} already exists, skipping creation", tableName);
+            }
         }
     }
 }

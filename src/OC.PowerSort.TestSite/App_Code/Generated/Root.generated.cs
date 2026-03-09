@@ -18,7 +18,7 @@ using Umbraco.Extensions;
 
 namespace Umbraco.Cms.Web.Common.PublishedModels
 {
-	/// <summary>Root</summary>
+	/// <summary>root</summary>
 	[PublishedModel("root")]
 	public partial class Root : PublishedContentModel
 	{

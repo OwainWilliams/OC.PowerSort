@@ -96,6 +96,12 @@ public class SortingFlagServiceTests
         _contentServiceMock.Setup(x => x.GetPagedChildren(It.IsAny<int>(), 0, int.MaxValue, out totalRecords))
             .Returns(new[] { child1, child2, child3 });
 
+        // Mock the database query to indicate PowerSort is managing this document
+        _databaseMock.Setup(x => x.ExecuteScalar<int>(
+            It.Is<string>(sql => sql.Contains("ocPowerSortSchedule") && sql.Contains("ocPowerSortDefaultOrder")),
+            It.IsAny<object[]>()))
+            .Returns(1);
+
         // Act
         var result = await _service.IsPowerSortManagedAsync(documentId);
 

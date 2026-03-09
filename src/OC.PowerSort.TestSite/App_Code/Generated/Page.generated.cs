@@ -18,9 +18,9 @@ using Umbraco.Extensions;
 
 namespace Umbraco.Cms.Web.Common.PublishedModels
 {
-	/// <summary>Page</summary>
+	/// <summary>page</summary>
 	[PublishedModel("page")]
-	public partial class Page : Root
+	public partial class Page : PublishedContentModel
 	{
 		// helpers
 #pragma warning disable 0109 // new is redundant
