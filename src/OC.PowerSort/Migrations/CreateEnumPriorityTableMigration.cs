@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Umbraco.Cms.Infrastructure.Migrations;
 
 namespace OC.PowerSort.Migrations
@@ -16,7 +13,7 @@ namespace OC.PowerSort.Migrations
             if (!TableExists("ocPowerSortEnumPriority"))
             {
                 Create.Table("ocPowerSortEnumPriority")
-                    .WithColumn("Id").AsGuid().NotNullable().PrimaryKey()
+                    .WithColumn("Id").AsGuid().NotNullable().PrimaryKey("PK_ocPowerSortEnumPriority")
                     .WithColumn("Name").AsString().NotNullable()
                     .WithColumn("SortPriority").AsInt32().NotNullable()
                     .WithColumn("Created").AsDateTime().NotNullable()
@@ -25,6 +22,8 @@ namespace OC.PowerSort.Migrations
                     .WithColumn("UpdatedBy").AsInt32().NotNullable()
                     .Do();
             }
+
+            await Task.CompletedTask;
         }
     }
 }

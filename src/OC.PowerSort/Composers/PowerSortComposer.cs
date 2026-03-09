@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OC.PowerSort.Interfaces;
+using OC.PowerSort.Migrations;
 using OC.PowerSort.NotificationHandlers;
 using OC.PowerSort.Services;
 using Umbraco.Cms.Core.Composing;
@@ -19,5 +20,12 @@ public class PowerSortComposer : IComposer
         // Register notification handlers
         builder.AddNotificationHandler<ContentDeletingNotification, ContentDeletingHandler>();
         builder.AddNotificationHandler<ContentMovedToRecycleBinNotification, ContentDeletingHandler>();
+
+        // Register migration component as async handler
+        builder.AddNotificationAsyncHandler<UmbracoApplicationStartingNotification, MigrationComponent>();
+
+
     }
+
+
 }

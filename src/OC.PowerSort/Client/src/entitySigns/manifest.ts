@@ -19,7 +19,7 @@ export const entitySignManifests: Array<UmbExtensionManifest> = [
     weight: 100,
     meta: {
       // Specifying what the sign looks like
-      iconName: 'icon-lab',
+      iconName: 'icon-bar-chart',
       label: 'Custom Sorted',
       iconColorAlias: 'blue',
     }
@@ -53,7 +53,7 @@ export const entitySignManifests: Array<UmbExtensionManifest> = [
     meta: {
       iconName: 'icon-bookmark',
       label: 'Default Order Saved',
-      iconColorAlias: 'orange',
+      iconColorAlias: 'red',
     }
   }
 ];

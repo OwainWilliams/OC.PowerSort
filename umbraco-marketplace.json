@@ -2,13 +2,21 @@
     "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json", 
     "AuthorDetails": {
       "Name": "Owain Williams",
-      "ImageUrl": "https://github.com/OwainWilliams.png"
+      "ImageUrl": "https://github.com/OwainWilliams.png",
+      "Url": "https://owain.codes",
+      "Description": "Owain Williams is a Senior Developer at Initials Labs, a mutli-awarded Umbraco MVP",
+      "Contributors": [
+        {
+        "Name": "Harrie Mayhew",
+        "Url": "https://github.com/mayhemcreates"
+        }
+      ]
     },
-    "Category": "",
-    "Description": "",
+    "Category": "Editor Tools",
+    "Description": "A powerful sorting extension for Umbraco CMS that provides enhanced sorting capabilities for content nodes in the backoffice.",
     "LicenseTypes": [ "Free" ],
     "IssueTrackerUrl": "https://github.com/OwainWilliams/OC.PowerSort/issues",
     "PackageType": "Package",
-    "Tags": [],
-    "Title": "OC.Power Sort"
+    "Tags": ["sorting"],
+    "Title": "OC.PowerSort"
   }

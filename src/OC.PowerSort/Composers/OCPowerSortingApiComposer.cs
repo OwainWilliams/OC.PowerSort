@@ -1,21 +1,18 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
+using OC.PowerSort.FlagProvider;
+using OC.PowerSort.Interfaces;
+using OC.PowerSort.Services;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using Umbraco.Cms.Api.Common.OpenApi;
+using Umbraco.Cms.Api.Management.OpenApi;
+using Umbraco.Cms.Api.Management.Services.Flags;
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.DependencyInjection;
-using Umbraco.Cms.Api.Management.OpenApi;
-using Umbraco.Cms.Api.Common.OpenApi;
-using Umbraco.Cms.Core.Notifications;
-using Umbraco.Cms.Api.Management.Services.Flags;
-using OC.PowerSort.FlagProvider;
-using OC.PowerSort.Migrations;
-using OC.PowerSort.Services;
-using OC.PowerSort.Interfaces;
 
 namespace OC.PowerSort.Composers
 {
@@ -28,9 +25,6 @@ namespace OC.PowerSort.Composers
                 .AddApplicationPart(typeof(OCPowerSortApiComposer).Assembly);
 
             builder.Services.AddSingleton<IOperationIdHandler, CustomOperationHandler>();
-
-            // Register migration component
-            builder.AddNotificationHandler<UmbracoApplicationStartingNotification, MigrationComponent>();
 
             // Register background service for schedule processing
             builder.Services.AddHostedService<ScheduleProcessingService>();
@@ -75,4 +69,5 @@ namespace OC.PowerSort.Composers
             public override string Handle(ApiDescription apiDescription) => $"{apiDescription.ActionDescriptor.RouteValues["action"]}";
         }
     }
+
 }

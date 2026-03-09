@@ -411,7 +411,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
     .no-priority-options {
       padding: var(--uui-size-space-3);
       background: var(--uui-color-warning-emphasis);
-      color: var(--uui-color-warning);
+      color: var(--uui-color-text-alt);
       border-radius: var(--uui-border-radius);
       display: flex;
       align-items: center;

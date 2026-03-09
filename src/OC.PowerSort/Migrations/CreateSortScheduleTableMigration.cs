@@ -13,7 +13,7 @@ namespace OC.PowerSort.Migrations
             if (!TableExists("ocPowerSortSchedule"))
             {
                 Create.Table("ocPowerSortSchedule")
-                    .WithColumn("Id").AsGuid().NotNullable().PrimaryKey()
+                    .WithColumn("Id").AsGuid().NotNullable().PrimaryKey("PK_ocPowerSortSchedule")
                     .WithColumn("ContentId").AsGuid().NotNullable()
                     .WithColumn("ParentId").AsGuid().NotNullable()
                     .WithColumn("TargetPosition").AsInt32().NotNullable()
@@ -25,32 +25,7 @@ namespace OC.PowerSort.Migrations
                     .WithColumn("CreatedBy").AsInt32().NotNullable()
                     .Do();
 
-                // Create indexes for performance
-                Create.Index("IX_ocPowerSortSchedule_ContentId")
-                    .OnTable("ocPowerSortSchedule")
-                    .OnColumn("ContentId")
-                    .Ascending()
-                    .Do();
 
-                Create.Index("IX_ocPowerSortSchedule_ParentId")
-                    .OnTable("ocPowerSortSchedule")
-                    .OnColumn("ParentId")
-                    .Ascending()
-                    .Do();
-
-                Create.Index("IX_ocPowerSortSchedule_DateRange")
-                    .OnTable("ocPowerSortSchedule")
-                    .OnColumn("StartDateTime")
-                    .Ascending()
-                    .OnColumn("EndDateTime")
-                    .Ascending()
-                    .Do();
-
-                Create.Index("IX_ocPowerSortSchedule_IsActive")
-                    .OnTable("ocPowerSortSchedule")
-                    .OnColumn("IsActive")
-                    .Ascending()
-                    .Do();
             }
 
             await Task.CompletedTask;

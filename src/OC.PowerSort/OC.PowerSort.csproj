@@ -7,19 +7,20 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Product>Umbraco.Community.OC.PowerSort</Product>
-    <PackageId>Umbraco.Community.OC.PowerSort</PackageId>
-    <Title>OC.Power Sorting </Title>
-    <Description>...</Description>
+    <Product>OC.PowerSort</Product>
+    <PackageId>OC.PowerSort</PackageId>
+    <Title>OC.PowerSort</Title>
+    <Description>An Umbraco CMS package that allows editors to schedule custom sorting of nodes</Description>
     <PackageTags>umbraco;umbraco-marketplace</PackageTags>
-    <Authors>Owain Williams</Authors>
-    <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Owain Williams</Copyright>
+    <Authors>Owain Williams &amp; Harrie Mayhew</Authors>
+    <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Owain Williams &amp; Harrie Mayhew</Copyright>
     <PackageProjectUrl>https://github.com/OwainWilliams/OC.PowerSort</PackageProjectUrl>
     <RepositoryUrl>https://github.com/OwainWilliams/OC.PowerSort</RepositoryUrl>
     <PackageReadmeFile>README_nuget.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageIcon></PackageIcon>
+    <PackageIcon>ocPowerSortLogo.png</PackageIcon>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,6 +33,10 @@
   <ItemGroup>
     <!-- Dont include the client folder as part of packaging nuget build -->
     <Content Remove="Client\**" />
+    <None Include="..\..\assets\ocPowerSortLogo.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
 
     <!-- However make the Umbraco-package.json included for dotnet pack or nuget package and visible to the solution -->
     <None Include="Client\public\umbraco-package.json" Pack="false" />

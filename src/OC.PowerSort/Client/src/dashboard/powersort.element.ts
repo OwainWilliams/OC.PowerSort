@@ -29,6 +29,12 @@ export default class PowerSortDashboardElement extends crudMixin {
   @state()
   private routeNodeId: string = "";
 
+  @state()
+  private _childrenModuleLoaded = false;
+
+  @state()
+  private _prioritiesModuleLoaded = false;
+
   private documentItemRepository?: UmbDocumentItemRepository;
 
   constructor() {
@@ -36,6 +42,20 @@ export default class PowerSortDashboardElement extends crudMixin {
     this.selectedNodeId = null;
     this.selectedNodeName = "";
     this.menuItems = [];
+    
+    // Preload modules asynchronously
+    this._loadModules();
+  }
+
+  private async _loadModules() {
+    // Load both modules in parallel (we only need the side effects, not the exports)
+    await Promise.all([
+      import("./children.element.js"),
+      import("../section/priority-section-view.element.js")
+    ]);
+    
+    this._childrenModuleLoaded = true;
+    this._prioritiesModuleLoaded = true;
   }
 
   async connectedCallback() {
@@ -695,8 +715,11 @@ export default class PowerSortDashboardElement extends crudMixin {
   }
 
   private renderChildrenView() {
-    // Dynamically import and render the children element
-    import("./children.element.js");
+    // Show loader while module is loading
+    if (!this._childrenModuleLoaded) {
+      return html`<uui-loader></uui-loader>`;
+    }
+    
     return html`
       <power-sort-children-dashboard
         .id=${this.routeNodeId}
@@ -705,8 +728,11 @@ export default class PowerSortDashboardElement extends crudMixin {
   }
 
   private renderPrioritiesView() {
-    // Dynamically import and render the enum priorities element
-    import("../section/priority-section-view.element.js");
+    // Show loader while module is loading
+    if (!this._prioritiesModuleLoaded) {
+      return html`<uui-loader></uui-loader>`;
+    }
+    
     return html`
       <power-sort-enum-priorities-dashboard></power-sort-enum-priorities-dashboard>
     `;
