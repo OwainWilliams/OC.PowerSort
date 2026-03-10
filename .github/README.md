@@ -13,11 +13,11 @@ A powerful sorting extension for Umbraco CMS that provides enhanced sorting capa
 
 - Enhanced sorting options for Umbraco content nodes
 - Easy-to-use backoffice integration
-- Compatible with Umbraco v17+
+- Compatible with Umbraco v17.2.0+
 
 ## Installation
 
-Add the package to an existing Umbraco website (v17+) from nuget:
+Add the package to an existing Umbraco website (v17.2.0+) from nuget:
 
 `dotnet add package OC.PowerSort`
 
@@ -37,6 +37,26 @@ Once this is done, the package will automatically integrate with your Umbraco ba
 3. Use the PowerSort action to access advanced sorting options
 4. Choose your sorting criteria and apply the changes
 
+## Frontend implementation
+
+This package does not give a frontend implementation for displaying your content, that is up to you. What it does do is update the "sort order" of nodes. 
+A very basic implementation could look like 
+
+```
+@if(Model.Children().Any())
+{
+    <ul>
+        @foreach(var child in Model.Children())
+        {
+            <li>@child.Name</li>
+        }
+    </ul>
+}
+else
+{
+    <p>No children found.</p>
+}
+```
 
 ### Video Demonstration
 
@@ -47,7 +67,15 @@ Once this is done, the package will automatically integrate with your Umbraco ba
 [![Default Sort Order](https://img.youtube.com/vi/UVH7d-s_1nk/0.jpg)](https://www.youtube.com/watch?v=UVH7d-s_1nk)
 
 #### Setup Schedules 
+You can schedule sort orders e.g. if you want a node to be pushed up a listing tomorrow at 9am, no problem. 
 [![Setup Schedules](https://img.youtube.com/vi/wg4VjALjMSs/0.jpg)](https://www.youtube.com/watch?v=wg4VjALjMSs)
+
+#### Setup Priorities
+If two nodes on the same schedule share the same Sort Order, the priority set can boost an order. e.g. If 2 items have a sort order of 0, the one with the highest priority will be displayed first.
+
+[![Setup Priorities](https://img.youtube.com/vi/x1SaGMe5mcQ/0.jpg)](https://www.youtube.com/watch?v=x1SaGMe5mcQ)
+
+
 
 
 ## Configuration
@@ -56,7 +84,7 @@ No additional configuration is required other than granting access to the sectio
 
 ## Requirements
 
-- Umbraco v17+
+- Umbraco v17.2.0+
 - .NET 10
 
 ## Contributing
