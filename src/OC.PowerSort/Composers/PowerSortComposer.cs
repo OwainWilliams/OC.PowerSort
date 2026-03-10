@@ -23,7 +23,7 @@ public class PowerSortComposer : IComposer
         builder.AddNotificationHandler<ContentDeletingNotification, ContentDeletingHandler>();
         builder.AddNotificationHandler<ContentMovedToRecycleBinNotification, ContentDeletingHandler>();
 
-        builder.AddNotificationAsyncHandler<UmbracoApplicationStartingNotification, MigrationComponent>();
+        builder.AddNotificationAsyncHandler<UmbracoApplicationStartedNotification, MigrationComponent>();
 
 
     }

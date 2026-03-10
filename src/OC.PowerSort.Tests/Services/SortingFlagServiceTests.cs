@@ -1,5 +1,6 @@
 using OC.PowerSort.Services;
 using Umbraco.Cms.Core.Models;
+using Umbraco.Cms.Core.Persistence.Querying;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Persistence;
 
@@ -93,7 +94,15 @@ public class SortingFlagServiceTests
             .Returns(child2);
 
         long totalRecords = 3;
-        _contentServiceMock.Setup(x => x.GetPagedChildren(It.IsAny<int>(), 0, int.MaxValue, out totalRecords))
+        _contentServiceMock.Setup(x => x.GetPagedChildren(
+                It.IsAny<int>(),
+                0,
+                int.MaxValue,
+                out totalRecords,
+                It.IsAny<string[]>(), // Accept any string[] for the cultureInfo
+                It.IsAny<IQuery<IContent>?>(),
+                It.IsAny<Ordering?>(),
+                It.IsAny<bool>()))
             .Returns(new[] { child1, child2, child3 });
 
         // Mock the database query to indicate PowerSort is managing this document

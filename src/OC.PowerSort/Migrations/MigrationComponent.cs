@@ -10,7 +10,7 @@ using Umbraco.Cms.Infrastructure.Migrations.Upgrade;
 
 namespace OC.PowerSort.Migrations
 {
-    public class MigrationComponent : INotificationAsyncHandler<UmbracoApplicationStartingNotification>
+    public class MigrationComponent : INotificationAsyncHandler<UmbracoApplicationStartedNotification>
     {
         private readonly IMigrationPlanExecutor _migrationPlanExecutor;
         private readonly ICoreScopeProvider _coreScopeProvider;
@@ -32,7 +32,7 @@ namespace OC.PowerSort.Migrations
             _logger = logger;
         }
 
-        public async Task HandleAsync(UmbracoApplicationStartingNotification notification, CancellationToken cancellationToken)
+        public async Task HandleAsync(UmbracoApplicationStartedNotification notification, CancellationToken cancellationToken)
         {
             if (_runtimeState.Level < RuntimeLevel.Run)
             {
