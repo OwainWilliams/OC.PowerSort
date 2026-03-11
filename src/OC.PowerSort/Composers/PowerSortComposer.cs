@@ -13,7 +13,7 @@ public class PowerSortComposer : IComposer
 {
     public void Compose(IUmbracoBuilder builder)
     {
-        builder.AddNotificationAsyncHandler<UmbracoApplicationStartingNotification, MigrationComponent>();
+
 
         // Register services
         builder.Services.AddScoped<ScheduleService>();
@@ -22,6 +22,7 @@ public class PowerSortComposer : IComposer
         // Register notification handlers
         builder.AddNotificationHandler<ContentDeletingNotification, ContentDeletingHandler>();
         builder.AddNotificationHandler<ContentMovedToRecycleBinNotification, ContentDeletingHandler>();
+        builder.AddNotificationAsyncHandler<UmbracoApplicationStartingNotification, MigrationComponent>();
 
     }
 
