@@ -4,14 +4,17 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <StaticWebAssetBasePath>/</StaticWebAssetBasePath>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <Deterministic Condition="'$(CI)' == 'true'">true</Deterministic>
   </PropertyGroup>
 
   <PropertyGroup>
     <Product>OC.PowerSort</Product>
     <PackageId>OC.PowerSort</PackageId>
-    <Title>OC.PowerSort</Title>
+    <Title>OC.PowerSort - Umbraco Content Sorting</Title>
     <Description>An Umbraco CMS package that allows editors to schedule custom sorting of nodes</Description>
-    <PackageTags>umbraco;umbraco-marketplace</PackageTags>
+    <PackageTags>umbraco;umbraco-marketplace;cms;content-management;sorting;scheduling</PackageTags>
     <Authors>Owain Williams &amp; Harrie Mayhew</Authors>
     <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Owain Williams &amp; Harrie Mayhew</Copyright>
     <PackageProjectUrl>https://github.com/OwainWilliams/OC.PowerSort</PackageProjectUrl>
@@ -22,13 +25,20 @@
     <PackageIcon>ocPowerSortLogo.png</PackageIcon>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Version>1.0.0</Version>
+    <PackageReleaseNotes>Initial release with content sorting and scheduling capabilities.</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.2.0" />
-    <PackageReference Include="Umbraco.Cms.Web.Common" Version="17.2.0" />
-    <PackageReference Include="Umbraco.Cms.Api.Common" Version="17.2.0" />
-    <PackageReference Include="Umbraco.Cms.Api.Management" Version="17.2.0" />
+    <PackageReference Include="Umbraco.Cms.Web.Website" Version="[17.0.0,18.0.0)" />
+    <PackageReference Include="Umbraco.Cms.Web.Common" Version="[17.0.0,18.0.0)" />
+    <PackageReference Include="Umbraco.Cms.Api.Common" Version="[17.0.0,18.0.0)" />
+    <PackageReference Include="Umbraco.Cms.Api.Management" Version="[17.0.0,18.0.0)" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
   
   <ItemGroup>
@@ -49,5 +59,10 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
+
+  <!-- Source Link configuration for better debugging experience -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
 
 </Project>

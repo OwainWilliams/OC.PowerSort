@@ -2,7 +2,7 @@
 
 [![Downloads](https://img.shields.io/nuget/dt/OC.PowerSort?color=cc9900)](https://www.nuget.org/packages/OC.PowerSort/)
 [![NuGet](https://img.shields.io/nuget/vpre/OC.PowerSort?color=0273B3)](https://www.nuget.org/packages/OC.PowerSort/)
-[![GitHub license](https://img.shields.io/github/license/OwainWilliams/OC.PowerSort?color=8AB803)](../LICENSE)
+[![GitHub license](https://img.shields.io/github/license/OwainWilliams/OC.PowerSort?color=8AB803)](https://github.com/OwainWilliams/OC.PowerSort/blob/501d5f4115b9fc9c4796e364e339d9938c4dee28/.github/LICENCE.md)
 
 
 
@@ -37,6 +37,26 @@ Once this is done, the package will automatically integrate with your Umbraco ba
 3. Use the PowerSort action to access advanced sorting options
 4. Choose your sorting criteria and apply the changes
 
+## Frontend implementation
+
+This package does not give a frontend implementation for displaying your content, that is up to you. What it does do is update the "sort order" of nodes. 
+A very basic implementation could look like 
+
+```
+@if(Model.Children().Any())
+{
+    <ul>
+        @foreach(var child in Model.Children())
+        {
+            <li>@child.Name</li>
+        }
+    </ul>
+}
+else
+{
+    <p>No children found.</p>
+}
+```
 
 ### Video Demonstration
 
@@ -47,7 +67,15 @@ Once this is done, the package will automatically integrate with your Umbraco ba
 [![Default Sort Order](https://img.youtube.com/vi/UVH7d-s_1nk/0.jpg)](https://www.youtube.com/watch?v=UVH7d-s_1nk)
 
 #### Setup Schedules 
+You can schedule sort orders e.g. if you want a node to be pushed up a listing tomorrow at 9am, no problem. 
 [![Setup Schedules](https://img.youtube.com/vi/wg4VjALjMSs/0.jpg)](https://www.youtube.com/watch?v=wg4VjALjMSs)
+
+#### Setup Priorities
+If two nodes on the same schedule share the same Sort Order, the priority set can boost an order. e.g. If 2 items have a sort order of 0, the one with the highest priority will be displayed first.
+
+[![Setup Priorities](https://img.youtube.com/vi/x1SaGMe5mcQ/0.jpg)](https://www.youtube.com/watch?v=x1SaGMe5mcQ)
+
+
 
 
 ## Configuration
@@ -61,8 +89,8 @@ No additional configuration is required other than granting access to the sectio
 
 ## Contributing
 
-Contributions to this package are most welcome! Please read the [Contributing Guidelines](CONTRIBUTING.md).
+Contributions to this package are most welcome! Please read the [Contributing Guidelines](https://github.com/OwainWilliams/OC.PowerSort/blob/501d5f4115b9fc9c4796e364e339d9938c4dee28/.github/CONTRIBUTING.md).
 
 ## Acknowledgments
 
-This package has been created by [Owain Williams](https://github.com/OwainWilliams/) and [Harrie Mayhew](https://github.com/mayhemcreates). It is licensed under the MIT License (see [LICENSE](../LICENSE) for details).
+This package has been created by [Owain Williams](https://github.com/OwainWilliams/) and [Harrie Mayhew](https://github.com/mayhemcreates). It is licensed under the MIT License (see [LICENSE](https://github.com/OwainWilliams/OC.PowerSort/blob/501d5f4115b9fc9c4796e364e339d9938c4dee28/.github/LICENCE.md) for details).

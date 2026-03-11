@@ -13,11 +13,11 @@ A powerful sorting extension for Umbraco CMS that provides enhanced sorting capa
 
 - Enhanced sorting options for Umbraco content nodes
 - Easy-to-use backoffice integration
-- Compatible with Umbraco v17.2.0+
+- Compatible with Umbraco v17+
 
 ## Installation
 
-Add the package to an existing Umbraco website (v17.2.0+) from nuget:
+Add the package to an existing Umbraco website (v17+) from nuget:
 
 `dotnet add package OC.PowerSort`
 
@@ -84,7 +84,7 @@ No additional configuration is required other than granting access to the sectio
 
 ## Requirements
 
-- Umbraco v17.2.0+
+- Umbraco v17+
 - .NET 10
 
 ## Contributing
