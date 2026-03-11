@@ -10,7 +10,7 @@ using Umbraco.Cms.Infrastructure.Migrations.Upgrade;
 
 namespace OC.PowerSort.Migrations
 {
-    public class MigrationComponent : INotificationAsyncHandler<UmbracoApplicationStartedNotification>
+    public class MigrationComponent : INotificationAsyncHandler<UmbracoApplicationStartingNotification>
     {
         private readonly IMigrationPlanExecutor _migrationPlanExecutor;
         private readonly ICoreScopeProvider _coreScopeProvider;
@@ -32,7 +32,7 @@ namespace OC.PowerSort.Migrations
             _logger = logger;
         }
 
-        public async Task HandleAsync(UmbracoApplicationStartedNotification notification, CancellationToken cancellationToken)
+        public async Task HandleAsync(UmbracoApplicationStartingNotification notification, CancellationToken cancellationToken)
         {
             if (_runtimeState.Level < RuntimeLevel.Run)
             {
@@ -68,8 +68,6 @@ namespace OC.PowerSort.Migrations
                     _logger.LogError(ex.InnerException, "OC.PowerSort: Inner exception - {InnerMessage}", ex.InnerException.Message);
                 }
 
-                // Don't throw - let Umbraco continue to start even if migrations fail
-                // This way you can see the full error in logs
             }
         }
     }
