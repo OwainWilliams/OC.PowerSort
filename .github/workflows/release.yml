@@ -3,9 +3,16 @@ name: Release Package
 # This action will start when a correctly formatted tag is pushed (e.g. 0.1.0)
 
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to run workflow'
+        required: true
+        type: string
   push:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
+
 
 jobs:
   build:
