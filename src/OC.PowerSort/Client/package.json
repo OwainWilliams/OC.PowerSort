@@ -1,7 +1,7 @@
 {
   "name": "oc-power-sort",
   "private": true,
-  "version": "1.0.3-beta",
+  "version": "17.0.0",
   "type": "module",
   "scripts": {
     "watch": "tsc && vite build --watch",
