@@ -1,4 +1,4 @@
-# <img alt="OC.PowerSort Logo" src="https://raw.githubusercontent.com/OwainWilliams/OC.PowerSort/refs/heads/main/assets/ocPowerSortLogo.png" style="width: 50px;">OC.PowerSort
+## OC.PowerSort
 
 [![Downloads](https://img.shields.io/nuget/dt/OC.PowerSort?color=cc9900)](https://www.nuget.org/packages/OC.PowerSort/)
 [![NuGet](https://img.shields.io/nuget/vpre/OC.PowerSort?color=0273B3)](https://www.nuget.org/packages/OC.PowerSort/)
@@ -57,25 +57,6 @@ else
     <p>No children found.</p>
 }
 ```
-
-### Video Demonstration
-
-#### Basic usage
-[![Basic Setup](https://img.youtube.com/vi/eeddTabJyII/0.jpg)](https://www.youtube.com/watch?v=eeddTabJyII)
-
-#### Set Default Sort Order
-[![Default Sort Order](https://img.youtube.com/vi/UVH7d-s_1nk/0.jpg)](https://www.youtube.com/watch?v=UVH7d-s_1nk)
-
-#### Setup Schedules 
-You can schedule sort orders e.g. if you want a node to be pushed up a listing tomorrow at 9am, no problem. 
-[![Setup Schedules](https://img.youtube.com/vi/wg4VjALjMSs/0.jpg)](https://www.youtube.com/watch?v=wg4VjALjMSs)
-
-#### Setup Priorities
-If two nodes on the same schedule share the same Sort Order, the priority set can boost an order. e.g. If 2 items have a sort order of 0, the one with the highest priority will be displayed first.
-
-[![Setup Priorities](https://img.youtube.com/vi/x1SaGMe5mcQ/0.jpg)](https://www.youtube.com/watch?v=x1SaGMe5mcQ)
-
-
 
 
 ## Configuration
