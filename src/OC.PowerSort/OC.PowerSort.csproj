@@ -7,6 +7,8 @@
     <EnablePackageValidation>true</EnablePackageValidation>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <Deterministic Condition="'$(CI)' == 'true'">true</Deterministic>
+    <ContentTargetFolders>.</ContentTargetFolders>
+    <StaticWebAssetBasePath>/</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -24,7 +26,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>ocPowerSortLogo.png</PackageIcon>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>17.0.2-alpha001</Version>
+    <Version>17.0.2-alpha002</Version>
     <PackageReleaseNotes>Initial release with content sorting and scheduling capabilities.</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <IncludeSymbols>true</IncludeSymbols>
@@ -63,6 +65,10 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="wwwroot\App_Plugins\" />
   </ItemGroup>
 
   <!-- Source Link configuration for better debugging experience -->
