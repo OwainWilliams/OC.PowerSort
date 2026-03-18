@@ -1,7 +1,7 @@
 {
   "id": "OC.PowerSort",
   "name": "OC.PowerSort",
-  "version": "17.0.1",
+  "version": "17.0.2-alpha001",
   "allowTelemetry": true,
   "extensions": [
     {

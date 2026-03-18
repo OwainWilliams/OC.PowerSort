@@ -24,7 +24,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>ocPowerSortLogo.png</PackageIcon>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>17.0.1</Version>
+    <Version>17.0.2-alpha001</Version>
     <PackageReleaseNotes>Initial release with content sorting and scheduling capabilities.</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <IncludeSymbols>true</IncludeSymbols>
@@ -48,15 +48,13 @@
   <ItemGroup>
     <!-- Dont include the client folder as part of packaging nuget build -->
     <Content Remove="Client\**" />
+
+    <!-- Exclude the root-level package-lock.json from being treated as content -->
+    <Content Remove="package-lock.json" />
+
     <None Include="..\..\assets\ocPowerSortLogo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
-    </None>
-
-    <!-- Include umbraco-package.json in the NuGet package so Umbraco can discover it -->
-    <None Include="Client\public\umbraco-package.json">
-      <Pack>True</Pack>
-      <PackagePath>App_Plugins\$(PackageId)\</PackagePath>
     </None>
   </ItemGroup>
   
