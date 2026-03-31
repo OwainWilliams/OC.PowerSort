@@ -28,7 +28,7 @@ namespace OC.PowerSort.Controllers
             : base(backOfficeSecurityAccessor, databaseFactory, contentService, userService)
         {
             _entityService = entityService;
-           
+
         }
 
         [HttpGet("children/{id:guid}")]
@@ -36,7 +36,10 @@ namespace OC.PowerSort.Controllers
         {
             var authResult = ValidateUserAccess(out _);
             if (authResult != null)
+            {
                 return authResult;
+            }
+
 
             try
             {
@@ -80,7 +83,7 @@ namespace OC.PowerSort.Controllers
         {
             var authResult = ValidateUserAccess(out _);
             if (authResult != null)
-                return authResult;
+            { return authResult; }
 
             if (request.Parent?.Id == null)
             {
@@ -165,46 +168,48 @@ namespace OC.PowerSort.Controllers
             {
                 var authResult = ValidateUserAccess(out var userId);
                 if (authResult != null)
+                {
                     throw new UnauthorizedAccessException();
+                }
 
                 var parent = contentService.GetById(request.ParentId);
-                if (parent == null)
+                if (parent != null)
                 {
-                    throw new ArgumentException("Parent not found");
-                }
+                    // Get current children in their current sort order
+                    var children = contentService.GetPagedChildren(parent.Id, 0, int.MaxValue, out _)
+                        .OrderBy(c => c.SortOrder)
+                        .ToList();
 
-                // Get current children in their current sort order
-                var children = contentService.GetPagedChildren(parent.Id, 0, int.MaxValue, out _)
-                    .OrderBy(c => c.SortOrder)
-                    .ToList();
+                    // Delete existing default order for this parent
+                    database.Execute(
+                        "DELETE FROM ocPowerSortDefaultOrder WHERE ParentId = @0",
+                        request.ParentId);
 
-                // Delete existing default order for this parent
-                database.Execute(
-                    "DELETE FROM ocPowerSortDefaultOrder WHERE ParentId = @0",
-                    request.ParentId);
-
-                // Save current order as default
-                var now = DateTime.UtcNow;
-                foreach (var child in children)
-                {
-                    database.Insert(new DefaultSortOrderDto
+                    // Save current order as default
+                    var now = DateTime.UtcNow;
+                    foreach (var child in children)
                     {
-                        Id = Guid.NewGuid(),
-                        ParentId = request.ParentId,
-                        ContentId = child.Key,
-                        SortOrder = child.SortOrder,
-                        Created = now,
-                        CreatedBy = userId,
-                        Updated = now
-                    });
+                        database.Insert(new DefaultSortOrderDto
+                        {
+                            Id = Guid.NewGuid(),
+                            ParentId = request.ParentId,
+                            ContentId = child.Key,
+                            SortOrder = child.SortOrder,
+                            Created = now,
+                            CreatedBy = userId,
+                            Updated = now
+                        });
+                    }
+
+                    return new
+                    {
+                        success = true,
+                        message = $"Saved default sort order for {children.Count} items",
+                        itemCount = children.Count
+                    };
                 }
 
-                return new
-                {
-                    success = true,
-                    message = $"Saved default sort order for {children.Count} items",
-                    itemCount = children.Count
-                };
+                throw new ArgumentException("Parent not found");
             });
         }
 
@@ -214,7 +219,9 @@ namespace OC.PowerSort.Controllers
         {
             var authResult = ValidateUserAccess(out var userId);
             if (authResult != null)
+            {
                 return authResult;
+            }
 
             try
             {

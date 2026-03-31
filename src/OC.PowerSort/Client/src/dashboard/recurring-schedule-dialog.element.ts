@@ -616,31 +616,31 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
 
           <div class="dialog-body">
             ${this.error
-              ? html`<div class="error-message">${this.error}</div>`
-              : ""}
+        ? html`<div class="error-message">${this.error}</div>`
+        : ""}
 
             ${!this.schedule
-              ? html`
+        ? html`
                   <div class="form-group">
                     <label for="contentSelect">Content to Boost</label>
                     ${this.loadingChildren
-                      ? html`<div>Loading children...</div>`
-                      : this.children.length === 0
-                        ? html`<div>No children found</div>`
-                        : html`
+            ? html`<div>Loading children...</div>`
+            : this.children.length === 0
+              ? html`<div>No children found</div>`
+              : html`
                             <select
                               id="contentSelect"
                               @change=${(e: Event) => {
-                                const select = e.target as HTMLSelectElement;
-                                this.contentId = select.value;
-                                const selectedChild = this.nodeChildren.find(
-                                  (c) => c.id === select.value,
-                                );
-                                this.contentName = selectedChild?.name || "";
-                              }}
+                  const select = e.target as HTMLSelectElement;
+                  this.contentId = select.value;
+                  const selectedChild = this.nodeChildren.find(
+                    (c) => c.id === select.value,
+                  );
+                  this.contentName = selectedChild?.name || "";
+                }}
                             >
                               ${this.nodeChildren.map(
-                                (child) => html`
+                  (child) => html`
                                   <option
                                     value="${child.id}"
                                     ?selected=${this.contentId === child.id}
@@ -648,19 +648,19 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                                     ${child.name}
                                   </option>
                                 `,
-                              )}
+                )}
                             </select>
                             ${this.contentName
-                              ? html`<div
+                  ? html`<div
                                   style="margin-top: var(--uui-size-space-2); font-size: var(--uui-type-small-size);"
                                 >
                                   Selected: ${this.contentName}
                                 </div>`
-                              : ""}
+                  : ""}
                           `}
                   </div>
                 `
-              : html`<div class="form-group">
+        : html`<div class="form-group">
                   <strong>Content:</strong> ${this.contentName}
                 </div>`}
 
@@ -671,77 +671,13 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                 id="targetPosition"
                 .value=${this.targetPosition.toString()}
                 @input=${(e: Event) =>
-                  (this.targetPosition = parseInt(
-                    (e.target as HTMLInputElement).value,
-                  ))}
+      (this.targetPosition = parseInt(
+        (e.target as HTMLInputElement).value,
+      ))}
               ></uui-input>
             </div>
 
-            <div class="form-group">
-              <label for="priority">
-                <uui-icon name="icon-settings"></uui-icon>
-                Priority
-              </label>
-              <div class="description">
-                Choose the priority level for this schedule
-              </div>
-              ${this.loadingPriorities
-                ? html`
-                    <div class="priority-loading">
-                      <uui-loader></uui-loader>
-                      Loading priority options...
-                    </div>
-                  `
-                : this.noPriorityOptionsFound
-                  ? html`
-                      <div class="no-priority-options">
-                        <uui-icon name="icon-alert"></uui-icon>
-                        No priority options have been configured yet
-                      </div>
-                    `
-                  : html`
-                      <div class="priority-radio-group">
-                        ${this.priorityOptions.map(
-                          (option) => html`
-                            <uui-label
-                              class="priority-radio-option ${this.priority ===
-                              option.value
-                                ? "selected"
-                                : ""}"
-                              @click=${(e: Event) => {
-                                e.preventDefault();
-                                this.priority = option.value;
-                              }}
-                            >
-                              <input
-                                type="radio"
-                                name="priority"
-                                value=${option.value}"
-                                .checked=${this.priority === option.value}
-                              />
-                              <div class="priority-radio-content">
-                                <div class="priority-radio-details">
-                                  <div class="priority-radio-label">
-                                    ${option.label}
-                                  </div>
-                                  <div class="priority-radio-value">
-                                    Priority Weight: ${option.value}
-                                  </div>
-                                </div>
-                                <div
-                                  class="priority-level-badge priority-${this.getPriorityLevel(
-                                    option.value,
-                                  )}"
-                                >
-                                  ${this.getPriorityLevelText(option.value)}
-                                </div>
-                              </div>
-                            </uui-label>
-                          `,
-                        )}
-                      </div>
-                    `}
-            </div>
+
 
             <div class="form-group">
               <label for="boostDuration">Boost Duration (hours)</label>
@@ -750,9 +686,9 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                 id="boostDuration"
                 .value=${this.boostDurationHours.toString()}
                 @input=${(e: Event) =>
-                  (this.boostDurationHours = parseInt(
-                    (e.target as HTMLInputElement).value,
-                  ))}
+      (this.boostDurationHours = parseInt(
+        (e.target as HTMLInputElement).value,
+      ))}
               ></uui-input>
             </div>
 
@@ -789,25 +725,26 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                 type="number"
                 id="interval"
                 min="1"
+                style="width: 100px;"
                 .value=${this.interval.toString()}
                 @input=${(e: Event) =>
-                  (this.interval = parseInt(
-                    (e.target as HTMLInputElement).value,
-                  ))}
+      (this.interval = parseInt(
+        (e.target as HTMLInputElement).value,
+      ))}
               ></uui-input>
               ${this.recurrenceType === "Daily"
-                ? "day(s)"
-                : this.recurrenceType === "Weekly"
-                  ? "week(s)"
-                  : "month(s)"}
+        ? "day(s)"
+        : this.recurrenceType === "Weekly"
+          ? "week(s)"
+          : "month(s)"}
             </div>
 
             ${this.recurrenceType === "Weekly"
-              ? this.renderWeeklyOptions()
-              : ""}
+        ? this.renderWeeklyOptions()
+        : ""}
             ${this.recurrenceType === "Monthly"
-              ? this.renderMonthlyOptions()
-              : ""}
+        ? this.renderMonthlyOptions()
+        : ""}
 
             <div class="form-group">
               <label for="startDate">Start Date</label>
@@ -816,12 +753,82 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                 id="startDate"
                 .value=${this.startDate}
                 @input=${(e: Event) =>
-                  (this.startDate = (e.target as HTMLInputElement).value)}
+        (this.startDate = (e.target as HTMLInputElement).value)}
               ></uui-input>
             </div>
-
             ${this.renderEndOptions()}
+
+
+              <div class="form-group">
+              <label for="priority">
+                <uui-icon name="icon-settings"></uui-icon>
+                Priority
+              </label>
+              <div class="description">
+                Choose the priority level for this schedule
+              </div>
+              ${this.loadingPriorities
+        ? html`
+                    <div class="priority-loading">
+                      <uui-loader></uui-loader>
+                      Loading priority options...
+                    </div>
+                  `
+        : this.noPriorityOptionsFound
+          ? html`
+                      <div class="no-priority-options">
+                        <uui-icon name="icon-alert"></uui-icon>
+                        No priority options have been configured yet
+                      </div>
+                    `
+          : html`
+                      <div class="priority-radio-group">
+                        ${this.priorityOptions.map(
+            (option) => html`
+                            <uui-label
+                              class="priority-radio-option ${this.priority ===
+                option.value
+                ? "selected"
+                : ""}"
+                              @click=${(e: Event) => {
+                e.preventDefault();
+                this.priority = option.value;
+              }}
+                            >
+                              <input
+                                type="radio"
+                                name="priority"
+                                value=${option.value}"
+                                .checked=${this.priority === option.value}
+                              />
+                              <div class="priority-radio-content">
+                                <div class="priority-radio-details">
+                                  <div class="priority-radio-label">
+                                    ${option.label}
+                                  </div>
+                                  <div class="priority-radio-value">
+                                    Priority Weight: ${option.value}
+                                  </div>
+                                </div>
+                                <div
+                                  class="priority-level-badge priority-${this.getPriorityLevel(
+                option.value,
+              )}"
+                                >
+                                  ${this.getPriorityLevelText(option.value)}
+                                </div>
+                              </div>
+                            </uui-label>
+                          `,
+          )}
+                      </div>
+                    `}
+            </div>
+
+
           </div>
+
+    
 
           <div class="dialog-footer">
             <uui-button look="secondary" @click=${this.handleClose}>
@@ -842,20 +849,20 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
         <label>Days of Week</label>
         <div class="days-of-week">
           ${RecurringScheduleHelpers.DAYS_OF_WEEK.map(
-            (day) => html`
+      (day) => html`
               <uui-button
                 class="day-button ${this.daysOfWeek.includes(day.value)
-                  ? "selected"
-                  : ""}"
+          ? "selected"
+          : ""}"
                 look="${this.daysOfWeek.includes(day.value)
-                  ? "primary"
-                  : "secondary"}"
+          ? "primary"
+          : "secondary"}"
                 @click=${() => this.handleDayOfWeekToggle(day.value)}
               >
                 ${day.short}
               </uui-button>
             `,
-          )}
+    )}
         </div>
       </div>
     `;
@@ -867,8 +874,8 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
         <label>Monthly Pattern</label>
         <select
           @change=${(e: Event) =>
-            (this.monthlyPatternType = (e.target as HTMLSelectElement)
-              .value as MonthlyPatternType)}
+      (this.monthlyPatternType = (e.target as HTMLSelectElement)
+        .value as MonthlyPatternType)}
         >
           <option
             value="DayOfMonth"
@@ -896,9 +903,9 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                 max="31"
                 .value=${this.dayOfMonth.toString()}
                 @input=${(e: Event) =>
-                  (this.dayOfMonth = parseInt(
-                    (e.target as HTMLInputElement).value,
-                  ))}
+          (this.dayOfMonth = parseInt(
+            (e.target as HTMLInputElement).value,
+          ))}
               ></uui-input>
             </div>
           `
@@ -908,12 +915,12 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               <select
                 id="weekOfMonth"
                 @change=${(e: Event) =>
-                  (this.weekOfMonth = parseInt(
-                    (e.target as HTMLSelectElement).value,
-                  ))}
+          (this.weekOfMonth = parseInt(
+            (e.target as HTMLSelectElement).value,
+          ))}
               >
                 ${RecurringScheduleHelpers.WEEK_OF_MONTH.map(
-                  (week) => html`
+            (week) => html`
                     <option
                       value="${week.value}"
                       ?selected=${this.weekOfMonth === week.value}
@@ -921,7 +928,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                       ${week.label}
                     </option>
                   `,
-                )}
+          )}
               </select>
             </div>
 
@@ -930,12 +937,12 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               <select
                 id="dayOfWeekMonthly"
                 @change=${(e: Event) =>
-                  (this.dayOfWeek = parseInt(
-                    (e.target as HTMLSelectElement).value,
-                  ))}
+          (this.dayOfWeek = parseInt(
+            (e.target as HTMLSelectElement).value,
+          ))}
               >
                 ${RecurringScheduleHelpers.DAYS_OF_WEEK.map(
-                  (day) => html`
+            (day) => html`
                     <option
                       value="${day.value}"
                       ?selected=${this.dayOfWeek === day.value}
@@ -943,7 +950,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                       ${day.label}
                     </option>
                   `,
-                )}
+          )}
               </select>
             </div>
           `}
@@ -957,9 +964,9 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
           <uui-checkbox
             .checked=${!this.useEndDate && !this.useMaxOccurrences}
             @change=${() => {
-              this.useEndDate = false;
-              this.useMaxOccurrences = false;
-            }}
+        this.useEndDate = false;
+        this.useMaxOccurrences = false;
+      }}
           ></uui-checkbox>
           <label>No end date (runs indefinitely)</label>
         </div>
@@ -968,46 +975,46 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
           <uui-checkbox
             .checked=${this.useEndDate}
             @change=${(e: Event) => {
-              this.useEndDate = (e.target as HTMLInputElement).checked;
-              if (this.useEndDate) this.useMaxOccurrences = false;
-            }}
+        this.useEndDate = (e.target as HTMLInputElement).checked;
+        if (this.useEndDate) this.useMaxOccurrences = false;
+      }}
           ></uui-checkbox>
           <label>End by:</label>
           ${this.useEndDate
-            ? html`
+        ? html`
                 <uui-input
                   type="date"
                   .value=${this.endDate}
                   @input=${(e: Event) =>
-                    (this.endDate = (e.target as HTMLInputElement).value)}
+            (this.endDate = (e.target as HTMLInputElement).value)}
                 ></uui-input>
               `
-            : ""}
+        : ""}
         </div>
 
         <div class="end-option">
           <uui-checkbox
             .checked=${this.useMaxOccurrences}
             @change=${(e: Event) => {
-              this.useMaxOccurrences = (e.target as HTMLInputElement).checked;
-              if (this.useMaxOccurrences) this.useEndDate = false;
-            }}
+        this.useMaxOccurrences = (e.target as HTMLInputElement).checked;
+        if (this.useMaxOccurrences) this.useEndDate = false;
+      }}
           ></uui-checkbox>
           <label>After:</label>
           ${this.useMaxOccurrences
-            ? html`
+        ? html`
                 <uui-input
                   type="number"
                   min="1"
                   .value=${this.maxOccurrences?.toString() || "1"}
                   @input=${(e: Event) =>
-                    (this.maxOccurrences = parseInt(
-                      (e.target as HTMLInputElement).value,
-                    ))}
+          (this.maxOccurrences = parseInt(
+            (e.target as HTMLInputElement).value,
+          ))}
                 ></uui-input>
                 <span>occurrences</span>
               `
-            : ""}
+        : ""}
         </div>
       </div>
     `;
