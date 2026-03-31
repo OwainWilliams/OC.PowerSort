@@ -23,7 +23,7 @@ export default class PowerSortDashboardElement extends crudMixin {
   private menuItems: MenuItem[] = [];
 
   @state()
-  private currentView: "main" | "children" | "schedules" | "priorities" =
+  private currentView: "main" | "children" | "schedules" | "priorities" | "recurring" =
     "main";
 
   @state()
@@ -34,6 +34,9 @@ export default class PowerSortDashboardElement extends crudMixin {
 
   @state()
   private _prioritiesModuleLoaded = false;
+
+  @state()
+  private _recurringModuleLoaded = false;
 
   private documentItemRepository?: UmbDocumentItemRepository;
 
@@ -51,11 +54,14 @@ export default class PowerSortDashboardElement extends crudMixin {
     // Load both modules in parallel (we only need the side effects, not the exports)
     await Promise.all([
       import("./children.element.js"),
-      import("../section/priority-section-view.element.js")
+      import("../section/priority-section-view.element.js"),
+      import("./recurring-schedules-view.element.js"),
+      import("./recurring-schedule-dialog.element.js")
     ]);
-    
+
     this._childrenModuleLoaded = true;
     this._prioritiesModuleLoaded = true;
+    this._recurringModuleLoaded = true;
   }
 
   async connectedCallback() {
@@ -85,6 +91,13 @@ export default class PowerSortDashboardElement extends crudMixin {
       this.currentView = "children";
       // Extract ID from hash
       const matches = hash.match(/children\/([a-f0-9-]+)/i);
+      this.routeNodeId = matches ? matches[1] : "";
+    }
+    // Check if we're on the recurring schedules route (hash: #recurring/:id)
+    else if (hash.includes("recurring/")) {
+      this.currentView = "recurring";
+      // Extract ID from hash
+      const matches = hash.match(/recurring\/([a-f0-9-]+)/i);
       this.routeNodeId = matches ? matches[1] : "";
     }
     // Check if we're on the priorities route (hash: #priorities)
@@ -584,6 +597,8 @@ export default class PowerSortDashboardElement extends crudMixin {
         return this.renderChildrenView();
       case "priorities":
         return this.renderPrioritiesView();
+      case "recurring":
+        return this.renderRecurringView();
       default:
         return this.renderMainView();
     }
@@ -732,9 +747,22 @@ export default class PowerSortDashboardElement extends crudMixin {
     if (!this._prioritiesModuleLoaded) {
       return html`<uui-loader></uui-loader>`;
     }
-    
+
     return html`
       <power-sort-enum-priorities-dashboard></power-sort-enum-priorities-dashboard>
+    `;
+  }
+
+  private renderRecurringView() {
+    // Show loader while module is loading
+    if (!this._recurringModuleLoaded) {
+      return html`<uui-loader></uui-loader>`;
+    }
+
+    return html`
+      <recurring-schedules-view
+        .parentId=${this.routeNodeId}
+      ></recurring-schedules-view>
     `;
   }
 }

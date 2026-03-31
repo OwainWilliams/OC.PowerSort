@@ -9,10 +9,16 @@ import { UmbAuthMixin } from "../mixins/auth.mixin.js";
 import { UmbUiMixin } from "../mixins/ui.mixin.js";
 import { PowerSortConstants } from "../utils/constants.js";
 import { ApiResponseHandler } from "../utils/api-response.utils.js";
+import { RecurringScheduleApiClient } from "../api/recurring-schedule-api.client.js";
+import { RecurringScheduleHelpers } from "../types/recurring-schedule.types.js";
 import type {
   ScheduleResponse,
   EnumPriorityListResponse,
 } from "../types/index.js";
+import type {
+  RecurrenceType,
+  MonthlyPatternType,
+} from "../types/recurring-schedule.types.js";
 
 interface PriorityOption {
   value: number;
@@ -64,16 +70,67 @@ export default class ScheduleDialogElement extends UmbUiMixin(
   @state()
   private error: string = "";
 
+  @state()
+  private scheduleType: "one-time" | "recurring" = "one-time";
+
+  // Recurring schedule properties
+  @state()
+  private boostDurationHours: number = 24;
+
+  @state()
+  private recurrenceType: RecurrenceType = "Weekly";
+
+  @state()
+  private interval: number = 1;
+
+  @state()
+  private daysOfWeek: number[] = [1]; // Monday
+
+  @state()
+  private monthlyPatternType: MonthlyPatternType = "DayOfMonth";
+
+  @state()
+  private dayOfMonth: number = 1;
+
+  @state()
+  private weekOfMonth: number = 1;
+
+  @state()
+  private dayOfWeek: number = 1;
+
+  @state()
+  private recurringStartDate: string = "";
+
+  @state()
+  private recurringEndDate: string = "";
+
+  @state()
+  private maxOccurrences: number | undefined = undefined;
+
+  @state()
+  private useEndDate: boolean = false;
+
+  @state()
+  private useMaxOccurrences: boolean = false;
+
+  private recurringApiClient: RecurringScheduleApiClient | null = null;
+
   async connectedCallback() {
     super.connectedCallback();
 
     console.log("[Schedule Dialog] Connected with parentId:", this.parentId);
 
+    // Initialize recurring schedule API client
+    this.recurringApiClient = new RecurringScheduleApiClient(() =>
+      this.getAuthToken(),
+    );
+
     // Load priority options and children
     await Promise.all([this.loadPriorityOptions()]);
 
     if (this.schedule) {
-      // Editing existing schedule
+      // Editing existing one-time schedule
+      this.scheduleType = "one-time";
       this.selectedContentId = this.schedule.contentId;
       this.selectedContentName = this.schedule.contentName;
       this.targetPosition = this.schedule.targetPosition;
@@ -92,6 +149,9 @@ export default class ScheduleDialogElement extends UmbUiMixin(
       this.startDateTime = this.toLocalDateTimeString(now.toISOString());
       this.endDateTime = this.toLocalDateTimeString(tomorrow.toISOString());
       this.targetPosition = 0;
+
+      // Set recurring start date default
+      this.recurringStartDate = now.toISOString().slice(0, 10);
 
       // Set default priority after priorities are loaded
       if (this.priorityOptions.length > 0) {
@@ -174,6 +234,14 @@ export default class ScheduleDialogElement extends UmbUiMixin(
       return;
     }
 
+    if (this.scheduleType === "one-time") {
+      await this.saveOneTimeSchedule();
+    } else {
+      await this.saveRecurringSchedule();
+    }
+  }
+
+  private async saveOneTimeSchedule() {
     if (!this.startDateTime || !this.endDateTime) {
       this.error = "Start and end dates are required";
       return;
@@ -203,6 +271,72 @@ export default class ScheduleDialogElement extends UmbUiMixin(
     );
   }
 
+  private async saveRecurringSchedule() {
+    if (!this.recurringApiClient) {
+      this.error = "API client not initialized";
+      return;
+    }
+
+    // Build recurrence pattern
+    const pattern: any = {
+      type: this.recurrenceType,
+      interval: this.interval,
+      startDate: new Date(this.recurringStartDate).toISOString(),
+    };
+
+    if (this.useEndDate && this.recurringEndDate) {
+      pattern.endDate = new Date(this.recurringEndDate).toISOString();
+    }
+
+    if (this.useMaxOccurrences && this.maxOccurrences) {
+      pattern.maxOccurrences = this.maxOccurrences;
+    }
+
+    if (this.recurrenceType === "Weekly") {
+      if (this.daysOfWeek.length === 0) {
+        this.error = "Please select at least one day of the week";
+        return;
+      }
+      pattern.daysOfWeek = this.daysOfWeek;
+    } else if (this.recurrenceType === "Monthly") {
+      pattern.monthlyPattern = {
+        type: this.monthlyPatternType,
+      };
+
+      if (this.monthlyPatternType === "DayOfMonth") {
+        pattern.monthlyPattern.dayOfMonth = this.dayOfMonth;
+      } else {
+        pattern.monthlyPattern.weekOfMonth = this.weekOfMonth;
+        pattern.monthlyPattern.dayOfWeek = this.dayOfWeek;
+      }
+    }
+
+    try {
+      await this.recurringApiClient.createRecurringSchedule({
+        contentId: this.selectedContentId,
+        parentId: this.parentId,
+        targetPosition: this.targetPosition,
+        priority: this.priority,
+        pattern: pattern,
+        boostDurationHours: this.boostDurationHours,
+      });
+
+      console.log("[ScheduleDialog] Recurring schedule created successfully");
+
+      // Dispatch save event to close dialog and refresh
+      this.dispatchEvent(
+        new CustomEvent("save", {
+          detail: { isRecurring: true },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    } catch (err: any) {
+      this.error = err.message || "Failed to create recurring schedule";
+      console.error("[ScheduleDialog] Error creating recurring schedule:", err);
+    }
+  }
+
   private handleCancel() {
     this.dispatchEvent(
       new CustomEvent("cancel", {
@@ -210,6 +344,285 @@ export default class ScheduleDialogElement extends UmbUiMixin(
         composed: true,
       }),
     );
+  }
+
+  private handleRecurrenceTypeChange(e: Event) {
+    const select = e.target as HTMLSelectElement;
+    this.recurrenceType = select.value as RecurrenceType;
+  }
+
+  private handleDayOfWeekToggle(day: number) {
+    if (this.daysOfWeek.includes(day)) {
+      this.daysOfWeek = this.daysOfWeek.filter((d) => d !== day);
+    } else {
+      this.daysOfWeek = [...this.daysOfWeek, day].sort();
+    }
+  }
+
+  private renderRecurringOptions() {
+    return html`
+      <div>
+        <uui-label>
+          <uui-icon name="icon-refresh"></uui-icon>
+          Boost Duration (hours)
+        </uui-label>
+        <div class="description">How long each boost lasts</div>
+      </div>
+      <uui-input
+        type="number"
+        min="1"
+        .value=${this.boostDurationHours.toString()}
+        @input=${(e: Event) =>
+          (this.boostDurationHours = parseInt(
+            (e.target as HTMLInputElement).value,
+          ))}
+      ></uui-input>
+
+      <div>
+        <uui-label>
+          <uui-icon name="icon-repeat"></uui-icon>
+          Recurrence Pattern
+        </uui-label>
+        <div class="description">How often to repeat</div>
+      </div>
+      <select @change=${this.handleRecurrenceTypeChange}>
+        <option value="Daily" ?selected=${this.recurrenceType === "Daily"}>
+          Daily
+        </option>
+        <option value="Weekly" ?selected=${this.recurrenceType === "Weekly"}>
+          Weekly
+        </option>
+        <option value="Monthly" ?selected=${this.recurrenceType === "Monthly"}>
+          Monthly
+        </option>
+      </select>
+
+      <div>
+        <uui-label>Every</uui-label>
+      </div>
+      <uui-input
+        type="number"
+        min="1"
+        .value=${this.interval.toString()}
+        @input=${(e: Event) =>
+          (this.interval = parseInt((e.target as HTMLInputElement).value))}
+      ></uui-input>
+      <span style="align-self: center;">
+        ${this.recurrenceType === "Daily"
+          ? "day(s)"
+          : this.recurrenceType === "Weekly"
+            ? "week(s)"
+            : "month(s)"}
+      </span>
+
+      ${this.recurrenceType === "Weekly" ? this.renderWeeklyOptions() : ""}
+      ${this.recurrenceType === "Monthly" ? this.renderMonthlyOptions() : ""}
+
+      <div>
+        <uui-label>
+          <uui-icon name="icon-calendar"></uui-icon>
+          Start Date
+        </uui-label>
+      </div>
+      <uui-input
+        type="date"
+        .value=${this.recurringStartDate}
+        @input=${(e: Event) =>
+          (this.recurringStartDate = (e.target as HTMLInputElement).value)}
+      ></uui-input>
+
+      ${this.renderEndOptions()}
+    `;
+  }
+
+  private renderWeeklyOptions() {
+    return html`
+      <div style="grid-column: 1 / -1;">
+        <uui-label>Days of Week</uui-label>
+        <div
+          style="display: flex; gap: var(--uui-size-space-2); flex-wrap: wrap; margin-top: var(--uui-size-space-2);"
+        >
+          ${RecurringScheduleHelpers.DAYS_OF_WEEK.map(
+            (day) => html`
+              <uui-button
+                look="${this.daysOfWeek.includes(day.value)
+                  ? "primary"
+                  : "outline"}"
+                compact
+                @click=${() => this.handleDayOfWeekToggle(day.value)}
+              >
+                ${day.short}
+              </uui-button>
+            `,
+          )}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderMonthlyOptions() {
+    return html`
+      <div style="grid-column: 1 / -1;">
+        <uui-label>Monthly Pattern</uui-label>
+        <select
+          @change=${(e: Event) =>
+            (this.monthlyPatternType = (e.target as HTMLSelectElement)
+              .value as MonthlyPatternType)}
+          style="width: 100%; margin-top: var(--uui-size-space-2);"
+        >
+          <option
+            value="DayOfMonth"
+            ?selected=${this.monthlyPatternType === "DayOfMonth"}
+          >
+            Day of Month
+          </option>
+          <option
+            value="DayOfWeek"
+            ?selected=${this.monthlyPatternType === "DayOfWeek"}
+          >
+            Day of Week
+          </option>
+        </select>
+
+        ${this.monthlyPatternType === "DayOfMonth"
+          ? html`
+              <div style="margin-top: var(--uui-size-space-3);">
+                <uui-label>Day of Month (1-31)</uui-label>
+                <uui-input
+                  type="number"
+                  min="1"
+                  max="31"
+                  .value=${this.dayOfMonth.toString()}
+                  @input=${(e: Event) =>
+                    (this.dayOfMonth = parseInt(
+                      (e.target as HTMLInputElement).value,
+                    ))}
+                ></uui-input>
+              </div>
+            `
+          : html`
+              <div style="margin-top: var(--uui-size-space-3);">
+                <uui-label>Week of Month</uui-label>
+                <select
+                  @change=${(e: Event) =>
+                    (this.weekOfMonth = parseInt(
+                      (e.target as HTMLSelectElement).value,
+                    ))}
+                  style="width: 100%;"
+                >
+                  ${RecurringScheduleHelpers.WEEK_OF_MONTH.map(
+                    (week) => html`
+                      <option
+                        value="${week.value}"
+                        ?selected=${this.weekOfMonth === week.value}
+                      >
+                        ${week.label}
+                      </option>
+                    `,
+                  )}
+                </select>
+
+                <uui-label style="margin-top: var(--uui-size-space-2);"
+                  >Day of Week</uui-label
+                >
+                <select
+                  @change=${(e: Event) =>
+                    (this.dayOfWeek = parseInt(
+                      (e.target as HTMLSelectElement).value,
+                    ))}
+                  style="width: 100%;"
+                >
+                  ${RecurringScheduleHelpers.DAYS_OF_WEEK.map(
+                    (day) => html`
+                      <option
+                        value="${day.value}"
+                        ?selected=${this.dayOfWeek === day.value}
+                      >
+                        ${day.label}
+                      </option>
+                    `,
+                  )}
+                </select>
+              </div>
+            `}
+      </div>
+    `;
+  }
+
+  private renderEndOptions() {
+    return html`
+      <div style="grid-column: 1 / -1; margin-top: var(--uui-size-space-3);">
+        <uui-label>End Options</uui-label>
+        <div style="display: flex; flex-direction: column; gap: var(--uui-size-space-2); margin-top: var(--uui-size-space-2);">
+          <label style="display: flex; align-items: center; gap: var(--uui-size-space-2);">
+            <input
+              type="radio"
+              name="endOption"
+              ?checked=${!this.useEndDate && !this.useMaxOccurrences}
+              @change=${() => {
+                this.useEndDate = false;
+                this.useMaxOccurrences = false;
+              }}
+            />
+            <span>No end date (runs indefinitely)</span>
+          </label>
+
+          <label style="display: flex; align-items: center; gap: var(--uui-size-space-2);">
+            <input
+              type="radio"
+              name="endOption"
+              ?checked=${this.useEndDate}
+              @change=${() => {
+                this.useEndDate = true;
+                this.useMaxOccurrences = false;
+              }}
+            />
+            <span>End by:</span>
+            ${this.useEndDate
+              ? html`
+                  <uui-input
+                    type="date"
+                    .value=${this.recurringEndDate}
+                    @input=${(e: Event) =>
+                      (this.recurringEndDate = (
+                        e.target as HTMLInputElement
+                      ).value)}
+                    style="flex: 1;"
+                  ></uui-input>
+                `
+              : ""}
+          </label>
+
+          <label style="display: flex; align-items: center; gap: var(--uui-size-space-2);">
+            <input
+              type="radio"
+              name="endOption"
+              ?checked=${this.useMaxOccurrences}
+              @change=${() => {
+                this.useEndDate = false;
+                this.useMaxOccurrences = true;
+              }}
+            />
+            <span>After:</span>
+            ${this.useMaxOccurrences
+              ? html`
+                  <uui-input
+                    type="number"
+                    min="1"
+                    .value=${this.maxOccurrences?.toString() || "1"}
+                    @input=${(e: Event) =>
+                      (this.maxOccurrences = parseInt(
+                        (e.target as HTMLInputElement).value,
+                      ))}
+                    style="width: 100px;"
+                  ></uui-input>
+                  <span>occurrences</span>
+                `
+              : ""}
+          </label>
+        </div>
+      </div>
+    `;
   }
 
   static styles = css`
@@ -519,6 +932,29 @@ export default class ScheduleDialogElement extends UmbUiMixin(
     .flex {
       display: flex;
     }
+
+    .schedule-type-toggle {
+      padding: var(--uui-size-space-4);
+      border-bottom: 1px solid var(--uui-color-border);
+      display: flex;
+      justify-content: center;
+    }
+
+    .schedule-type-toggle uui-button-group {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    select {
+      padding: var(--uui-size-space-2);
+      border: 1px solid var(--uui-color-border);
+      border-radius: var(--uui-border-radius);
+      background: var(--uui-color-surface);
+      color: var(--uui-color-text);
+      font-family: inherit;
+      font-size: inherit;
+      width: 100%;
+    }
   `;
 
   render() {
@@ -550,6 +986,35 @@ export default class ScheduleDialogElement extends UmbUiMixin(
             : ""
         }
 
+        ${!this.schedule
+          ? html`
+              <div class="schedule-type-toggle">
+                <uui-button-group>
+                  <uui-button
+                    look="${this.scheduleType === "one-time"
+                      ? "primary"
+                      : "outline"}"
+                    label="One-time Schedule"
+                    @click=${() => (this.scheduleType = "one-time")}
+                  >
+                    <uui-icon name="icon-calendar"></uui-icon>
+                    One-time
+                  </uui-button>
+                  <uui-button
+                    look="${this.scheduleType === "recurring"
+                      ? "primary"
+                      : "outline"}"
+                    label="Recurring Schedule"
+                    @click=${() => (this.scheduleType = "recurring")}
+                  >
+                    <uui-icon name="icon-refresh"></uui-icon>
+                    Recurring
+                  </uui-button>
+                </uui-button-group>
+              </div>
+            `
+          : ""}
+
         <div class="grid">
           <div class="adsf">
             <uui-label>
@@ -569,6 +1034,8 @@ export default class ScheduleDialogElement extends UmbUiMixin(
               min="0"
             >
             </uui-input>
+${this.scheduleType === "one-time"
+  ? html`
 <div>
                 <uui-label>
                   <uui-icon name="icon-calendar-alt"></uui-icon>
@@ -601,6 +1068,8 @@ export default class ScheduleDialogElement extends UmbUiMixin(
                   .value=${this.endDateTime}
                   @change=${(e: any) => (this.endDateTime = e.target.value)}
                 ></uui-input>
+              `
+  : this.renderRecurringOptions()}
               <div>
               <uui-label>
                 <uui-icon name="icon-settings"></uui-icon>

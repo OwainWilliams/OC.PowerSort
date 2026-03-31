@@ -1,0 +1,80 @@
+using Microsoft.Extensions.Logging;
+using Umbraco.Cms.Infrastructure.Migrations;
+
+namespace OC.PowerSort.Migrations
+{
+    public class AddRecurringScheduleIdToScheduleMigration : AsyncMigrationBase
+    {
+        public AddRecurringScheduleIdToScheduleMigration(IMigrationContext context) : base(context)
+        {
+        }
+
+        protected override async Task MigrateAsync()
+        {
+            var tableName = "ocPowerSortSchedule";
+            var columnName = "RecurringScheduleId";
+            var foreignKeyName = "FK_ocPowerSortSchedule_RecurringSchedule";
+
+            Logger.LogInformation("OC.PowerSort: Checking if column {ColumnName} exists in {TableName}", columnName, tableName);
+
+            if (!ColumnExists(tableName, columnName))
+            {
+                Logger.LogInformation("OC.PowerSort: Adding column {ColumnName} to {TableName}", columnName, tableName);
+
+                Alter.Table(tableName)
+                    .AddColumn(columnName).AsGuid().Nullable()
+                    .Do();
+
+                Logger.LogInformation("OC.PowerSort: Column {ColumnName} added successfully", columnName);
+            }
+            else
+            {
+                Logger.LogInformation("OC.PowerSort: Column {ColumnName} already exists in {TableName}, skipping column creation", columnName, tableName);
+            }
+
+            // Only create foreign key if target table exists and FK doesn't already exist
+            if (TableExists("ocPowerSortRecurringSchedule"))
+            {
+                // Check if foreign key already exists by attempting to query the constraint
+                // SQLite doesn't have a direct way to check FK existence, so we wrap in try-catch
+                try
+                {
+                    if (!ForeignKeyExists(tableName, foreignKeyName))
+                    {
+                        Logger.LogInformation("OC.PowerSort: Creating foreign key {ForeignKeyName}", foreignKeyName);
+
+                        Create.ForeignKey(foreignKeyName)
+                            .FromTable(tableName).ForeignColumn(columnName)
+                            .ToTable("ocPowerSortRecurringSchedule").PrimaryColumn("Id")
+                            .OnDelete(System.Data.Rule.SetNull)
+                            .Do();
+
+                        Logger.LogInformation("OC.PowerSort: Foreign key {ForeignKeyName} created successfully", foreignKeyName);
+                    }
+                    else
+                    {
+                        Logger.LogInformation("OC.PowerSort: Foreign key {ForeignKeyName} already exists, skipping", foreignKeyName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "OC.PowerSort: Could not create foreign key {ForeignKeyName}, continuing anyway. This is non-critical.", foreignKeyName);
+                }
+            }
+            else
+            {
+                Logger.LogWarning("OC.PowerSort: Target table ocPowerSortRecurringSchedule does not exist yet, skipping foreign key creation. This should be created by a previous migration.");
+            }
+
+            Logger.LogInformation("OC.PowerSort: Migration completed for {TableName}.{ColumnName}", tableName, columnName);
+        }
+
+        private bool ForeignKeyExists(string tableName, string foreignKeyName)
+        {
+            // For SQLite, we can check pragma foreign_key_list
+            // But this is database-specific and complex, so we'll just return false
+            // and let the Create.ForeignKey handle duplicates
+            return false;
+        }
+    }
+}

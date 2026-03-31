@@ -26,6 +26,10 @@ namespace OC.PowerSort.Composers
 
             builder.Services.AddSingleton<IOperationIdHandler, CustomOperationHandler>();
 
+            // Register recurring schedule services
+            builder.Services.AddScoped<IRecurrenceCalculatorService, RecurrenceCalculatorService>();
+            builder.Services.AddScoped<IOccurrenceGenerationService, OccurrenceGenerationService>();
+
             // Register background service for schedule processing
             builder.Services.AddHostedService<ScheduleProcessingService>();
 

@@ -49,7 +49,10 @@ namespace OC.PowerSort.Migrations
                 plan.From(string.Empty)
                     .To<CreateSortScheduleTableMigration>("create-sort-schedule-table-v1")
                     .To<CreateDefaultSortOrderTableMigration>("create-default-sort-order-table-v1")
-                    .To<CreateEnumPriorityTableMigration>("create-enum-priority-table-v1");
+                    .To<CreateEnumPriorityTableMigration>("create-enum-priority-table-v1")
+                    .To<CreateRecurringScheduleTableMigration>("create-recurring-schedule-table-v1")
+                    .To<CreateScheduleOccurrenceTableMigration>("create-schedule-occurrence-table-v1")
+                    .To<AddRecurringScheduleIdToScheduleMigration>("add-recurring-schedule-id-to-schedule-v1");
 
 
                 var upgrader = new Upgrader(plan);

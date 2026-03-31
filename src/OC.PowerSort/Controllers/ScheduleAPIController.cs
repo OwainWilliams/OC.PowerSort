@@ -166,7 +166,8 @@ namespace OC.PowerSort.Controllers
                 IsCurrentlyActive = schedule.IsActive && now >= schedule.StartDateTime && now < schedule.EndDateTime,
                 Priority = schedule.Priority,
                 Created = schedule.Created,
-                CreatedByName = creator?.Name ?? "Unknown"
+                CreatedByName = creator?.Name ?? "Unknown",
+                RecurringScheduleId = schedule.RecurringScheduleId
             };
         }
 

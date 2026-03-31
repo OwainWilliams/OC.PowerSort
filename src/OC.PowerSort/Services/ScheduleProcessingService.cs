@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Persistence;
 using OC.PowerSort.Models;
@@ -10,7 +11,7 @@ namespace OC.PowerSort.Services
 {
     /// <summary>
     /// Background service that runs periodically to activate and deactivate schedules,
-    /// and apply sort order changes based on active schedules.
+    /// process recurring schedule occurrences, and apply sort order changes based on active schedules.
     /// </summary>
     public class ScheduleProcessingService : BackgroundService
     {
@@ -18,29 +19,56 @@ namespace OC.PowerSort.Services
         private readonly IUmbracoDatabaseFactory _databaseFactory;
         private readonly IContentService _contentService;
         private readonly ICoreScopeProvider _scopeProvider;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1); // Check every minute
+        private readonly TimeSpan _occurrenceGenerationInterval = TimeSpan.FromHours(6); // Generate occurrences every 6 hours
+        private DateTime _lastOccurrenceGeneration = DateTime.MinValue;
 
         public ScheduleProcessingService(
             ILogger<ScheduleProcessingService> logger,
             IUmbracoDatabaseFactory databaseFactory,
             IContentService contentService,
-            ICoreScopeProvider scopeProvider)
+            ICoreScopeProvider scopeProvider,
+            IServiceScopeFactory serviceScopeFactory)
         {
             _logger = logger;
             _databaseFactory = databaseFactory;
             _contentService = contentService;
             _scopeProvider = scopeProvider;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Schedule Processing Service started");
 
+            // Generate initial occurrences
+            try
+            {
+                using var scope = _serviceScopeFactory.CreateScope();
+                var occurrenceGenerator = scope.ServiceProvider.GetRequiredService<IOccurrenceGenerationService>();
+                await occurrenceGenerator.GenerateOccurrencesForAllActiveRecurringSchedulesAsync();
+                _lastOccurrenceGeneration = DateTime.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during initial occurrence generation");
+            }
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
                     await ProcessSchedulesAsync();
+
+                    // Periodically regenerate occurrences
+                    if (DateTime.UtcNow - _lastOccurrenceGeneration >= _occurrenceGenerationInterval)
+                    {
+                        using var scope = _serviceScopeFactory.CreateScope();
+                        var occurrenceGenerator = scope.ServiceProvider.GetRequiredService<IOccurrenceGenerationService>();
+                        await occurrenceGenerator.GenerateOccurrencesForAllActiveRecurringSchedulesAsync();
+                        _lastOccurrenceGeneration = DateTime.UtcNow;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -61,6 +89,9 @@ namespace OC.PowerSort.Services
             {
                 var now = DateTime.UtcNow;
                 using var database = _databaseFactory.CreateDatabase();
+
+                // Process recurring schedule occurrences
+                await ProcessRecurringScheduleOccurrencesAsync(database, now);
 
                 // Step 1: Activate schedules that should be active
                 var schedulesToActivate = database.Fetch<SortScheduleDto>(
@@ -146,7 +177,84 @@ namespace OC.PowerSort.Services
             }
         }
 
-        private async Task RestoreDefaultSortOrderAsync(Guid parentId, IUmbracoDatabase database)
+        private async Task ProcessRecurringScheduleOccurrencesAsync(
+            Umbraco.Cms.Infrastructure.Persistence.IUmbracoDatabase database,
+            DateTime now)
+        {
+            // Find unprocessed occurrences that should start
+            var occurrencesToProcess = database.Fetch<ScheduleOccurrenceDto>(
+                @"SELECT * FROM ocPowerSortScheduleOccurrence 
+                  WHERE IsProcessed = 0 
+                  AND IsCancelled = 0 
+                  AND OccurrenceStartDate <= @0",
+                now);
+
+            foreach (var occurrence in occurrencesToProcess)
+            {
+                try
+                {
+                    // Get the parent recurring schedule
+                    var recurringSchedule = database.SingleOrDefault<RecurringScheduleDto>(
+                        "SELECT * FROM ocPowerSortRecurringSchedule WHERE Id = @0",
+                        occurrence.RecurringScheduleId);
+
+                    if (recurringSchedule == null || !recurringSchedule.IsEnabled)
+                    {
+                        _logger.LogWarning(
+                            "Recurring schedule {RecurringScheduleId} not found or disabled for occurrence {OccurrenceId}",
+                            occurrence.RecurringScheduleId, occurrence.Id);
+                        occurrence.IsProcessed = true;
+                        database.Update(occurrence);
+                        continue;
+                    }
+
+                    // Create a one-time schedule from this occurrence
+                    var oneTimeSchedule = new SortScheduleDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ContentId = recurringSchedule.ContentId,
+                        ParentId = recurringSchedule.ParentId,
+                        TargetPosition = recurringSchedule.TargetPosition,
+                        StartDateTime = occurrence.OccurrenceStartDate,
+                        EndDateTime = occurrence.OccurrenceEndDate,
+                        IsActive = false, // Will be activated by normal schedule processing
+                        Priority = recurringSchedule.Priority,
+                        Created = DateTime.UtcNow,
+                        CreatedBy = recurringSchedule.CreatedBy,
+                        RecurringScheduleId = recurringSchedule.Id
+                    };
+
+                    database.Insert(oneTimeSchedule);
+
+                    // Mark occurrence as processed
+                    occurrence.IsProcessed = true;
+                    database.Update(occurrence);
+
+                    _logger.LogInformation(
+                        "Created one-time schedule {ScheduleId} from recurring schedule {RecurringScheduleId} occurrence {OccurrenceId}",
+                        oneTimeSchedule.Id, recurringSchedule.Id, occurrence.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing occurrence {OccurrenceId}", occurrence.Id);
+                }
+            }
+
+            // Clean up old processed occurrences (older than 30 days)
+            var cleanupDate = now.AddDays(-30);
+            var deletedCount = database.Execute(
+                @"DELETE FROM ocPowerSortScheduleOccurrence 
+                  WHERE IsProcessed = 1 
+                  AND OccurrenceEndDate < @0",
+                cleanupDate);
+
+            if (deletedCount > 0)
+            {
+                _logger.LogInformation("Cleaned up {Count} old processed occurrences", deletedCount);
+            }
+        }
+
+        private async Task RestoreDefaultSortOrderAsync(Guid parentId, Umbraco.Cms.Infrastructure.Persistence.IUmbracoDatabase database)
         {
             try
             {

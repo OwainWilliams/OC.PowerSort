@@ -83,3 +83,6 @@ export interface EnumPriorityListResponse {
   total: number;
   items: EnumPriorityResponse[];
 }
+
+// Re-export recurring schedule types
+export * from './recurring-schedule.types.js';
