@@ -557,7 +557,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
       justify-content: center;
       align-items: center;
       border-radius: 24px;
-      width: 45px;
+      width: 70px;
       height: 32px;
       font-size: 11px;
       font-weight: 600;

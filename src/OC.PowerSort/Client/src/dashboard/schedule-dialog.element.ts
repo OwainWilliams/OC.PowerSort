@@ -399,7 +399,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
 
       <div>
         <uui-label>Every</uui-label>
-      </div>
+     
       <uui-input
         type="number"
         min="1"
@@ -407,6 +407,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
         @input=${(e: Event) =>
           (this.interval = parseInt((e.target as HTMLInputElement).value))}
       ></uui-input>
+      </div>
       <span style="align-self: center;">
         ${this.recurrenceType === "Daily"
           ? "day(s)"
@@ -414,10 +415,10 @@ export default class ScheduleDialogElement extends UmbUiMixin(
             ? "week(s)"
             : "month(s)"}
       </span>
-
+       
       ${this.recurrenceType === "Weekly" ? this.renderWeeklyOptions() : ""}
       ${this.recurrenceType === "Monthly" ? this.renderMonthlyOptions() : ""}
-
+      
       <div>
         <uui-label>
           <uui-icon name="icon-calendar"></uui-icon>
@@ -906,7 +907,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
       justify-content: center;
       align-items: center;
       border-radius: 24px;
-      width: 45px;
+      width: 70px;
       height: 32px;
       font-size: 11px;
       font-weight: 600;

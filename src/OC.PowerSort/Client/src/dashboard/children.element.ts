@@ -703,11 +703,14 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
             <th colspan="3">Name</th>
             <th>Create</th>
             <th>View</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           ${this.nodeChildren.map((child, index) => {
             const schedule = this.getScheduleForChild(child.id);
+            const schedules = this.getCombinedSchedulesForChild(child.id);
+
             return html`
               <tr
                 draggable="true"
@@ -754,7 +757,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                     @click=${() => this.openCreateDialog(child)}
                   >
                     <uui-icon name="add"></uui-icon>
-
                     Add schedule
                   </uui-button>
                 </td>
@@ -768,64 +770,83 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                             this.toggleSchedules(e, index)}
                         >
                           <uui-icon name="see"></uui-icon>
-
                           View
-                          Schedule${this.getCombinedSchedulesForChild(child.id).length > 1 ? "s" : ""}
+                          Schedule${schedules.length > 1 ? "s" : ""}
                           <uui-symbol-expand></uui-symbol-expand>
                         </uui-button>
                       `
-                    : `No active schedules for ${child.name}`}
+                    : `No active schedules`}
                 </td>
+                <td></td>
               </tr>
-              <table>
-                <tr
-                  class="schedule-detail-row schedule-detail-head hidden"
-                  id="schedule-details-${index}"
-                >
-                  <th>Type</th>
-                  <th>Priority</th>
-                  <th>Edit</th>
-                  <th>Delete</th>
-                  <th>Sort Order</th>
-                  <th>Start time / Pattern</th>
-                  <th>End time / Next</th>
-                  <th>Creator</th>
-                </tr>
-                ${this.getCombinedSchedulesForChild(child.id).map((scheduleWrapper) => {
-                  const isRecurring = scheduleWrapper.type === 'recurring';
-                  const schedule = scheduleWrapper.data;
-                  const scheduleId = schedule.id;
 
-                  return html`
-                    <tr
-                      class="schedule-detail-row hidden"
-                      id="schedule-details-${index}"
-                    >
-                      <td>
-                        <uui-badge 
-                          color="${isRecurring ? 'positive' : 'default'}" 
-                          look="${isRecurring ? 'primary' : 'secondary'}"
-                        >
-                          ${isRecurring ? 'Recurring' : 'One-off'}
-                        </uui-badge>
-                      </td>
-                      <td>${schedule.priority}</td>
-                      <td>
+              <!-- Schedule details header row -->
+              <tr
+                class="schedule-detail-row schedule-detail-head hidden"
+                id="schedule-details-${index}"
+              >
+                <th></th>
+                <th>Type</th>
+                <th>Priority</th>
+                <th>Actions</th>
+                <th>Sort Order</th>
+                <th>Start / Pattern</th>
+                <th>End / Next</th>
+                <th>Creator</th>
+              </tr>
+
+              <!-- Schedule detail rows -->
+              ${schedules.map((scheduleWrapper) => {
+                const isRecurring = scheduleWrapper.type === 'recurring';
+                const schedule = scheduleWrapper.data;
+                const scheduleId = schedule.id;
+
+                // Pre-format dates for this schedule
+                const createdDate = this.formatDateTime(schedule.created);
+                const startOrPattern = isRecurring 
+                  ? (schedule as RecurringSchedule).pattern.description
+                  : this.formatDateTime((schedule as ScheduleResponse).startDateTime);
+                const endOrNext = isRecurring 
+                  ? ((schedule as RecurringSchedule).nextOccurrence 
+                      ? this.formatDateTime((schedule as RecurringSchedule).nextOccurrence!)
+                      : 'No upcoming')
+                  : this.formatDateTime((schedule as ScheduleResponse).endDateTime);
+
+                return html`
+                  <tr
+                    class="schedule-detail-row hidden"
+                    id="schedule-details-${index}"
+                  >
+                  <td></td>
+                    <td>
+                     <div style="position: relative; width: 50px;">
+                      <uui-badge
+                        color="warning" 
+                        look="primary"
+                      >
+                        ${isRecurring ? 'Recurring' : 'One-off'}
+                      </uui-badge>
+                      </div>
+                    </td>
+                    
+                    <td>${schedule.priority}</td>
+                    <td>
+                      <div class="schedule-actions">
                         <uui-button
                           look="outline"
                           label="Edit"
+                          compact
                           @click=${() => isRecurring 
                             ? this.openEditRecurringDialog(schedule as RecurringSchedule)
                             : this.openEditDialog(schedule as ScheduleResponse)}
                         >
                           <uui-icon name="icon-edit"></uui-icon>
                         </uui-button>
-                      </td>
-                      <td>
                         <uui-button
                           look="outline"
                           color="danger"
                           label="Delete"
+                          compact
                           popovertarget="schedule-delete-popover-${scheduleId}"
                         >
                           <uui-icon name="icon-trash"></uui-icon>
@@ -849,28 +870,15 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                             Yes
                           </uui-button>
                         </uui-popover-container>
-                      </td>
-                      <td>${schedule.targetPosition}</td>
-                      <td>
-                        ${isRecurring 
-                          ? (schedule as RecurringSchedule).pattern.description
-                          : this.formatDateTime((schedule as ScheduleResponse).startDateTime)}
-                      </td>
-                      <td>
-                        ${isRecurring 
-                          ? ((schedule as RecurringSchedule).nextOccurrence 
-                              ? this.formatDateTime((schedule as RecurringSchedule).nextOccurrence!)
-                              : 'No upcoming')
-                          : this.formatDateTime((schedule as ScheduleResponse).endDateTime)}
-                      </td>
-                      <td>
-                        Created by ${schedule.createdByName} on
-                        ${this.formatDateTime(schedule.created)}
-                      </td>
-                    </tr>
-                  `;
-                })}
-              </table>
+                      </div>
+                    </td>
+                    <td>${schedule.targetPosition}</td>
+                    <td>${startOrPattern}</td>
+                    <td>${endOrNext}</td>
+                    <td>Created by ${schedule.createdByName} on ${createdDate}</td>
+                  </tr>
+                `;
+              })}
             `;
           })}
         </tbody>
@@ -894,6 +902,12 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
         table-layout: fixed;
         width: 100%;
         border-collapse: collapse;
+      }
+
+      .schedule-actions {
+        display: flex;
+        gap: var(--uui-size-space-2);
+        align-items: center;
       }
 
       .schedule-detail-row.hidden {
