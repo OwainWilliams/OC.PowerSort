@@ -361,28 +361,29 @@ export default class ScheduleDialogElement extends UmbUiMixin(
 
   private renderRecurringOptions() {
     return html`
-      <div>
-        <uui-label>
+      <div class="form-group">
+        <label for="boostDuration">
           <uui-icon name="icon-refresh"></uui-icon>
           Boost Duration (hours)
-        </uui-label>
+        </label>
         <div class="description">How long each boost lasts</div>
+        <uui-input
+          type="number"
+          id="boostDuration"
+          min="1"
+          .value=${this.boostDurationHours.toString()}
+          @input=${(e: Event) =>
+            (this.boostDurationHours = parseInt(
+              (e.target as HTMLInputElement).value,
+            ))}
+        ></uui-input>
       </div>
-      <uui-input
-        type="number"
-        min="1"
-        .value=${this.boostDurationHours.toString()}
-        @input=${(e: Event) =>
-          (this.boostDurationHours = parseInt(
-            (e.target as HTMLInputElement).value,
-          ))}
-      ></uui-input>
 
-      <div>
-        <uui-label>
+      <div class="form-group">
+        <label for="recurrenceType">
           <uui-icon name="icon-repeat"></uui-icon>
           Recurrence Pattern
-        </uui-label>
+        </label>
         <div class="description">How often to repeat</div>
       </div>
       <select @change=${this.handleRecurrenceTypeChange}>
@@ -423,14 +424,15 @@ export default class ScheduleDialogElement extends UmbUiMixin(
         <uui-label>
           <uui-icon name="icon-calendar"></uui-icon>
           Start Date
-        </uui-label>
+        </label>
+        <uui-input
+          type="date"
+          id="startDate"
+          .value=${this.recurringStartDate}
+          @input=${(e: Event) =>
+            (this.recurringStartDate = (e.target as HTMLInputElement).value)}
+        ></uui-input>
       </div>
-      <uui-input
-        type="date"
-        .value=${this.recurringStartDate}
-        @input=${(e: Event) =>
-          (this.recurringStartDate = (e.target as HTMLInputElement).value)}
-      ></uui-input>
 
       ${this.renderEndOptions()}
     `;
@@ -438,8 +440,8 @@ export default class ScheduleDialogElement extends UmbUiMixin(
 
   private renderWeeklyOptions() {
     return html`
-      <div style="grid-column: 1 / -1;">
-        <uui-label>Days of Week</uui-label>
+      <div class="form-group">
+        <label>Days of Week</label>
         <div
           style="display: flex; gap: var(--uui-size-space-2); flex-wrap: wrap; margin-top: var(--uui-size-space-2);"
         >
@@ -448,7 +450,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
               <uui-button
                 look="${this.daysOfWeek.includes(day.value)
                   ? "primary"
-                  : "outline"}"
+                  : "secondary"}"
                 compact
                 @click=${() => this.handleDayOfWeekToggle(day.value)}
               >
@@ -463,13 +465,12 @@ export default class ScheduleDialogElement extends UmbUiMixin(
 
   private renderMonthlyOptions() {
     return html`
-      <div style="grid-column: 1 / -1;">
-        <uui-label>Monthly Pattern</uui-label>
+      <div class="form-group">
+        <label>Monthly Pattern</label>
         <select
           @change=${(e: Event) =>
             (this.monthlyPatternType = (e.target as HTMLSelectElement)
               .value as MonthlyPatternType)}
-          style="width: 100%; margin-top: var(--uui-size-space-2);"
         >
           <option
             value="DayOfMonth"
@@ -484,78 +485,79 @@ export default class ScheduleDialogElement extends UmbUiMixin(
             Day of Week
           </option>
         </select>
-
-        ${this.monthlyPatternType === "DayOfMonth"
-          ? html`
-              <div style="margin-top: var(--uui-size-space-3);">
-                <uui-label>Day of Month (1-31)</uui-label>
-                <uui-input
-                  type="number"
-                  min="1"
-                  max="31"
-                  .value=${this.dayOfMonth.toString()}
-                  @input=${(e: Event) =>
-                    (this.dayOfMonth = parseInt(
-                      (e.target as HTMLInputElement).value,
-                    ))}
-                ></uui-input>
-              </div>
-            `
-          : html`
-              <div style="margin-top: var(--uui-size-space-3);">
-                <uui-label>Week of Month</uui-label>
-                <select
-                  @change=${(e: Event) =>
-                    (this.weekOfMonth = parseInt(
-                      (e.target as HTMLSelectElement).value,
-                    ))}
-                  style="width: 100%;"
-                >
-                  ${RecurringScheduleHelpers.WEEK_OF_MONTH.map(
-                    (week) => html`
-                      <option
-                        value="${week.value}"
-                        ?selected=${this.weekOfMonth === week.value}
-                      >
-                        ${week.label}
-                      </option>
-                    `,
-                  )}
-                </select>
-
-                <uui-label style="margin-top: var(--uui-size-space-2);"
-                  >Day of Week</uui-label
-                >
-                <select
-                  @change=${(e: Event) =>
-                    (this.dayOfWeek = parseInt(
-                      (e.target as HTMLSelectElement).value,
-                    ))}
-                  style="width: 100%;"
-                >
-                  ${RecurringScheduleHelpers.DAYS_OF_WEEK.map(
-                    (day) => html`
-                      <option
-                        value="${day.value}"
-                        ?selected=${this.dayOfWeek === day.value}
-                      >
-                        ${day.label}
-                      </option>
-                    `,
-                  )}
-                </select>
-              </div>
-            `}
       </div>
+
+      ${this.monthlyPatternType === "DayOfMonth"
+        ? html`
+            <div class="form-group">
+              <label for="dayOfMonth">Day of Month (1-31)</label>
+              <uui-input
+                type="number"
+                id="dayOfMonth"
+                min="1"
+                max="31"
+                .value=${this.dayOfMonth.toString()}
+                @input=${(e: Event) =>
+                  (this.dayOfMonth = parseInt(
+                    (e.target as HTMLInputElement).value,
+                  ))}
+              ></uui-input>
+            </div>
+          `
+        : html`
+            <div class="form-group">
+              <label for="weekOfMonth">Week of Month</label>
+              <select
+                id="weekOfMonth"
+                @change=${(e: Event) =>
+                  (this.weekOfMonth = parseInt(
+                    (e.target as HTMLSelectElement).value,
+                  ))}
+              >
+                ${RecurringScheduleHelpers.WEEK_OF_MONTH.map(
+                  (week) => html`
+                    <option
+                      value="${week.value}"
+                      ?selected=${this.weekOfMonth === week.value}
+                    >
+                      ${week.label}
+                    </option>
+                  `,
+                )}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="dayOfWeekSelect">Day of Week</label>
+              <select
+                id="dayOfWeekSelect"
+                @change=${(e: Event) =>
+                  (this.dayOfWeek = parseInt(
+                    (e.target as HTMLSelectElement).value,
+                  ))}
+              >
+                ${RecurringScheduleHelpers.DAYS_OF_WEEK.map(
+                  (day) => html`
+                    <option
+                      value="${day.value}"
+                      ?selected=${this.dayOfWeek === day.value}
+                    >
+                      ${day.label}
+                    </option>
+                  `,
+                )}
+              </select>
+            </div>
+          `}
     `;
   }
 
   private renderEndOptions() {
     return html`
-      <div style="grid-column: 1 / -1; margin-top: var(--uui-size-space-3);">
-        <uui-label>End Options</uui-label>
-        <div style="display: flex; flex-direction: column; gap: var(--uui-size-space-2); margin-top: var(--uui-size-space-2);">
-          <label style="display: flex; align-items: center; gap: var(--uui-size-space-2);">
+      <div class="form-group">
+        <label>End Options</label>
+        <div class="end-options">
+          <div class="end-option">
             <input
               type="radio"
               name="endOption"
@@ -566,9 +568,9 @@ export default class ScheduleDialogElement extends UmbUiMixin(
               }}
             />
             <span>No end date (runs indefinitely)</span>
-          </label>
+          </div>
 
-          <label style="display: flex; align-items: center; gap: var(--uui-size-space-2);">
+          <div class="end-option">
             <input
               type="radio"
               name="endOption"
@@ -592,9 +594,9 @@ export default class ScheduleDialogElement extends UmbUiMixin(
                   ></uui-input>
                 `
               : ""}
-          </label>
+          </div>
 
-          <label style="display: flex; align-items: center; gap: var(--uui-size-space-2);">
+          <div class="end-option">
             <input
               type="radio"
               name="endOption"
@@ -620,7 +622,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
                   <span>occurrences</span>
                 `
               : ""}
-          </label>
+          </div>
         </div>
       </div>
     `;
@@ -629,42 +631,37 @@ export default class ScheduleDialogElement extends UmbUiMixin(
   static styles = css`
     :host {
       display: block;
+    }
+
+    .dialog-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
       background: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
       display: flex;
       align-items: center;
       justify-content: center;
-      --uui-input-height: var(--uui-size-11, 33px);
-      --uui-select-height: var(--uui-size-11, 33px);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      grid-column-gap: var(--uui-size-layout-2);
-      grid-row-gap: 36px;
+      z-index: 1000;
     }
 
     .dialog {
       background: var(--uui-color-surface);
       border-radius: var(--uui-border-radius);
-      padding: var(--uui-size-space-6);
-      max-width: 650px;
+      max-width: 700px;
       width: 90%;
-      max-height: 85vh;
+      max-height: 90vh;
       overflow-y: auto;
+      box-shadow: var(--uui-shadow-depth-5);
     }
 
     .dialog-header {
+      padding: var(--uui-size-space-5);
+      border-bottom: 1px solid var(--uui-color-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: var(--uui-size-14);
     }
 
     .dialog-header h3 {
@@ -672,173 +669,87 @@ export default class ScheduleDialogElement extends UmbUiMixin(
       font-size: var(--uui-type-h4-size);
     }
 
-    .form-field {
-      margin-bottom: var(--uui-size-space-6);
+    .dialog-body {
+      padding: var(--uui-size-space-5);
     }
 
-    .form-field label {
+    .form-group {
+      margin-bottom: var(--uui-size-space-4);
+    }
+
+    .form-group label {
       display: block;
-      font-weight: 500;
       margin-bottom: var(--uui-size-space-2);
+      font-weight: 600;
     }
 
-    .form-field input,
-    .form-field uui-input,
-    .form-field select {
+    .form-group uui-input,
+    .form-group select {
       width: 100%;
     }
 
-    .form-field select {
-      padding: var(--uui-size-space-2) var(--uui-size-space-3);
+    .form-group select {
+      padding: var(--uui-size-space-2);
       border: 1px solid var(--uui-color-border);
       border-radius: var(--uui-border-radius);
       background: var(--uui-color-surface);
       color: var(--uui-color-text);
       font-family: inherit;
       font-size: inherit;
-    }
-
-    .form-field select:focus {
-      outline: none;
-      border-color: var(--uui-color-focus);
-      box-shadow: 0 0 0 2px var(--uui-color-focus-outline);
     }
 
     .description {
       font-size: var(--uui-type-small-size);
       color: var(--uui-color-text-alt);
       margin-top: var(--uui-size-space-1);
-      padding-left: 20px;
+      margin-bottom: var(--uui-size-space-2);
     }
 
-    .dialog-actions {
+    .dialog-footer {
+      padding: var(--uui-size-space-5);
+      border-top: 1px solid var(--uui-color-border);
       display: flex;
-      gap: var(--uui-size-space-3);
       justify-content: flex-end;
-      margin-top: var(--uui-size-space-5);
+      gap: var(--uui-size-space-3);
     }
 
     .error-message {
       background: var(--uui-color-danger-emphasis);
-      color: var(--uui-color-danger);
+      color: var(--uui-color-danger-contrast);
       padding: var(--uui-size-space-3);
       border-radius: var(--uui-border-radius);
-      margin-bottom: var(--uui-size-space-4);
+      margin-bottom: var(--uui-size-space-3);
       display: flex;
       align-items: center;
       gap: var(--uui-size-space-2);
     }
 
-    .date-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--uui-size-space-3);
-    }
-
-    .selected-content {
-      padding: var(--uui-size-space-3);
-      background: var(--uui-color-positive-emphasis);
-      border-radius: var(--uui-border-radius);
+    .end-options {
       margin-top: var(--uui-size-space-2);
+    }
+
+    .end-option {
       display: flex;
       align-items: center;
       gap: var(--uui-size-space-2);
-    }
-
-    .loading-content,
-    .no-content {
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-2);
-      padding: var(--uui-size-space-3);
-      border: 1px solid var(--uui-color-border);
-      border-radius: var(--uui-border-radius);
-      background: var(--uui-color-surface-emphasis);
-    }
-
-    .no-content {
-      color: var(--uui-color-warning);
-      background: var(--uui-color-warning-emphasis);
-    }
-
-    .content-selector-options {
-      display: flex;
-      flex-direction: column;
-      gap: var(--uui-size-space-4);
-    }
-
-    .selector-option {
-      border: 1px solid var(--uui-color-border);
-      border-radius: var(--uui-border-radius);
-      padding: var(--uui-size-space-3);
-      background: var(--uui-color-surface-emphasis);
-    }
-
-    .selector-label {
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-2);
-      font-weight: 600;
       margin-bottom: var(--uui-size-space-2);
-      color: var(--uui-color-text);
     }
 
-    .children-dropdown {
-      width: 100%;
-      padding: var(--uui-size-space-2) var(--uui-size-space-3);
-      border: 1px solid var(--uui-color-border);
-      border-radius: var(--uui-border-radius);
-      background: var(--uui-color-surface);
-      color: var(--uui-color-text);
-      font-family: inherit;
-      font-size: inherit;
-    }
-
-    .children-dropdown:focus {
-      outline: none;
-      border-color: var(--uui-color-focus);
-      box-shadow: 0 0 0 2px var(--uui-color-focus-outline);
-    }
-
-    .picker-note {
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-1);
-      font-size: var(--uui-type-small-size);
-      color: var(--uui-color-text-alt);
-      margin-top: var(--uui-size-space-1);
-    }
-
-    .loading {
-      opacity: 0.6;
-      pointer-events: none;
-    }
-
-    .priority-loading {
+    .priority-loading,
+    .no-priority-options {
       display: flex;
       align-items: center;
       gap: var(--uui-size-space-2);
-      padding: var(--uui-size-space-2);
-      color: var(--uui-color-text-alt);
+      padding: var(--uui-size-space-3);
+      border: 1px solid var(--uui-color-border);
+      border-radius: var(--uui-border-radius);
+      background: var(--uui-color-surface-emphasis);
     }
 
     .no-priority-options {
-      padding: var(--uui-size-space-3);
-      background: var(--uui-color-warning-emphasis);
       color: var(--uui-color-text-alt);
-      border-radius: var(--uui-border-radius);
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-2);
+      background: var(--uui-color-warning-emphasis);
     }
-
-    .priority-info {
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-2);
-      margin-top: var(--uui-size-space-2);
-      padding: var(--uui-size-space-2);
-      background: var(--uui-color-surface-alt);
       border-radius: var(--uui-border-radius);
       font-size: var(--uui-type-small-size);
       color: var(--uui-color-text-alt);
@@ -939,228 +850,213 @@ export default class ScheduleDialogElement extends UmbUiMixin(
       border-bottom: 1px solid var(--uui-color-border);
       display: flex;
       justify-content: center;
+      background: var(--uui-color-surface-alt);
     }
 
     .schedule-type-toggle uui-button-group {
       width: 100%;
       max-width: 400px;
     }
-
-    select {
-      padding: var(--uui-size-space-2);
-      border: 1px solid var(--uui-color-border);
-      border-radius: var(--uui-border-radius);
-      background: var(--uui-color-surface);
-      color: var(--uui-color-text);
-      font-family: inherit;
-      font-size: inherit;
-      width: 100%;
-    }
   `;
 
   render() {
     return html`
-      <div class="dialog" @click=${(e: Event) => e.stopPropagation()}>
-        <div class="dialog-header">
-          <h3>
-            <uui-icon name="icon-calendar"></uui-icon>
-            Edit Schedule for ${this.selectedContentName}
-          </h3>
-          <uui-button
-            look="outline"
-            label="Close"
-            compact
-            @click=${this.handleCancel}
-          >
-            <uui-icon name="icon-delete"></uui-icon>
-          </uui-button>
-        </div>
-
-        ${
-          this.error
-            ? html`
-                <div class="error-message">
-                  <uui-icon name="icon-alert"></uui-icon>
-                  ${this.error}
-                </div>
-              `
-            : ""
-        }
-
-        ${!this.schedule
-          ? html`
-              <div class="schedule-type-toggle">
-                <uui-button-group>
-                  <uui-button
-                    look="${this.scheduleType === "one-time"
-                      ? "primary"
-                      : "outline"}"
-                    label="One-time Schedule"
-                    @click=${() => (this.scheduleType = "one-time")}
-                  >
-                    <uui-icon name="icon-calendar"></uui-icon>
-                    One-time
-                  </uui-button>
-                  <uui-button
-                    look="${this.scheduleType === "recurring"
-                      ? "primary"
-                      : "outline"}"
-                    label="Recurring Schedule"
-                    @click=${() => (this.scheduleType = "recurring")}
-                  >
-                    <uui-icon name="icon-refresh"></uui-icon>
-                    Recurring
-                  </uui-button>
-                </uui-button-group>
-              </div>
-            `
-          : ""}
-
-        <div class="grid">
-          <div class="adsf">
-            <uui-label>
-              <uui-icon name="icon-navigation-up"></uui-icon>
-              Target Position
-            </uui-label>
-            <div class="description">
-              Position to boost the content to (0 = first)
-            </div>
-            </div>
-            <uui-input
-              type="number"
-              label="Position to boost to"
-              .value=${this.targetPosition.toString()}
-              @change=${(e: any) =>
-                (this.targetPosition = parseInt(e.target.value) || 0)}
-              min="0"
+      <div class="dialog-overlay" @click=${this.handleCancel}>
+        <div class="dialog" @click=${(e: Event) => e.stopPropagation()}>
+          <div class="dialog-header">
+            <h3>
+              <uui-icon name="icon-calendar"></uui-icon>
+              ${this.schedule ? "Edit" : "Create"} Schedule for ${this.selectedContentName}
+            </h3>
+            <uui-button
+              look="outline"
+              label="Close"
+              compact
+              @click=${this.handleCancel}
             >
-            </uui-input>
-${this.scheduleType === "one-time"
-  ? html`
-<div>
-                <uui-label>
-                  <uui-icon name="icon-calendar-alt"></uui-icon>
-                  Start Date & Time
-                </uui-label>
-                                <div class="description">When the schedule becomes active</div>
-
-                </div>
-                <uui-input
-                  pristine=""
-                  label="Label"
-                  placeholder="Placeholder"
-                  type="datetime-local"
-                  .value=${this.startDateTime}
-                  @change=${(e: any) => (this.startDateTime = e.target.value)}
-                ></uui-input>
-                <div>
-                <uui-label>
-                  <uui-icon name="icon-calendar-alt"></uui-icon>
-                  End Date & Time
-                </uui-label>
-                <div class="description">When the schedule expires</div>
-                  </div>
-
-                <uui-input
-                  pristine=""
-                  label="Label"
-                  placeholder="Placeholder"
-                  type="datetime-local"
-                  .value=${this.endDateTime}
-                  @change=${(e: any) => (this.endDateTime = e.target.value)}
-                ></uui-input>
-              `
-  : this.renderRecurringOptions()}
-              <div>
-              <uui-label>
-                <uui-icon name="icon-settings"></uui-icon>
-                Priority
-              </uui-label>
-                            <div class="description">
-                Choose the priority level for this schedule
-              </div>
-              </div>
-              ${
-                this.loadingPriorities
-                  ? html`
-                      <div class="priority-loading">
-                        <uui-loader></uui-loader>
-                        Loading priority options...
-                      </div>
-                    `
-                  : this.noPriorityOptionsFound
-                    ? html`
-                        <div class="no-priority-options">
-                          <uui-icon name="icon-alert"></uui-icon>
-                          No priority options have been configured yet
-                        </div>
-                      `
-                    : html`
-                        <div class="priority-radio-group">
-                          ${this.priorityOptions.map(
-                            (option) => html`
-                              <uui-label
-                                class="priority-radio-option ${
-                                  this.priority === option.value
-                                    ? "selected"
-                                    : ""
-                                }"
-                                @click=${(e: Event) => {
-                                  e.preventDefault();
-                                  this.priority = option.value;
-                                }}
-                              >
-                                <input
-                                  type="radio"
-                                  name="priority"
-                                  value=${option.value}"
-                                  .checked=${this.priority === option.value}
-                                />
-                                <div class="priority-radio-content">
-                                  <div class="priority-radio-details">
-                                    <div class="priority-radio-label">
-                                      ${option.label}
-                                    </div>
-                                    <div class="priority-radio-value">
-                                      Priority Weight: ${option.value}
-                                    </div>
-                                  </div>
-                                  <div
-                                    class="priority-level-badge priority-${this.getPriorityLevel(
-                                      option.value,
-                                    )}"
-                                  >
-                                    ${this.getPriorityLevelText(option.value)}
-                                  </div>
-                                </div>
-                              </uui-label>
-                            `,
-                          )}
-                        </div>
-                      `
-              }
+              <uui-icon name="icon-delete"></uui-icon>
+            </uui-button>
           </div>
 
+          ${!this.schedule
+            ? html`
+                <div class="schedule-type-toggle">
+                  <uui-button-group>
+                    <uui-button
+                      look="${this.scheduleType === "one-time"
+                        ? "primary"
+                        : "outline"}"
+                      label="One-time Schedule"
+                      @click=${() => (this.scheduleType = "one-time")}
+                    >
+                      <uui-icon name="icon-calendar"></uui-icon>
+                      One-time
+                    </uui-button>
+                    <uui-button
+                      look="${this.scheduleType === "recurring"
+                        ? "primary"
+                        : "outline"}"
+                      label="Recurring Schedule"
+                      @click=${() => (this.scheduleType = "recurring")}
+                    >
+                      <uui-icon name="icon-refresh"></uui-icon>
+                      Recurring
+                    </uui-button>
+                  </uui-button-group>
+                </div>
+              `
+            : ""}
 
-            <div class="dialog-actions">
-              <uui-button
-                look="outline"
-                label="Cancel"
-                @click=${this.handleCancel}
+          <div class="dialog-body">
+            ${this.error
+              ? html`<div class="error-message">${this.error}</div>`
+              : ""}
+
+            <div class="form-group">
+              <label for="targetPosition">
+                <uui-icon name="icon-navigation-up"></uui-icon>
+                Target Position
+              </label>
+              <div class="description">
+                Position to boost the content to (0 = first)
+              </div>
+              <uui-input
+                type="number"
+                id="targetPosition"
+                .value=${this.targetPosition.toString()}
+                @input=${(e: Event) =>
+                  (this.targetPosition = parseInt(
+                    (e.target as HTMLInputElement).value,
+                  ) || 0)}
+                min="0"
               >
-                Cancel
-              </uui-button>
-              <uui-button
-                look="primary"
-                color="positive"
-                label="Save"
-                @click=${this.handleSave}
-                ?disabled=${this.loadingPriorities}
-              >
-                <uui-icon name="icon-check"></uui-icon>
-                ${this.schedule ? "Update" : "Create"} Schedule
-              </uui-button>
+              </uui-input>
             </div>
+
+            ${this.scheduleType === "one-time"
+              ? html`
+                  <div class="form-group">
+                    <label for="startDateTime">
+                      <uui-icon name="icon-calendar-alt"></uui-icon>
+                      Start Date & Time
+                    </label>
+                    <div class="description">When the schedule becomes active</div>
+                    <uui-input
+                      type="datetime-local"
+                      id="startDateTime"
+                      .value=${this.startDateTime}
+                      @input=${(e: Event) =>
+                        (this.startDateTime = (
+                          e.target as HTMLInputElement
+                        ).value)}
+                    ></uui-input>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="endDateTime">
+                      <uui-icon name="icon-calendar-alt"></uui-icon>
+                      End Date & Time
+                    </label>
+                    <div class="description">When the schedule expires</div>
+                    <uui-input
+                      type="datetime-local"
+                      id="endDateTime"
+                      .value=${this.endDateTime}
+                      @input=${(e: Event) =>
+                        (this.endDateTime = (
+                          e.target as HTMLInputElement
+                        ).value)}
+                    ></uui-input>
+                  </div>
+                `
+              : this.renderRecurringOptions()}
+
+            <div class="form-group">
+              <label for="priority">
+                <uui-icon name="icon-settings"></uui-icon>
+                Priority
+              </label>
+              <div class="description">
+                Choose the priority level for this schedule
+              </div>
+              ${this.loadingPriorities
+                ? html`
+                    <div class="priority-loading">
+                      <uui-loader></uui-loader>
+                      Loading priority options...
+                    </div>
+                  `
+                : this.noPriorityOptionsFound
+                  ? html`
+                      <div class="no-priority-options">
+                        <uui-icon name="icon-alert"></uui-icon>
+                        No priority options have been configured yet
+                      </div>
+                    `
+                  : html`
+                      <div class="priority-radio-group">
+                        ${this.priorityOptions.map(
+                          (option) => html`
+                            <uui-label
+                              class="priority-radio-option ${this.priority ===
+                              option.value
+                                ? "selected"
+                                : ""}"
+                              @click=${(e: Event) => {
+                                e.preventDefault();
+                                this.priority = option.value;
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="priority"
+                                value="${option.value}"
+                                .checked=${this.priority === option.value}
+                              />
+                              <div class="priority-radio-content">
+                                <div class="priority-radio-details">
+                                  <div class="priority-radio-label">
+                                    ${option.label}
+                                  </div>
+                                  <div class="priority-radio-value">
+                                    Priority Weight: ${option.value}
+                                  </div>
+                                </div>
+                                <div
+                                  class="priority-level-badge priority-${this.getPriorityLevel(
+                                    option.value,
+                                  )}"
+                                >
+                                  ${this.getPriorityLevelText(option.value)}
+                                </div>
+                              </div>
+                            </uui-label>
+                          `,
+                        )}
+                      </div>
+                    `}
+            </div>
+          </div>
+
+          <div class="dialog-footer">
+            <uui-button
+              look="secondary"
+              label="Cancel"
+              @click=${this.handleCancel}
+            >
+              Cancel
+            </uui-button>
+            <uui-button
+              look="primary"
+              color="positive"
+              label="Save"
+              @click=${this.handleSave}
+              ?disabled=${this.loadingPriorities}
+            >
+              <uui-icon name="icon-check"></uui-icon>
+              ${this.schedule ? "Update" : "Create"} Schedule
+            </uui-button>
+          </div>
         </div>
       </div>
     `;
