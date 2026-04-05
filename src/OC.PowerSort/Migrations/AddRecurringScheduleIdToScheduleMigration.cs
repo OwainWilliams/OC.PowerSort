@@ -3,13 +3,13 @@ using Umbraco.Cms.Infrastructure.Migrations;
 
 namespace OC.PowerSort.Migrations
 {
-    public class AddRecurringScheduleIdToScheduleMigration : AsyncMigrationBase
+    public class AddRecurringScheduleIdToScheduleMigration : MigrationBase
     {
         public AddRecurringScheduleIdToScheduleMigration(IMigrationContext context) : base(context)
         {
         }
 
-        protected override async Task MigrateAsync()
+        protected override void Migrate()
         {
             var tableName = "ocPowerSortSchedule";
             var columnName = "RecurringScheduleId";

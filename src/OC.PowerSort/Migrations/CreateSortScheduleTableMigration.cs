@@ -3,13 +3,13 @@ using Umbraco.Cms.Infrastructure.Migrations;
 
 namespace OC.PowerSort.Migrations
 {
-    public class CreateSortScheduleTableMigration : AsyncMigrationBase
+    public class CreateSortScheduleTableMigration : MigrationBase
     {
         public CreateSortScheduleTableMigration(IMigrationContext context) : base(context)
         {
         }
 
-        protected override async Task MigrateAsync()
+        protected override void Migrate()
         {
             var tableName = "ocPowerSortSchedule";
             Logger.LogInformation("OC.PowerSort: Checking if table {TableName} exists", tableName);

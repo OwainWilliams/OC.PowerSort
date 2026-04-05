@@ -3,13 +3,13 @@ using Umbraco.Cms.Infrastructure.Migrations;
 
 namespace OC.PowerSort.Migrations
 {
-    public class CreateEnumPriorityTableMigration : AsyncMigrationBase
+    public class CreateEnumPriorityTableMigration : MigrationBase
     {
         public CreateEnumPriorityTableMigration(IMigrationContext context) : base(context)
         {
         }
 
-        protected override async Task MigrateAsync()
+        protected override void Migrate()
         {
             var tableName = "ocPowerSortEnumPriority";
             Logger.LogInformation("OC.PowerSort: Checking if table {TableName} exists", tableName);

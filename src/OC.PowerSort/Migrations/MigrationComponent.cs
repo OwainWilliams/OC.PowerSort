@@ -10,7 +10,7 @@ using Umbraco.Cms.Infrastructure.Migrations.Upgrade;
 
 namespace OC.PowerSort.Migrations
 {
-    public class MigrationComponent : INotificationAsyncHandler<UmbracoApplicationStartingNotification>
+    public class MigrationComponent : INotificationHandler<UmbracoApplicationStartedNotification>
     {
         private readonly IMigrationPlanExecutor _migrationPlanExecutor;
         private readonly ICoreScopeProvider _coreScopeProvider;
@@ -32,7 +32,7 @@ namespace OC.PowerSort.Migrations
             _logger = logger;
         }
 
-        public async Task HandleAsync(UmbracoApplicationStartingNotification notification, CancellationToken cancellationToken)
+        public void Handle(UmbracoApplicationStartedNotification notification)
         {
             if (_runtimeState.Level < RuntimeLevel.Run)
             {
@@ -57,7 +57,7 @@ namespace OC.PowerSort.Migrations
 
                 var upgrader = new Upgrader(plan);
 
-                await upgrader.ExecuteAsync(_migrationPlanExecutor, _coreScopeProvider, _keyValueService);
+                upgrader.Execute(_migrationPlanExecutor, _coreScopeProvider, _keyValueService);
 
                 _logger.LogInformation("OC.PowerSort: Migration execution completed successfully");
             }
@@ -70,9 +70,7 @@ namespace OC.PowerSort.Migrations
                 {
                     _logger.LogError(ex.InnerException, "OC.PowerSort: Inner exception - {InnerMessage}", ex.InnerException.Message);
                 }
-
             }
         }
     }
-
 }
