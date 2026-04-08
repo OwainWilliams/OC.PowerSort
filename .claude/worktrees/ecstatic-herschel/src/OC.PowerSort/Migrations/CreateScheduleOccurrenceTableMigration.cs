@@ -34,8 +34,9 @@ namespace OC.PowerSort.Migrations
 
                 Logger.LogInformation("OC.PowerSort: Table {TableName} created", tableName);
 
-                // SQLite does not reliably support FK constraints via FluentMigrator — skip entirely.
-                // SQLite also doesn't enforce FKs by default, so this is non-critical.
+                // Skip FK creation on SQLite — FluentMigrator generates unsupported CONSTRAINT syntax,
+                // which leaves an incomplete expression in the pipeline even when caught in try-catch.
+                // SQLite does not enforce FKs by default so this is non-critical.
                 if (!isSqlite && TableExists("ocPowerSortRecurringSchedule"))
                 {
                     try
@@ -43,6 +44,7 @@ namespace OC.PowerSort.Migrations
                         Create.ForeignKey("FK_ocPowerSortScheduleOccurrence_RecurringSchedule")
                             .FromTable(tableName).ForeignColumn("RecurringScheduleId")
                             .ToTable("ocPowerSortRecurringSchedule").PrimaryColumn("Id")
+                            .OnDelete(System.Data.Rule.Cascade)
                             .Do();
 
                         Logger.LogInformation("OC.PowerSort: Foreign key created successfully");

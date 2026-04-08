@@ -13,7 +13,6 @@ namespace OC.PowerSort.Migrations
         {
             var tableName = "ocPowerSortSchedule";
             var columnName = "RecurringScheduleId";
-            var foreignKeyName = "FK_ocPowerSortSchedule_RecurringSchedule";
 
             // DatabaseType is a direct property on AsyncMigrationBase (NPoco.DatabaseType).
             // Context.Database.DatabaseType is a different path and returns an unexpected type on Umbraco 17.
@@ -55,26 +54,14 @@ namespace OC.PowerSort.Migrations
             {
                 try
                 {
-                    if (!ForeignKeyExists(tableName, foreignKeyName))
-                    {
-                        Logger.LogInformation("OC.PowerSort: Creating foreign key {ForeignKeyName}", foreignKeyName);
+                    // Use raw SQL for SQLite compatibility - the migration builder's Alter.Table doesn't support SQLite
+                    Execute.Sql($"ALTER TABLE {tableName} ADD COLUMN {columnName} TEXT;");
 
-                        Create.ForeignKey(foreignKeyName)
-                            .FromTable(tableName).ForeignColumn(columnName)
-                            .ToTable("ocPowerSortRecurringSchedule").PrimaryColumn("Id")
-                            .OnDelete(System.Data.Rule.SetNull)
-                            .Do();
-
-                        Logger.LogInformation("OC.PowerSort: Foreign key {ForeignKeyName} created successfully", foreignKeyName);
-                    }
-                    else
-                    {
-                        Logger.LogInformation("OC.PowerSort: Foreign key {ForeignKeyName} already exists, skipping", foreignKeyName);
-                    }
+                    Logger.LogInformation("OC.PowerSort: Column {ColumnName} added successfully", columnName);
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogWarning(ex, "OC.PowerSort: Could not create foreign key {ForeignKeyName}, continuing anyway. This is non-critical.", foreignKeyName);
+                    Logger.LogWarning(ex, "OC.PowerSort: Could not add column {ColumnName}, continuing anyway", columnName);
                 }
             }
 

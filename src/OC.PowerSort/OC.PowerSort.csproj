@@ -26,7 +26,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>ocPowerSortLogo.png</PackageIcon>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>17.1.0</Version>
+    <Version>17.2.0-alpha001</Version>
     <PackageReleaseNotes>Initial release with content sorting and scheduling capabilities.</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <IncludeSymbols>true</IncludeSymbols>
