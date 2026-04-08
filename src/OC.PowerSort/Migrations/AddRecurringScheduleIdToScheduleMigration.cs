@@ -15,20 +15,22 @@ namespace OC.PowerSort.Migrations
             var columnName = "RecurringScheduleId";
             var foreignKeyName = "FK_ocPowerSortSchedule_RecurringSchedule";
 
-            Logger.LogInformation("OC.PowerSort: Checking if column {ColumnName} exists in {TableName}", columnName, tableName);
+            // Detect SQLite upfront — FluentMigrator's SQLite adapter throws NotSupportedException
+            // from inside builder .Do() calls (before the expression is marked complete), which
+            // causes IncompleteMigrationExpressionException even when wrapped in try-catch.
+            var isSqlite = Context.Database.DatabaseType.GetType().Name
+                .Contains("SQLite", StringComparison.OrdinalIgnoreCase);
+
+            Logger.LogInformation("OC.PowerSort: Checking if column {ColumnName} exists in {TableName} (SQLite={IsSqlite})", columnName, tableName, isSqlite);
 
             if (!ColumnExists(tableName, columnName))
             {
                 Logger.LogInformation("OC.PowerSort: Adding column {ColumnName} to {TableName}", columnName, tableName);
 
-                var isSqlite = Context.Database.DatabaseType.GetType().Name
-                    .Contains("SQLite", StringComparison.OrdinalIgnoreCase);
-
                 if (isSqlite)
                 {
-                    // FluentMigrator's SQLite adapter does not support Alter.Table — it registers
-                    // a pending expression before throwing, causing IncompleteMigrationExpressionException.
-                    // Use the database connection directly so we bypass the expression pipeline entirely.
+                    // Alter.Table() is not supported on SQLite via FluentMigrator.
+                    // Use the database connection directly to bypass the expression pipeline.
                     Context.Database.Execute($"ALTER TABLE {tableName} ADD COLUMN {columnName} TEXT NULL");
                 }
                 else
@@ -42,14 +44,13 @@ namespace OC.PowerSort.Migrations
             }
             else
             {
-                Logger.LogInformation("OC.PowerSort: Column {ColumnName} already exists in {TableName}, skipping column creation", columnName, tableName);
+                Logger.LogInformation("OC.PowerSort: Column {ColumnName} already exists in {TableName}, skipping", columnName, tableName);
             }
 
-            // Only create foreign key if target table exists and FK doesn't already exist
-            if (TableExists("ocPowerSortRecurringSchedule"))
+            // SQLite does not reliably support FK constraints via FluentMigrator — skip entirely.
+            // SQLite also doesn't enforce FKs by default, so this is non-critical.
+            if (!isSqlite && TableExists("ocPowerSortRecurringSchedule"))
             {
-                // Check if foreign key already exists by attempting to query the constraint
-                // SQLite doesn't have a direct way to check FK existence, so we wrap in try-catch
                 try
                 {
                     if (!ForeignKeyExists(tableName, foreignKeyName))
@@ -73,10 +74,6 @@ namespace OC.PowerSort.Migrations
                 {
                     Logger.LogWarning(ex, "OC.PowerSort: Could not create foreign key {ForeignKeyName}, continuing anyway. This is non-critical.", foreignKeyName);
                 }
-            }
-            else
-            {
-                Logger.LogWarning("OC.PowerSort: Target table ocPowerSortRecurringSchedule does not exist yet, skipping foreign key creation. This should be created by a previous migration.");
             }
 
             Logger.LogInformation("OC.PowerSort: Migration completed for {TableName}.{ColumnName}", tableName, columnName);

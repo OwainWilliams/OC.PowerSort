@@ -27,6 +27,7 @@ namespace OC.PowerSort.Migrations
                     .WithColumn("Priority").AsInt32().NotNullable().WithDefaultValue(0)
                     .WithColumn("Created").AsDateTime().NotNullable()
                     .WithColumn("CreatedBy").AsInt32().NotNullable()
+                    .WithColumn("RecurringScheduleId").AsGuid().Nullable()
                     .Do();
                 Logger.LogInformation("OC.PowerSort: Table {TableName} created successfully", tableName);
 

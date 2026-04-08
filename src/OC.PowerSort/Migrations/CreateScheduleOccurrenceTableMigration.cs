@@ -14,10 +14,16 @@ namespace OC.PowerSort.Migrations
             var tableName = "ocPowerSortScheduleOccurrence";
             Logger.LogInformation("OC.PowerSort: Checking if table {TableName} exists", tableName);
 
+            // Detect SQLite upfront — FluentMigrator's SQLite adapter throws NotSupportedException
+            // from inside builder .Do() calls before the expression is marked complete, causing
+            // IncompleteMigrationExpressionException even when the .Do() call is wrapped in try-catch.
+            var isSqlite = Context.Database.DatabaseType.GetType().Name
+                .Contains("SQLite", StringComparison.OrdinalIgnoreCase);
+
             if (!TableExists(tableName))
             {
                 Logger.LogInformation("OC.PowerSort: Creating table {TableName}", tableName);
-                
+
                 Create.Table(tableName)
                     .WithColumn("Id").AsGuid().NotNullable().PrimaryKey("PK_ocPowerSortScheduleOccurrence")
                     .WithColumn("RecurringScheduleId").AsGuid().NotNullable()
@@ -27,10 +33,11 @@ namespace OC.PowerSort.Migrations
                     .WithColumn("IsCancelled").AsBoolean().NotNullable().WithDefaultValue(0)
                     .Do();
 
-                Logger.LogInformation("OC.PowerSort: Table {TableName} created, now creating foreign key", tableName);
+                Logger.LogInformation("OC.PowerSort: Table {TableName} created", tableName);
 
-                // Create foreign key relationship - only if the target table exists
-                if (TableExists("ocPowerSortRecurringSchedule"))
+                // SQLite does not reliably support FK constraints via FluentMigrator — skip entirely.
+                // SQLite also doesn't enforce FKs by default, so this is non-critical.
+                if (!isSqlite && TableExists("ocPowerSortRecurringSchedule"))
                 {
                     try
                     {
@@ -46,10 +53,6 @@ namespace OC.PowerSort.Migrations
                     {
                         Logger.LogWarning(ex, "OC.PowerSort: Could not create foreign key, continuing anyway - {Message}", ex.Message);
                     }
-                }
-                else
-                {
-                    Logger.LogWarning("OC.PowerSort: Target table ocPowerSortRecurringSchedule does not exist, skipping foreign key creation");
                 }
 
                 // Create index for performance
