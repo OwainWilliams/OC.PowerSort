@@ -28,8 +28,8 @@ namespace OC.PowerSort.Migrations
                 {
                     // FluentMigrator's SQLite adapter does not support Alter.Table — it registers
                     // a pending expression before throwing, causing IncompleteMigrationExpressionException.
-                    // SQLite natively supports ADD COLUMN via raw SQL, so use that instead.
-                    Execute.Sql($"ALTER TABLE {tableName} ADD COLUMN {columnName} TEXT NULL");
+                    // Use the database connection directly so we bypass the expression pipeline entirely.
+                    Context.Database.Execute($"ALTER TABLE {tableName} ADD COLUMN {columnName} TEXT NULL");
                 }
                 else
                 {
