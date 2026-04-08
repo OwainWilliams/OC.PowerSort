@@ -14,11 +14,10 @@ namespace OC.PowerSort.Migrations
             var tableName = "ocPowerSortScheduleOccurrence";
             Logger.LogInformation("OC.PowerSort: Checking if table {TableName} exists", tableName);
 
-            // Detect SQLite upfront — FluentMigrator's SQLite adapter throws NotSupportedException
-            // from inside builder .Do() calls before the expression is marked complete, causing
-            // IncompleteMigrationExpressionException even when the .Do() call is wrapped in try-catch.
-            var isSqlite = Context.Database.DatabaseType.GetType().Name
-                .Contains("SQLite", StringComparison.OrdinalIgnoreCase);
+            // DatabaseType is a direct property on AsyncMigrationBase (NPoco.DatabaseType).
+            // FluentMigrator's SQLite adapter generates ALTER TABLE ... ADD CONSTRAINT syntax for FKs,
+            // which SQLite does not support and causes IncompleteMigrationExpressionException.
+            var isSqlite = DatabaseType.GetType().Name.Contains("SQLite", StringComparison.OrdinalIgnoreCase);
 
             if (!TableExists(tableName))
             {
