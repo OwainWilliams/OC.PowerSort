@@ -21,9 +21,20 @@ namespace OC.PowerSort.Migrations
             {
                 Logger.LogInformation("OC.PowerSort: Adding column {ColumnName} to {TableName}", columnName, tableName);
 
-                Alter.Table(tableName)
-                    .AddColumn(columnName).AsGuid().Nullable()
-                    .Do();
+                try
+                {
+                    // SQL Server supports this via FluentMigrator
+                    Alter.Table(tableName)
+                        .AddColumn(columnName).AsGuid().Nullable()
+                        .Do();
+                }
+                catch (NotSupportedException)
+                {
+                    // SQLite's FluentMigrator adapter throws NotSupportedException for ALTER TABLE,
+                    // but SQLite itself supports ADD COLUMN via raw SQL
+                    Logger.LogInformation("OC.PowerSort: FluentMigrator ALTER TABLE not supported (SQLite), falling back to raw SQL");
+                    Execute.Sql($"ALTER TABLE {tableName} ADD COLUMN {columnName} TEXT NULL");
+                }
 
                 Logger.LogInformation("OC.PowerSort: Column {ColumnName} added successfully", columnName);
             }
