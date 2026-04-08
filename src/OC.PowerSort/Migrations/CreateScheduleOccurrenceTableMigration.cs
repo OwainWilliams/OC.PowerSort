@@ -23,8 +23,8 @@ namespace OC.PowerSort.Migrations
                     .WithColumn("RecurringScheduleId").AsGuid().NotNullable()
                     .WithColumn("OccurrenceStartDate").AsDateTime().NotNullable()
                     .WithColumn("OccurrenceEndDate").AsDateTime().NotNullable()
-                    .WithColumn("IsProcessed").AsBoolean().NotNullable().WithDefaultValue(false)
-                    .WithColumn("IsCancelled").AsBoolean().NotNullable().WithDefaultValue(false)
+                    .WithColumn("IsProcessed").AsBoolean().NotNullable().WithDefaultValue(0)
+                    .WithColumn("IsCancelled").AsBoolean().NotNullable().WithDefaultValue(0)
                     .Do();
 
                 Logger.LogInformation("OC.PowerSort: Table {TableName} created, now creating foreign key", tableName);

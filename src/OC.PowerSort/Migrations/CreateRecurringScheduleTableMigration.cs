@@ -33,7 +33,7 @@ namespace OC.PowerSort.Migrations
                     .WithColumn("RecurrenceEnd").AsDateTime().Nullable()
                     .WithColumn("MaxOccurrences").AsInt32().Nullable()
                     .WithColumn("BoostDurationHours").AsInt32().NotNullable()
-                    .WithColumn("IsEnabled").AsBoolean().NotNullable().WithDefaultValue(true)
+                    .WithColumn("IsEnabled").AsBoolean().NotNullable().WithDefaultValue(1)
                     .WithColumn("Created").AsDateTime().NotNullable()
                     .WithColumn("CreatedBy").AsInt32().NotNullable()
                     .WithColumn("Modified").AsDateTime().Nullable()

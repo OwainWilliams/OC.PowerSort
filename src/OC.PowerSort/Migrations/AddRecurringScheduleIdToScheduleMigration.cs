@@ -71,10 +71,14 @@ namespace OC.PowerSort.Migrations
 
         private bool ForeignKeyExists(string tableName, string foreignKeyName)
         {
-            // For SQLite, we can check pragma foreign_key_list
-            // But this is database-specific and complex, so we'll just return false
-            // and let the Create.ForeignKey handle duplicates
-            return false;
+            try
+            {
+                return Schema.Table(tableName).Constraint(foreignKeyName).Exists();
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
