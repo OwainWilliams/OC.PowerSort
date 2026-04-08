@@ -3,13 +3,13 @@ using Umbraco.Cms.Infrastructure.Migrations;
 
 namespace OC.PowerSort.Migrations
 {
-    public class CreateSortScheduleTableMigration : MigrationBase
+    public class CreateSortScheduleTableMigration : AsyncMigrationBase
     {
         public CreateSortScheduleTableMigration(IMigrationContext context) : base(context)
         {
         }
 
-        protected override void Migrate()
+        protected override Task MigrateAsync()
         {
             var tableName = "ocPowerSortSchedule";
             Logger.LogInformation("OC.PowerSort: Checking if table {TableName} exists", tableName);
@@ -37,6 +37,17 @@ namespace OC.PowerSort.Migrations
                 Logger.LogInformation("OC.PowerSort: Table {TableName} already exists, skipping creation", tableName);
             }
 
+            return Task.CompletedTask;
+        }
+
+        private bool IsSqlite() =>
+            DatabaseType.GetType().Name.Contains("SQLite", StringComparison.OrdinalIgnoreCase);
+
+        private bool TableExists(string tableName)
+        {
+            if (IsSqlite())
+                return Database.ExecuteScalar<int>("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@0", tableName) > 0;
+            return Database.ExecuteScalar<int>("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME=@0", tableName) > 0;
         }
     }
 }
