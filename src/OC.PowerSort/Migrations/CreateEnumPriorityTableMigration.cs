@@ -18,7 +18,7 @@ namespace OC.PowerSort.Migrations
             {
                 Create.Table(tableName)
                     .WithColumn("Id").AsGuid().NotNullable().PrimaryKey("PK_ocPowerSortEnumPriority")
-                    .WithColumn("Name").AsString().NotNullable()
+                    .WithColumn("Name").AsString(255).NotNullable()
                     .WithColumn("SortPriority").AsInt32().NotNullable()
                     .WithColumn("Created").AsDateTime().NotNullable()
                     .WithColumn("CreatedBy").AsInt32().NotNullable()
