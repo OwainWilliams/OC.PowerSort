@@ -15,11 +15,9 @@ namespace OC.PowerSort.Migrations
             var columnName = "RecurringScheduleId";
             var foreignKeyName = "FK_ocPowerSortSchedule_RecurringSchedule";
 
-            // Detect SQLite upfront — FluentMigrator's SQLite adapter throws NotSupportedException
-            // from inside builder .Do() calls (before the expression is marked complete), which
-            // causes IncompleteMigrationExpressionException even when wrapped in try-catch.
-            var isSqlite = Context.Database.DatabaseType.GetType().Name
-                .Contains("SQLite", StringComparison.OrdinalIgnoreCase);
+            // DatabaseType is a direct property on AsyncMigrationBase (NPoco.DatabaseType).
+            // Context.Database.DatabaseType is a different path and returns an unexpected type on Umbraco 17.
+            var isSqlite = DatabaseType.GetType().Name.Contains("SQLite", StringComparison.OrdinalIgnoreCase);
 
             Logger.LogInformation("OC.PowerSort: Checking if column {ColumnName} exists in {TableName} (SQLite={IsSqlite})", columnName, tableName, isSqlite);
 
@@ -29,9 +27,11 @@ namespace OC.PowerSort.Migrations
 
                 if (isSqlite)
                 {
-                    // Alter.Table() is not supported on SQLite via FluentMigrator.
-                    // Use the database connection directly to bypass the expression pipeline.
-                    Context.Database.Execute($"ALTER TABLE {tableName} ADD COLUMN {columnName} TEXT NULL");
+                    // Alter.Table() is not supported on SQLite via FluentMigrator — it throws
+                    // NotSupportedException before marking the expression complete, which causes
+                    // IncompleteMigrationExpressionException even when wrapped in try-catch.
+                    // Database is a direct property on AsyncMigrationBase.
+                    Database.Execute($"ALTER TABLE {tableName} ADD COLUMN {columnName} TEXT NULL");
                 }
                 else
                 {
@@ -47,8 +47,10 @@ namespace OC.PowerSort.Migrations
                 Logger.LogInformation("OC.PowerSort: Column {ColumnName} already exists in {TableName}, skipping", columnName, tableName);
             }
 
-            // SQLite does not reliably support FK constraints via FluentMigrator — skip entirely.
-            // SQLite also doesn't enforce FKs by default, so this is non-critical.
+            // FluentMigrator's SQLite adapter generates ALTER TABLE ... ADD CONSTRAINT syntax for FKs,
+            // which SQLite does not support. The resulting SQL error leaves an incomplete expression
+            // in the pipeline, causing IncompleteMigrationExpressionException after Migrate() returns.
+            // Skip FK creation on SQLite entirely — SQLite doesn't enforce FKs by default anyway.
             if (!isSqlite && TableExists("ocPowerSortRecurringSchedule"))
             {
                 try
