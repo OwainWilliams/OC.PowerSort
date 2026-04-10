@@ -1,0 +1,194 @@
+### OC.PowerSort API Testing
+### ⚠️ AUTHENTICATION REQUIRED ⚠️
+###
+### These are Umbraco Backoffice APIs that require authentication.
+### HTTP files don't support Umbraco's cookie-based authentication.
+###
+### RECOMMENDED: Use Swagger UI instead
+### 1. Login to Umbraco backoffice: https://localhost:44367/umbraco
+### 2. Navigate to: https://localhost:44367/umbraco/swagger/
+### 3. Select "OCPower Sorting Backoffice API" from dropdown
+### 4. Test endpoints directly in Swagger UI (automatically authenticated)
+###
+### ALTERNATIVE: Extract cookies from browser
+### See instructions at bottom of this file for cookie-based authentication
+###
+
+@baseUrl = https://localhost:44367
+@apiBase = {{baseUrl}}/umbraco/oc/power-sort/v1
+
+###############################################
+# SCHEDULES API
+###############################################
+
+### Get all schedules
+GET {{apiBase}}/schedules
+Content-Type: application/json
+
+### Get schedules for specific parent (with query params)
+GET {{apiBase}}/schedules?parentId=31523089-f648-4883-9087-ef9a0b83129f&activeOnly=false
+Content-Type: application/json
+
+### Get schedules (active only)
+GET {{apiBase}}/schedules?activeOnly=true
+Content-Type: application/json
+
+### Get specific schedule by ID
+GET {{apiBase}}/schedules/YOUR-SCHEDULE-GUID-HERE
+Content-Type: application/json
+
+### Get active schedules for parent
+GET {{apiBase}}/schedules/active/YOUR-PARENT-GUID-HERE
+Content-Type: application/json
+
+### Create new schedule
+POST {{apiBase}}/schedules
+Content-Type: application/json
+
+{
+  "contentId": "00000000-0000-0000-0000-000000000000",
+  "parentId": "00000000-0000-0000-0000-000000000000",
+  "targetPosition": 0,
+  "startDateTime": "2025-01-01T00:00:00Z",
+  "endDateTime": "2025-12-31T23:59:59Z",
+  "priority": 10
+}
+
+### Update schedule
+PUT {{apiBase}}/schedules/YOUR-SCHEDULE-GUID-HERE
+Content-Type: application/json
+
+{
+  "targetPosition": 1,
+  "startDateTime": "2025-01-01T00:00:00Z",
+  "endDateTime": "2025-12-31T23:59:59Z",
+  "priority": 5
+}
+
+### Delete schedule
+DELETE {{apiBase}}/schedules/YOUR-SCHEDULE-GUID-HERE
+Content-Type: application/json
+
+###############################################
+# ENUM PRIORITIES API
+###############################################
+
+### Get all enum priorities
+GET {{apiBase}}/enum-priorities
+Content-Type: application/json
+
+### Get enum priorities with pagination
+GET {{apiBase}}/enum-priorities?skip=0&take=50
+Content-Type: application/json
+
+### Get specific enum priority by ID
+GET {{apiBase}}/enum-priorities/YOUR-ENUM-PRIORITY-GUID-HERE
+Content-Type: application/json
+
+### Create enum priority
+POST {{apiBase}}/enum-priorities
+Content-Type: application/json
+
+{
+  "name": "High Priority",
+  "sortPriority": 100
+}
+
+### Update enum priority
+PUT {{apiBase}}/enum-priorities/YOUR-ENUM-PRIORITY-GUID-HERE
+Content-Type: application/json
+
+{
+  "name": "Updated Priority Name",
+  "sortPriority": 50
+}
+
+### Delete enum priority
+DELETE {{apiBase}}/enum-priorities/YOUR-ENUM-PRIORITY-GUID-HERE
+Content-Type: application/json
+
+###############################################
+# CHILDREN AND SORTING API
+###############################################
+
+### Get children of a node
+GET {{apiBase}}/children/YOUR-PARENT-GUID-HERE
+Content-Type: application/json
+
+### Sort documents
+PUT {{apiBase}}/sort/document
+Content-Type: application/json
+
+{
+  "parent": {
+    "id": "00000000-0000-0000-0000-000000000000"
+  },
+  "sorting": [
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "sortOrder": 0
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "sortOrder": 1
+    }
+  ]
+}
+
+###############################################
+# DEFAULT SORT ORDER API
+###############################################
+
+### Get default sort order for parent
+GET {{apiBase}}/default-sort-order/YOUR-PARENT-GUID-HERE
+Content-Type: application/json
+
+### Save current sort order as default
+POST {{apiBase}}/default-sort-order/save
+Content-Type: application/json
+
+{
+  "parentId": "00000000-0000-0000-0000-000000000000"
+}
+
+### Restore default sort order
+POST {{apiBase}}/default-sort-order/restore/YOUR-PARENT-GUID-HERE
+Content-Type: application/json
+
+### Clear default sort order
+DELETE {{apiBase}}/default-sort-order/YOUR-PARENT-GUID-HERE
+Content-Type: application/json
+
+###############################################
+# MENU ITEMS API
+###############################################
+
+### Get menu items for current user
+GET {{apiBase}}/menu-items
+Content-Type: application/json
+
+### Save menu items for current user
+POST {{apiBase}}/menu-items
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "name": "My Favorite Page",
+      "icon": "icon-home",
+      "sortOrder": 0
+    }
+  ]
+}
+
+###############################################
+# SWAGGER/OpenAPI DOCUMENTATION
+###############################################
+
+### View Swagger JSON
+GET {{baseUrl}}/umbraco/swagger/ocpowersorting/swagger.json
+Content-Type: application/json
+
+### View Swagger UI (Open in browser)
+# https://localhost:44367/umbraco/swagger/

@@ -360,197 +360,198 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
     }
   }
 
-  static styles = css`
-    :host {
-      display: block;
-    }
+  static styles = [
+    css`
+      :host {
+        display: block;
+      }
 
-    .dialog-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
+      .dialog-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
 
-    .dialog {
-      background: var(--uui-color-surface);
-      border-radius: var(--uui-border-radius);
-      max-width: 700px;
-      width: 90%;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: var(--uui-shadow-depth-5);
-    }
+      .dialog {
+        background: var(--uui-color-surface);
+        border-radius: var(--uui-border-radius);
+        max-width: 700px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: var(--uui-shadow-depth-5);
+      }
 
-    .dialog-header {
-      padding: var(--uui-size-space-5);
-      border-bottom: 1px solid var(--uui-color-border);
-    }
+      .dialog-header {
+        padding: var(--uui-size-space-5);
+        border-bottom: 1px solid var(--uui-color-border);
+      }
 
-    .dialog-header h2 {
-      margin: 0;
-      font-size: var(--uui-type-h4-size);
-    }
+      .dialog-header h2 {
+        margin: 0;
+        font-size: var(--uui-type-h4-size);
+      }
 
-    .dialog-body {
-      padding: var(--uui-size-space-5);
-    }
+      .dialog-body {
+        padding: var(--uui-size-space-5);
+      }
 
-    .form-group {
-      margin-bottom: var(--uui-size-space-4);
-    }
+      .form-group {
+        margin-bottom: var(--uui-size-space-4);
+      }
 
-    .form-group label {
-      display: block;
-      margin-bottom: var(--uui-size-space-2);
-      font-weight: 600;
-    }
+      .form-group label {
+        display: block;
+        margin-bottom: var(--uui-size-space-2);
+        font-weight: 600;
+      }
 
-    .form-group uui-input,
-    .form-group select {
-      width: 100%;
-    }
+      .form-group uui-input,
+      .form-group select {
+        width: 100%;
+      }
 
-    .form-group select {
-      padding: var(--uui-size-space-2);
-      border: 1px solid var(--uui-color-border);
-      border-radius: var(--uui-border-radius);
-      background: var(--uui-color-surface);
-      color: var(--uui-color-text);
-      font-family: inherit;
-      font-size: inherit;
-    }
+      .form-group select {
+        padding: var(--uui-size-space-2);
+        border: 1px solid var(--uui-color-border);
+        border-radius: var(--uui-border-radius);
+        background: var(--uui-color-surface);
+        color: var(--uui-color-text);
+        font-family: inherit;
+        font-size: inherit;
+      }
 
-    .days-of-week {
-      display: flex;
-      gap: var(--uui-size-space-2);
-      flex-wrap: wrap;
-    }
+      .days-of-week {
+        display: flex;
+        gap: var(--uui-size-space-2);
+        flex-wrap: wrap;
+      }
 
-    .day-button {
-      min-width: 60px;
-    }
+      .day-button {
+        min-width: 60px;
+      }
 
-    .day-button.selected {
-      background: var(--uui-color-selected);
-    }
+      .day-button.selected {
+        background: var(--uui-color-selected);
+      }
 
-    .end-options {
-      margin-top: var(--uui-size-space-3);
-    }
+      .end-options {
+        margin-top: var(--uui-size-space-3);
+      }
 
-    .end-option {
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-2);
-      margin-bottom: var(--uui-size-space-2);
-    }
+      .end-option {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        margin-bottom: var(--uui-size-space-2);
+      }
 
-    .dialog-footer {
-      padding: var(--uui-size-space-5);
-      border-top: 1px solid var(--uui-color-border);
-      display: flex;
-      justify-content: flex-end;
-      gap: var(--uui-size-space-3);
-    }
+      .dialog-footer {
+        padding: var(--uui-size-space-5);
+        border-top: 1px solid var(--uui-color-border);
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--uui-size-space-3);
+      }
 
-    .error-message {
-      padding: var(--uui-size-space-3);
-      background: var(--uui-color-danger-emphasis);
-      color: var(--uui-color-danger-contrast);
-      border-radius: var(--uui-border-radius);
-      margin-bottom: var(--uui-size-space-3);
-    }
+      .error-message {
+        padding: var(--uui-size-space-3);
+        background: var(--uui-color-danger-emphasis);
+        color: var(--uui-color-danger-contrast);
+        border-radius: var(--uui-border-radius);
+        margin-bottom: var(--uui-size-space-3);
+      }
 
-    .preview-section {
-      margin-top: var(--uui-size-space-4);
-      padding: var(--uui-size-space-4);
-      background: var(--uui-color-surface-alt);
-      border-radius: var(--uui-border-radius);
-    }
+      .preview-section {
+        margin-top: var(--uui-size-space-4);
+        padding: var(--uui-size-space-4);
+        background: var(--uui-color-surface-alt);
+        border-radius: var(--uui-border-radius);
+      }
 
-    .preview-section h3 {
-      margin-top: 0;
-      font-size: var(--uui-type-h6-size);
-    }
+      .preview-section h3 {
+        margin-top: 0;
+        font-size: var(--uui-type-h6-size);
+      }
 
-    .preview-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
+      .preview-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
 
-    .preview-item {
-      padding: var(--uui-size-space-2);
-      border-bottom: 1px solid var(--uui-color-border);
-    }
+      .preview-item {
+        padding: var(--uui-size-space-2);
+        border-bottom: 1px solid var(--uui-color-border);
+      }
 
-    .preview-item:last-child {
-      border-bottom: none;
-    }
+      .preview-item:last-child {
+        border-bottom: none;
+      }
 
-    .priority-radio-group {
-      display: flex;
-      flex-direction: column;
-      gap: var(--uui-size-space-2);
-    }
+      .priority-radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--uui-size-space-2);
+      }
 
-    .priority-radio-option {
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-2);
-      padding: var(--uui-size-space-3);
-      border: 2px solid var(--uui-color-border);
-      border-radius: var(--uui-border-radius);
-      background: var(--uui-color-surface);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
+      .priority-radio-option {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        padding: var(--uui-size-space-3);
+        border: 2px solid var(--uui-color-border);
+        border-radius: var(--uui-border-radius);
+        background: var(--uui-color-surface);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
 
-    .priority-radio-option:hover {
-      border-color: var(--uui-color-selected);
-      background: var(--uui-color-selected-alt);
-    }
+      .priority-radio-option:hover {
+        border-color: var(--uui-color-selected);
+        background: var(--uui-color-selected-alt);
+      }
 
-    .priority-radio-option.selected {
-      border-color: var(--uui-color-selected);
-      background: var(--uui-color-selected-alt);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
+      .priority-radio-option.selected {
+        border-color: var(--uui-color-selected);
+        background: var(--uui-color-selected-alt);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
 
-    .priority-radio-option input[type="radio"] {
-      margin: 0;
-      accent-color: var(--uui-color-selected);
-    }
+      .priority-radio-option input[type="radio"] {
+        margin: 0;
+        accent-color: var(--uui-color-selected);
+      }
 
-    .priority-radio-content {
-      flex: 1;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+      .priority-radio-content {
+        flex: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-    .priority-radio-details {
-      display: flex;
-      flex-direction: column;
-    }
+      .priority-radio-details {
+        display: flex;
+        flex-direction: column;
+      }
 
-    .priority-radio-label {
-      font-weight: 600;
-      color: var(--uui-color-text);
-      margin-bottom: var(--uui-size-space-1);
-    }
+      .priority-radio-label {
+        font-weight: 600;
+        color: var(--uui-color-text);
+        margin-bottom: var(--uui-size-space-1);
+      }
 
-    .priority-radio-value {
-      font-size: var(--uui-type-small-size);
-      color: var(--uui-color-text-alt);
-    }
+      .priority-radio-value {
+        font-size: var(--uui-type-small-size);
+        color: var(--uui-color-text-alt);
+      }
 
     .priority-level-badge {
       display: flex;
@@ -565,44 +566,74 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
       letter-spacing: 0.5px;
     }
 
-    .priority-level-badge.priority-high {
-      background: var(--uui-color-danger);
-      color: white;
-    }
+      .priority-level-badge.priority-high {
+        background: var(--uui-color-danger);
+        color: white;
+      }
 
-    .priority-level-badge.priority-medium {
-      background: var(--uui-color-warning);
-      color: white;
-    }
+      .priority-level-badge.priority-medium {
+        background: var(--uui-color-warning);
+        color: white;
+      }
 
-    .priority-level-badge.priority-low {
-      background: var(--uui-color-positive);
-      color: white;
-    }
+      .priority-level-badge.priority-low {
+        background: var(--uui-color-positive);
+        color: white;
+      }
 
-    .priority-loading,
-    .no-priority-options {
-      display: flex;
-      align-items: center;
-      gap: var(--uui-size-space-2);
-      padding: var(--uui-size-space-3);
-      border: 1px solid var(--uui-color-border);
-      border-radius: var(--uui-border-radius);
-      background: var(--uui-color-surface-emphasis);
-    }
+      .priority-loading,
+      .no-priority-options {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        padding: var(--uui-size-space-3);
+        border: 1px solid var(--uui-color-border);
+        border-radius: var(--uui-border-radius);
+        background: var(--uui-color-surface-emphasis);
+      }
 
-    .no-priority-options {
-      color: var(--uui-color-text-alt);
-      background: var(--uui-color-warning-emphasis);
-    }
+      .no-priority-options {
+        color: var(--uui-color-text-alt);
+        background: var(--uui-color-warning-emphasis);
+      }
 
-    .description {
-      font-size: var(--uui-type-small-size);
-      color: var(--uui-color-text-alt);
-      margin-top: var(--uui-size-space-1);
-      margin-bottom: var(--uui-size-space-2);
-    }
-  `;
+      .description {
+        font-size: var(--uui-type-small-size);
+        color: var(--uui-color-text-alt);
+        margin-top: var(--uui-size-space-1);
+        margin-bottom: var(--uui-size-space-2);
+      }
+
+      .nested-schedule-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .nested-schedule-table thead {
+        font-size: var(--uui-size-4);
+        background: var(--uui-palette-mine-grey-light);
+        color: var(--uui-palette-white-light);
+        font-weight: normal;
+      }
+
+      .nested-schedule-table th {
+        padding: var(--uui-size-space-2) var(--uui-size-space-3);
+      }
+
+      .nested-schedule-table td {
+        padding: var(--uui-size-space-2) var(--uui-size-space-3);
+        text-align: center;
+      }
+
+      .nested-schedule-table tbody tr {
+        background: var(--uui-palette-white);
+      }
+
+      .nested-schedule-table tbody tr:hover {
+        background: var(--uui-palette-white-dark);
+      }
+    `,
+  ];
 
   render() {
     return html`
@@ -828,7 +859,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
 
           </div>
 
-    
+
 
           <div class="dialog-footer">
             <uui-button look="secondary" @click=${this.handleClose}>

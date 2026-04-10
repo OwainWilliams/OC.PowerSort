@@ -53,6 +53,8 @@
 
     <!-- Exclude the root-level package-lock.json from being treated as content -->
     <Content Remove="package-lock.json" />
+    <Content Include="Client\package-lock.json" />
+    <Content Include="Client\package.json" />
 
     <None Include="..\..\assets\ocPowerSortLogo.png">
       <Pack>True</Pack>
@@ -75,5 +77,10 @@
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
+
+  <!-- Auto-sync version to JSON files -->
+  <Target Name="UpdateJsonVersions" BeforeTargets="BeforeBuild">
+    <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\UpdateVersions.ps1&quot; -Version &quot;$(Version)&quot;" />
+  </Target>
 
 </Project>
