@@ -8,14 +8,20 @@ export class ApiResponseHandler {
   static async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       let errorMessage = `API Error (${response.status})`;
-      
+
       try {
-        const errorData = await response.json();
-        errorMessage = errorData.error || errorData.message || errorMessage;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } else {
+          const text = await response.text();
+          errorMessage = text || errorMessage;
+        }
       } catch {
-        errorMessage = await response.text() || errorMessage;
+        // If reading the response fails, use the default error message
       }
-      
+
       throw new Error(errorMessage);
     }
 

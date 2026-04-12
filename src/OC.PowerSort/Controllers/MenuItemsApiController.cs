@@ -39,11 +39,13 @@ namespace OC.PowerSort.Controllers
         [ProducesResponseType<MenuItemsResponse>(StatusCodes.Status200OK)]
         public IActionResult GetMenuItems()
         {
-            return ExecuteDatabaseOperation(database =>
+            var authResult = ValidateUserAccess(out var userId);
+            if (authResult != null)
+                return authResult;
+
+            try
             {
-                var authResult = ValidateUserAccess(out var userId);
-                if (authResult != null)
-                    throw new UnauthorizedAccessException();
+                using var database = databaseFactory.CreateDatabase();
 
                 var key = MENU_ITEMS_KEY + userId;
                 var keyValueRow = database.SingleOrDefault<KeyValueDto>(
@@ -51,23 +53,29 @@ namespace OC.PowerSort.Controllers
 
                 if (keyValueRow == null || string.IsNullOrEmpty(keyValueRow.Value))
                 {
-                    return new MenuItemsResponse { Items = new List<MenuItemModel>() };
+                    return Ok(new MenuItemsResponse { Items = new List<MenuItemModel>() });
                 }
 
                 var items = JsonSerializer.Deserialize<List<MenuItemModel>>(keyValueRow.Value);
-                return new MenuItemsResponse { Items = items ?? new List<MenuItemModel>() };
-            });
+                return Ok(new MenuItemsResponse { Items = items ?? new List<MenuItemModel>() });
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
 
         [HttpPost("menu-items")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult SaveMenuItems([FromBody] MenuItemsResponse request)
         {
-            return ExecuteDatabaseOperation(database =>
+            var authResult = ValidateUserAccess(out var userId);
+            if (authResult != null)
+                return authResult;
+
+            try
             {
-                var authResult = ValidateUserAccess(out var userId);
-                if (authResult != null)
-                    throw new UnauthorizedAccessException();
+                using var database = databaseFactory.CreateDatabase();
 
                 var key = MENU_ITEMS_KEY + userId;
                 var value = JsonSerializer.Serialize(request.Items);
@@ -94,8 +102,12 @@ namespace OC.PowerSort.Controllers
                     });
                 }
 
-                return new { success = true, itemCount = request.Items.Count };
-            });
+                return Ok(new { success = true, itemCount = request.Items.Count });
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
 
         /// <summary>
