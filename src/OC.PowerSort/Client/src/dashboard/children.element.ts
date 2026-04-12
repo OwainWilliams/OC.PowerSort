@@ -27,9 +27,6 @@ import "./schedule-dialog.element.js";
 import "./recurring-schedule-dialog.element.js";
 import "../components/confirm-modal.element.js";
 
-type SortField = 'priority' | 'type' | 'sortOrder' | 'startTime' | 'endTime' | 'created';
-type SortDirection = 'asc' | 'desc';
-
 @customElement("power-sort-children-dashboard")
 export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
   UmbAuthMixin(LitElement),
@@ -136,7 +133,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
   disconnectedCallback() {
     super.disconnectedCallback();
   }
-
   private async loadDefaultOrderInfo() {
     if (!this.id) return;
 
@@ -249,6 +245,10 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     }
   }
 
+
+
+
+
   private async _showConfirmModal(options: {
     headline: string;
     message: string;
@@ -296,6 +296,17 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       }
     });
   }
+
+  // private async loadActiveSchedules() {
+  //   if (!this.id || !this.scheduleApi) return;
+
+  //   try {
+  //     this.activeSchedules = await this.scheduleApi.getSchedules(this.id);
+  //   } catch (error) {
+  //     console.error("Error loading active schedules:", error);
+  //     // Don't show error to user, just log it
+  //   }
+  // }
 
   private async loadSchedules() {
     if (!this.scheduleApi || !this.recurringScheduleApi || !this.id) return;
@@ -575,26 +586,6 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     await this.updateSortOrder();
   }
 
-  private toggleSchedules(e: MouseEvent, index: number) {
-    const el = e.currentTarget as HTMLElement;
-    const expandItem = el.querySelector("uui-symbol-expand") as HTMLElement;
-    const detailsRows = Array.from(
-      this.renderRoot.querySelectorAll(`#schedule-details-${index}`),
-    ) as HTMLElement[];
-
-    detailsRows.forEach((detailsRow) => {
-      if (detailsRow.classList.contains("hidden")) {
-        expandItem.setAttribute("open", "");
-        detailsRow.classList.remove("hidden");
-        el.setAttribute("active", "true");
-      } else {
-        detailsRow.classList.add("hidden");
-        expandItem.removeAttribute("open");
-        el.removeAttribute("active");
-      }
-    });
-  }
-
   private renderDefaultOrderBanner() {
     if (!this.hasDefaultOrder) return "";
 
@@ -629,6 +620,26 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
     `;
 
     return this.renderInfoBanner("default", content, actions);
+  }
+
+  private toggleSchedules(e: MouseEvent, index: number) {
+    const el = e.currentTarget as HTMLElement;
+    const expandItem = el.querySelector("uui-symbol-expand") as HTMLElement;
+    const detailsRows = Array.from(
+      this.renderRoot.querySelectorAll(`#schedule-details-${index}`),
+    ) as HTMLElement[];
+
+    detailsRows.forEach((detailsRow) => {
+      if (detailsRow.classList.contains("hidden")) {
+        expandItem.setAttribute("open", "");
+        detailsRow.classList.remove("hidden");
+        el.setAttribute("active", "true");
+      } else {
+        detailsRow.classList.add("hidden");
+        expandItem.removeAttribute("open");
+        el.removeAttribute("active");
+      }
+    });
   }
 
   private formatDateTime(dateString: string): string {
@@ -697,10 +708,10 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
         </thead>
         <tbody>
           ${this.nodeChildren.map((child, index) => {
-            const schedule = this.getScheduleForChild(child.id);
-            const schedules = this.getCombinedSchedulesForChild(child.id);
+      const schedule = this.getScheduleForChild(child.id);
+      const schedules = this.getCombinedSchedulesForChild(child.id);
 
-            return html`
+      return html`
               <tr
                 draggable="true"
                 @dragstart=${(e: DragEvent) => this.handleDragStart(e, child)}
@@ -726,7 +737,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                     ></uui-icon>
                     <strong>${child.name}</strong>
                     ${schedule
-                      ? html`
+          ? html`
                           <span
                             class="scheduled-badge"
                             title="Has active schedules"
@@ -735,7 +746,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                             Scheduled
                           </span>
                         `
-                      : ""}
+          : ""}
                   </div>
                 </td>
                 <td>
@@ -751,12 +762,12 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                 </td>
                 <td>
                   ${schedule
-                    ? html`
+          ? html`
                         <uui-button
                           look="outline"
                           color="default"
                           @click=${(e: MouseEvent) =>
-                            this.toggleSchedules(e, index)}
+              this.toggleSchedules(e, index)}
                         >
                           <uui-icon name="see"></uui-icon>
                           View
@@ -764,7 +775,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                           <uui-symbol-expand></uui-symbol-expand>
                         </uui-button>
                       `
-                    : `No active schedules`}
+          : `No active schedules`}
                 </td>
                 <td></td>
               </tr>
@@ -786,22 +797,22 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
 
               <!-- Schedule detail rows -->
               ${schedules.map((scheduleWrapper) => {
-                const isRecurring = scheduleWrapper.type === 'recurring';
-                const schedule = scheduleWrapper.data;
-                const scheduleId = schedule.id;
+            const isRecurring = scheduleWrapper.type === 'recurring';
+            const schedule = scheduleWrapper.data;
+            const scheduleId = schedule.id;
 
-                // Pre-format dates for this schedule
-                const createdDate = this.formatDateTime(schedule.created);
-                const startOrPattern = isRecurring 
-                  ? (schedule as RecurringSchedule).pattern.description
-                  : this.formatDateTime((schedule as ScheduleResponse).startDateTime);
-                const endOrNext = isRecurring 
-                  ? ((schedule as RecurringSchedule).nextOccurrence 
-                      ? this.formatDateTime((schedule as RecurringSchedule).nextOccurrence!)
-                      : 'No upcoming')
-                  : this.formatDateTime((schedule as ScheduleResponse).endDateTime);
+            // Pre-format dates for this schedule
+            const createdDate = this.formatDateTime(schedule.created);
+            const startOrPattern = isRecurring
+              ? (schedule as RecurringSchedule).pattern.description
+              : this.formatDateTime((schedule as ScheduleResponse).startDateTime);
+            const endOrNext = isRecurring
+              ? ((schedule as RecurringSchedule).nextOccurrence
+                ? this.formatDateTime((schedule as RecurringSchedule).nextOccurrence!)
+                : 'No upcoming')
+              : this.formatDateTime((schedule as ScheduleResponse).endDateTime);
 
-                return html`
+            return html`
                   <tr
                     class="schedule-detail-row hidden"
                     id="schedule-details-${index}"
@@ -825,9 +836,9 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                           look="outline"
                           label="Edit"
                           compact
-                          @click=${() => isRecurring 
-                            ? this.openEditRecurringDialog(schedule as RecurringSchedule)
-                            : this.openEditDialog(schedule as ScheduleResponse)}
+                          @click=${() => isRecurring
+                ? this.openEditRecurringDialog(schedule as RecurringSchedule)
+                : this.openEditDialog(schedule as ScheduleResponse)}
                         >
                           <uui-icon name="icon-edit"></uui-icon>
                         </uui-button>
@@ -852,9 +863,9 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                             look="primary"
                             color="danger"
                             @click=${(e: MouseEvent) =>
-                              isRecurring
-                                ? this.handleDeleteRecurringSchedule(e, scheduleId)
-                                : this.handleDeleteSchedule(e, scheduleId)}
+                isRecurring
+                  ? this.handleDeleteRecurringSchedule(e, scheduleId)
+                  : this.handleDeleteSchedule(e, scheduleId)}
                           >
                             Yes
                           </uui-button>
@@ -867,9 +878,9 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                     <td>Created by ${schedule.createdByName} on ${createdDate}</td>
                   </tr>
                 `;
-              })}
-            `;
           })}
+            `;
+    })}
         </tbody>
       </table>
     `;
@@ -881,6 +892,10 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       :host {
         display: block;
         padding: var(--uui-size-space-5);
+      }
+
+      .children-table {
+        cursor: move;
       }
 
       .data-table {
@@ -897,6 +912,18 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
 
       .schedule-detail-row.hidden {
         display: none;
+      }
+
+      .children-table tbody tr {
+        cursor: move;
+      }
+
+      .children-table td {
+        text-align: center;
+      }
+
+      .children-table tbody tr:active {
+        opacity: 0.5;
       }
 
       .node-icon {
@@ -953,50 +980,18 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       }
 
       .schedule-detail-head {
-        background: var(--uui-palette-white-dark);
-
-        td {
-          padding: 0;
-        }
-      }
-
-      .schedule-detail-head:hover {
-        background: var(--uui-palette-white-dark) !important;
-      }
-
-      .nested-schedule-table {
-        width: 100%;
-        border-collapse: collapse;
-
-        thead {
-          font-size: var(--uui-size-4);
-          background: var(--uui-palette-mine-grey-light);
-          color: var(--uui-palette-white-light);
-          font-weight: normal;
-        }
+        font-size: var(--uui-size-4);
+        background: var(--uui-palette-mine-grey-light);
+        color: var(--uui-palette-white-light);
+        font-weight: normal;
 
         th {
           padding: var(--uui-size-space-2) var(--uui-size-space-3);
         }
-
-        td {
-          padding: var(--uui-size-space-2) var(--uui-size-space-3);
-          text-align: center;
-          vertical-align: middle;
-        }
-
-        tbody tr {
-          background: var(--uui-palette-white);
-        }
-
-        tbody tr:hover {
-          background: var(--uui-palette-white-dark);
-        }
       }
 
-      /* Fix badge positioning */
-      uui-badge {
-        --uui-badge-position: static;
+      .schedule-detail-head:hover {
+        background: var(--uui-palette-mine-grey-light) !important;
       }
     `,
   ];
@@ -1018,7 +1013,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
           <div class="header-content">
             <h1>${this.parentNodeName} Schedules</h1>
             <p>
-              Drag and drop rows to reorder child nodes, or expand to see
+              Drag and drop rows to reorder child nodes, or toggle to see
               schedule details
             </p>
           </div>

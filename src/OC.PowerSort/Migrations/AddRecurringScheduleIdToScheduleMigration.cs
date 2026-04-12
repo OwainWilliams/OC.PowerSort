@@ -13,6 +13,7 @@ namespace OC.PowerSort.Migrations
         {
             var tableName = "ocPowerSortSchedule";
             var columnName = "RecurringScheduleId";
+            var foreignKeyName = "FK_ocPowerSortSchedule_RecurringSchedule";
 
             // DatabaseType is a direct property on AsyncMigrationBase (NPoco.DatabaseType).
             // Context.Database.DatabaseType is a different path and returns an unexpected type on Umbraco 17.
