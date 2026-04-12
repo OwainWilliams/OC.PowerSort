@@ -320,8 +320,28 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
         this.recurringScheduleApi.getRecurringSchedules(this.id, false)
       ]);
 
-      this.activeSchedules = scheduleResponse.items;
-      this.recurringSchedules = recurringResponse.items;
+      const now = new Date();
+
+      // Filter out expired one-off schedules
+      this.activeSchedules = scheduleResponse.items.filter((schedule: ScheduleResponse) => {
+        const endDate = new Date(schedule.endDateTime);
+        return endDate > now;
+      });
+
+      // Filter out expired recurring schedules
+      this.recurringSchedules = recurringResponse.items.filter((schedule: RecurringSchedule) => {
+        // If the recurring schedule has an end date and it's in the past, filter it out
+        if (schedule.pattern.endDate) {
+          const endDate = new Date(schedule.pattern.endDate);
+          return endDate > now;
+        }
+        // If disabled, filter it out
+        if (!schedule.isEnabled) {
+          return false;
+        }
+        // If no end date, keep it (it runs indefinitely)
+        return true;
+      });
     } catch (error) {
       console.error("Error loading schedules:", error);
       this.error = "Failed to load schedules";

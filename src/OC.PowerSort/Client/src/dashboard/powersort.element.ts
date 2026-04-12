@@ -701,7 +701,7 @@ export default class PowerSortDashboardElement extends crudMixin {
                   <p>
                     When you have your preferred order, click 'save default
                     order' and this will be stored as a default you can return
-                    to by clicking 'restore default'
+                    to by clicking 'restore default' - this default order will also be used as the fallback when no schedules are active.
                   </p>
                 </li>
                 <li>
@@ -711,7 +711,7 @@ export default class PowerSortDashboardElement extends crudMixin {
                     will open a dialogue where you can set the date range, the
                     target position and it's overall priority. An item can have
                     multiple schedules, and you can edit or delete these at any
-                    time.
+                    time. You can also setup recurring schedules for items that need to be prioritized on a regular basis, such as seasonal content or weekly features.
                   </p>
                 </li>
                 <li>
