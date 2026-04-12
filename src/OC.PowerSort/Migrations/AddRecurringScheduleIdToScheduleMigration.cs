@@ -46,38 +46,7 @@ namespace OC.PowerSort.Migrations
                 Logger.LogInformation("OC.PowerSort: Column {ColumnName} already exists in {TableName}, skipping", columnName, tableName);
             }
 
-            // FluentMigrator's SQLite adapter generates ALTER TABLE ... ADD CONSTRAINT syntax for FKs,
-            // which SQLite does not support. The resulting SQL error leaves an incomplete expression
-            // in the pipeline, causing IncompleteMigrationExpressionException after Migrate() returns.
-            // Skip FK creation on SQLite entirely — SQLite doesn't enforce FKs by default anyway.
-            if (!isSqlite && TableExists("ocPowerSortRecurringSchedule"))
-            {
-                try
-                {
-                    // Use raw SQL for SQLite compatibility - the migration builder's Alter.Table doesn't support SQLite
-                    Execute.Sql($"ALTER TABLE {tableName} ADD COLUMN {columnName} TEXT;");
-
-                    Logger.LogInformation("OC.PowerSort: Column {ColumnName} added successfully", columnName);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning(ex, "OC.PowerSort: Could not add column {ColumnName}, continuing anyway", columnName);
-                }
-            }
-
             Logger.LogInformation("OC.PowerSort: Migration completed for {TableName}.{ColumnName}", tableName, columnName);
-        }
-
-        private bool ForeignKeyExists(string tableName, string foreignKeyName)
-        {
-            try
-            {
-                return Schema.Table(tableName).Constraint(foreignKeyName).Exists();
-            }
-            catch
-            {
-                return false;
-            }
         }
     }
 }
