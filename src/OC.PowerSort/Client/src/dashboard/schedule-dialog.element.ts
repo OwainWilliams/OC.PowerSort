@@ -370,6 +370,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
         <uui-input
           type="number"
           id="boostDuration"
+          label="Boost Duration (hours)"
           min="1"
           .value=${this.boostDurationHours.toString()}
           @input=${(e: Event) =>
@@ -403,6 +404,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
         <uui-input
           type="number"
           id="interval"
+          label="Interval"
           min="1"
           style="width: 80px;"
           .value=${this.interval.toString()}
@@ -426,6 +428,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
         <uui-input
           type="date"
           id="startDate"
+          label="Start Date"
           .value=${this.recurringStartDate}
           @input=${(e: Event) =>
             (this.recurringStartDate = (e.target as HTMLInputElement).value)}
@@ -449,6 +452,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
                 look="${this.daysOfWeek.includes(day.value)
                   ? "primary"
                   : "secondary"}"
+                label="${day.label}"
                 compact
                 @click=${() => this.handleDayOfWeekToggle(day.value)}
               >
@@ -492,6 +496,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
               <uui-input
                 type="number"
                 id="dayOfMonth"
+                label="Day of Month"
                 min="1"
                 max="31"
                 .value=${this.dayOfMonth.toString()}
@@ -583,6 +588,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
               ? html`
                   <uui-input
                     type="date"
+                    label="End Date"
                     .value=${this.recurringEndDate}
                     @input=${(e: Event) =>
                       (this.recurringEndDate = (
@@ -609,6 +615,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
               ? html`
                   <uui-input
                     type="number"
+                    label="Max Occurrences"
                     min="1"
                     .value=${this.maxOccurrences?.toString() || "1"}
                     @input=${(e: Event) =>
@@ -947,6 +954,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
               <uui-input
                 type="number"
                 id="targetPosition"
+                label="Target Position"
                 .value=${this.targetPosition.toString()}
                 @input=${(e: Event) =>
                   (this.targetPosition = parseInt(
@@ -968,6 +976,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
                     <uui-input
                       type="datetime-local"
                       id="startDateTime"
+                      label="Start Date & Time"
                       .value=${this.startDateTime}
                       @input=${(e: Event) =>
                         (this.startDateTime = (
@@ -985,6 +994,7 @@ export default class ScheduleDialogElement extends UmbUiMixin(
                     <uui-input
                       type="datetime-local"
                       id="endDateTime"
+                      label="End Date & Time"
                       .value=${this.endDateTime}
                       @input=${(e: Event) =>
                         (this.endDateTime = (

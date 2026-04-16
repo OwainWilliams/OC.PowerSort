@@ -714,6 +714,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               <uui-input
                 type="number"
                 id="targetPosition"
+                label="Target Position"
                 .value=${this.targetPosition.toString()}
                 @input=${(e: Event) =>
       (this.targetPosition = parseInt(
@@ -729,6 +730,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               <uui-input
                 type="number"
                 id="boostDuration"
+                label="Boost Duration (hours)"
                 .value=${this.boostDurationHours.toString()}
                 @input=${(e: Event) =>
       (this.boostDurationHours = parseInt(
@@ -770,6 +772,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               <uui-input
                 type="number"
                 id="interval"
+                label="Interval"
                 min="1"
                 style="width: 80px;"
                 .value=${this.interval.toString()}
@@ -799,6 +802,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               <uui-input
                 type="date"
                 id="startDate"
+                label="Start Date"
                 .value=${this.startDate}
                 @input=${(e: Event) =>
         (this.startDate = (e.target as HTMLInputElement).value)}
@@ -879,10 +883,10 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
 
 
           <div class="dialog-footer">
-            <uui-button look="secondary" @click=${this.handleClose}>
+            <uui-button look="secondary" label="Cancel" @click=${this.handleClose}>
               Cancel
             </uui-button>
-            <uui-button look="primary" color="positive" @click=${this.handleSave}>
+            <uui-button look="primary" color="positive" label="Save" @click=${this.handleSave}>
               ${this.schedule ? "Update" : "Create"}
             </uui-button>
           </div>
@@ -905,6 +909,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                 look="${this.daysOfWeek.includes(day.value)
           ? "primary"
           : "secondary"}"
+                label="${day.label}"
                 @click=${() => this.handleDayOfWeekToggle(day.value)}
               >
                 ${day.short}
@@ -947,6 +952,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               <uui-input
                 type="number"
                 id="dayOfMonth"
+                label="Day of Month"
                 min="1"
                 max="31"
                 .value=${this.dayOfMonth.toString()}
@@ -1010,6 +1016,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
       <div class="end-options">
         <div class="end-option">
           <uui-checkbox
+            label="No end date (runs indefinitely)"
             .checked=${!this.useEndDate && !this.useMaxOccurrences}
             @change=${() => {
         this.useEndDate = false;
@@ -1021,6 +1028,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
 
         <div class="end-option">
           <uui-checkbox
+            label="End by"
             .checked=${this.useEndDate}
             @change=${(e: Event) => {
         this.useEndDate = (e.target as HTMLInputElement).checked;
@@ -1032,6 +1040,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
         ? html`
                 <uui-input
                   type="date"
+                  label="End Date"
                   .value=${this.endDate}
                   @input=${(e: Event) =>
             (this.endDate = (e.target as HTMLInputElement).value)}
@@ -1042,6 +1051,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
 
         <div class="end-option">
           <uui-checkbox
+            label="After occurrences"
             .checked=${this.useMaxOccurrences}
             @change=${(e: Event) => {
         this.useMaxOccurrences = (e.target as HTMLInputElement).checked;
@@ -1053,6 +1063,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
         ? html`
                 <uui-input
                   type="number"
+                  label="Max Occurrences"
                   min="1"
                   .value=${this.maxOccurrences?.toString() || "1"}
                   @input=${(e: Event) =>
