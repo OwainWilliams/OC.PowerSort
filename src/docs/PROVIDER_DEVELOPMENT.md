@@ -157,25 +157,10 @@ namespace MyCompany.PowerSort.Weather
 }
 ```
 
-### 3. Package Your Provider
+### 3. PR your provider
 
-Create a NuGet package with your provider:
+It would be great to have a collection of providers available within this project for others to use. 
 
-```xml
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <PackageId>MyCompany.PowerSort.Weather</PackageId>
-    <Title>PowerSort Weather Provider</Title>
-    <Description>Weather-based content sorting provider for OC.PowerSort</Description>
-  </PropertyGroup>
-  
-  <ItemGroup>
-    <PackageReference Include="OC.PowerSort" Version="17.2.0" />
-    <PackageReference Include="Umbraco.Cms.Core" Version="17.0.0" />
-  </ItemGroup>
-</Project>
-```
 
 ## Provider Context
 
@@ -332,8 +317,7 @@ public class WeatherSortProviderTests
 The PowerSort team is considering:
 - UI for selecting active provider per parent node
 - Configuration management UI in Umbraco backoffice
-- Provider marketplace
-- Multiple providers working together (chaining/composition)
+
 
 ## Support
 
