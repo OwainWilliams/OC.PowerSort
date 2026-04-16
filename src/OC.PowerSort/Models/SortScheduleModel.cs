@@ -35,6 +35,12 @@ namespace OC.PowerSort.Models
 
         [Column("CreatedBy")]
         public int CreatedBy { get; set; }
+
+        /// <summary>
+        /// Links this one-time schedule to its parent recurring schedule (if any)
+        /// </summary>
+        [Column("RecurringScheduleId")]
+        public Guid? RecurringScheduleId { get; set; }
     }
 
     [TableName("ocPowerSortDefaultOrder")]
@@ -63,6 +69,60 @@ namespace OC.PowerSort.Models
         public DateTime Updated { get; set; }
     }
 
+    public class ScheduleResponse
+    {
+        public Guid Id { get; set; }
+        public Guid ContentId { get; set; }
+        public string ContentName { get; set; } = string.Empty;
+        public Guid ParentId { get; set; }
+        public string ParentName { get; set; } = string.Empty;
+        public int TargetPosition { get; set; }
+        public DateTime StartDateTime { get; set; }
+        public DateTime EndDateTime { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsCurrentlyActive { get; set; }
+        public int Priority { get; set; }
+        public DateTime Created { get; set; }
+        public string CreatedByName { get; set; } = string.Empty;
+        public Guid? RecurringScheduleId { get; set; }
+    }
+
+    public class CreateScheduleRequest
+    {
+        public Guid ContentId { get; set; }
+        public Guid ParentId { get; set; }
+        public int TargetPosition { get; set; }
+        public DateTime StartDateTime { get; set; }
+        public DateTime EndDateTime { get; set; }
+        public int Priority { get; set; }
+    }
+
+    public class UpdateScheduleRequest
+    {
+        public int TargetPosition { get; set; }
+        public DateTime StartDateTime { get; set; }
+        public DateTime EndDateTime { get; set; }
+        public int Priority { get; set; }
+    }
+
+    public class ScheduleListResponse
+    {
+        public int Total { get; set; }
+        public List<ScheduleResponse> Items { get; set; } = new();
+    }
+
+    public class ActiveScheduleInfo
+    {
+        public Guid ScheduleId { get; set; }
+        public Guid ContentId { get; set; }
+        public string ContentName { get; set; } = string.Empty;
+        public int TargetPosition { get; set; }
+        public int Priority { get; set; }
+        public DateTime StartDateTime { get; set; }
+        public DateTime EndDateTime { get; set; }
+    }
+
+    // Enum Priority Models
     [TableName("ocPowerSortEnumPriority")]
     [PrimaryKey("Id", AutoIncrement = false)]
     public class EnumPriorityDto
@@ -89,83 +149,16 @@ namespace OC.PowerSort.Models
         public int UpdatedBy { get; set; }
     }
 
-    // Request/Response models for API
-    public class CreateScheduleRequest
-    {
-        public required Guid ContentId { get; set; }
-        public required Guid ParentId { get; set; }
-        public required int TargetPosition { get; set; }
-        public required DateTime StartDateTime { get; set; }
-        public required DateTime EndDateTime { get; set; }
-        public int Priority { get; set; } = 0;
-    }
-
-    public class UpdateScheduleRequest
-    {
-        public required int TargetPosition { get; set; }
-        public required DateTime StartDateTime { get; set; }
-        public required DateTime EndDateTime { get; set; }
-        public int Priority { get; set; } = 0;
-    }
-
-    public class ScheduleResponse
-    {
-        public Guid Id { get; set; }
-        public Guid ContentId { get; set; }
-        public string ContentName { get; set; } = string.Empty;
-        public Guid ParentId { get; set; }
-        public string ParentName { get; set; } = string.Empty;
-        public int TargetPosition { get; set; }
-        public DateTime StartDateTime { get; set; }
-        public DateTime EndDateTime { get; set; }
-        public bool IsActive { get; set; }
-        public bool IsCurrentlyActive { get; set; } // Computed based on current time
-        public int Priority { get; set; }
-        public DateTime Created { get; set; }
-        public string CreatedByName { get; set; } = string.Empty;
-    }
-
-    public class ScheduleListResponse
-    {
-        public int Total { get; set; }
-        public required List<ScheduleResponse> Items { get; set; }
-    }
-
-    public class ActiveScheduleInfo
-    {
-        public Guid ScheduleId { get; set; }
-        public Guid ContentId { get; set; }
-        public int TargetPosition { get; set; }
-        public DateTime EndDateTime { get; set; }
-        public int Priority { get; set; }
-    }
-
-    public class DefaultSortOrderResponse
-    {
-        public Guid ParentId { get; set; }
-        public string ParentName { get; set; } = string.Empty;
-        public int ItemCount { get; set; }
-        public DateTime Created { get; set; }
-        public DateTime Updated { get; set; }
-        public bool IsSet { get; set; }
-    }
-
-    public class SaveDefaultSortOrderRequest
-    {
-        public required Guid ParentId { get; set; }
-    }
-
-    // Enum Priority Request/Response models
     public class CreateEnumPriorityRequest
     {
-        public required string Name { get; set; }
-        public required int SortPriority { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int SortPriority { get; set; }
     }
 
     public class UpdateEnumPriorityRequest
     {
-        public required string Name { get; set; }
-        public required int SortPriority { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int SortPriority { get; set; }
     }
 
     public class EnumPriorityResponse
@@ -182,6 +175,30 @@ namespace OC.PowerSort.Models
     public class EnumPriorityListResponse
     {
         public int Total { get; set; }
-        public required List<EnumPriorityResponse> Items { get; set; }
+        public List<EnumPriorityResponse> Items { get; set; } = new();
+    }
+
+    // Default Sort Order Models
+    public class DefaultSortOrderResponse
+    {
+        public Guid ParentId { get; set; }
+        public string ParentName { get; set; } = string.Empty;
+        public int ItemCount { get; set; }
+        public DateTime Created { get; set; }
+        public DateTime Updated { get; set; }
+        public bool IsSet { get; set; }
+        public List<DefaultSortOrderItem> Items { get; set; } = new();
+    }
+
+    public class DefaultSortOrderItem
+    {
+        public Guid ContentId { get; set; }
+        public string ContentName { get; set; } = string.Empty;
+        public int SortOrder { get; set; }
+    }
+
+    public class SaveDefaultSortOrderRequest
+    {
+        public Guid ParentId { get; set; }
     }
 }

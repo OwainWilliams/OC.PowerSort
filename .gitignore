@@ -356,3 +356,4 @@ MigrationBackup/
 src/.idea
 # PowerSort build output
 OC.PowerSort/wwwroot/App_Plugins/
+/src/OC.PowerSort.TestSite/appsettings.json

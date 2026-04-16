@@ -9,7 +9,7 @@ namespace OC.PowerSort.Migrations
         {
         }
 
-        protected override async Task MigrateAsync()
+        protected override Task MigrateAsync()
         {
             var tableName = "ocPowerSortSchedule";
             Logger.LogInformation("OC.PowerSort: Checking if table {TableName} exists", tableName);
@@ -27,6 +27,7 @@ namespace OC.PowerSort.Migrations
                     .WithColumn("Priority").AsInt32().NotNullable().WithDefaultValue(0)
                     .WithColumn("Created").AsDateTime().NotNullable()
                     .WithColumn("CreatedBy").AsInt32().NotNullable()
+                    .WithColumn("RecurringScheduleId").AsGuid().Nullable()
                     .Do();
                 Logger.LogInformation("OC.PowerSort: Table {TableName} created successfully", tableName);
 
@@ -36,6 +37,17 @@ namespace OC.PowerSort.Migrations
                 Logger.LogInformation("OC.PowerSort: Table {TableName} already exists, skipping creation", tableName);
             }
 
+            return Task.CompletedTask;
+        }
+
+        private bool IsSqlite() =>
+            DatabaseType.GetType().Name.Contains("SQLite", StringComparison.OrdinalIgnoreCase);
+
+        private bool TableExists(string tableName)
+        {
+            if (IsSqlite())
+                return Database.ExecuteScalar<int>("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@0", tableName) > 0;
+            return Database.ExecuteScalar<int>("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME=@0", tableName) > 0;
         }
     }
 }

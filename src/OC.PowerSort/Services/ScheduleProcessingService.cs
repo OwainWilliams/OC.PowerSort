@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Persistence;
 using OC.PowerSort.Models;
+using OC.PowerSort.Interfaces;
 using NPoco;
 using Umbraco.Cms.Core.Scoping;
 
@@ -10,7 +12,7 @@ namespace OC.PowerSort.Services
 {
     /// <summary>
     /// Background service that runs periodically to activate and deactivate schedules,
-    /// and apply sort order changes based on active schedules.
+    /// process recurring schedule occurrences, and apply sort order changes based on active schedules.
     /// </summary>
     public class ScheduleProcessingService : BackgroundService
     {
@@ -18,29 +20,59 @@ namespace OC.PowerSort.Services
         private readonly IUmbracoDatabaseFactory _databaseFactory;
         private readonly IContentService _contentService;
         private readonly ICoreScopeProvider _scopeProvider;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly ISortProviderFactory _sortProviderFactory;
         private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1); // Check every minute
+        private readonly TimeSpan _occurrenceGenerationInterval = TimeSpan.FromHours(6); // Generate occurrences every 6 hours
+        private DateTime _lastOccurrenceGeneration = DateTime.MinValue;
 
         public ScheduleProcessingService(
             ILogger<ScheduleProcessingService> logger,
             IUmbracoDatabaseFactory databaseFactory,
             IContentService contentService,
-            ICoreScopeProvider scopeProvider)
+            ICoreScopeProvider scopeProvider,
+            IServiceScopeFactory serviceScopeFactory,
+            ISortProviderFactory sortProviderFactory)
         {
             _logger = logger;
             _databaseFactory = databaseFactory;
             _contentService = contentService;
             _scopeProvider = scopeProvider;
+            _serviceScopeFactory = serviceScopeFactory;
+            _sortProviderFactory = sortProviderFactory;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Schedule Processing Service started");
 
+            // Generate initial occurrences
+            try
+            {
+                using var scope = _serviceScopeFactory.CreateScope();
+                var occurrenceGenerator = scope.ServiceProvider.GetRequiredService<IOccurrenceGenerationService>();
+                await occurrenceGenerator.GenerateOccurrencesForAllActiveRecurringSchedulesAsync();
+                _lastOccurrenceGeneration = DateTime.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during initial occurrence generation");
+            }
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
                     await ProcessSchedulesAsync();
+
+                    // Periodically regenerate occurrences
+                    if (DateTime.UtcNow - _lastOccurrenceGeneration >= _occurrenceGenerationInterval)
+                    {
+                        using var scope = _serviceScopeFactory.CreateScope();
+                        var occurrenceGenerator = scope.ServiceProvider.GetRequiredService<IOccurrenceGenerationService>();
+                        await occurrenceGenerator.GenerateOccurrencesForAllActiveRecurringSchedulesAsync();
+                        _lastOccurrenceGeneration = DateTime.UtcNow;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -61,6 +93,9 @@ namespace OC.PowerSort.Services
             {
                 var now = DateTime.UtcNow;
                 using var database = _databaseFactory.CreateDatabase();
+
+                // Process recurring schedule occurrences
+                await ProcessRecurringScheduleOccurrencesAsync(database, now);
 
                 // Step 1: Activate schedules that should be active
                 var schedulesToActivate = database.Fetch<SortScheduleDto>(
@@ -146,7 +181,84 @@ namespace OC.PowerSort.Services
             }
         }
 
-        private async Task RestoreDefaultSortOrderAsync(Guid parentId, IUmbracoDatabase database)
+        private async Task ProcessRecurringScheduleOccurrencesAsync(
+            Umbraco.Cms.Infrastructure.Persistence.IUmbracoDatabase database,
+            DateTime now)
+        {
+            // Find unprocessed occurrences that should start
+            var occurrencesToProcess = database.Fetch<ScheduleOccurrenceDto>(
+                @"SELECT * FROM ocPowerSortScheduleOccurrence 
+                  WHERE IsProcessed = 0 
+                  AND IsCancelled = 0 
+                  AND OccurrenceStartDate <= @0",
+                now);
+
+            foreach (var occurrence in occurrencesToProcess)
+            {
+                try
+                {
+                    // Get the parent recurring schedule
+                    var recurringSchedule = database.SingleOrDefault<RecurringScheduleDto>(
+                        "SELECT * FROM ocPowerSortRecurringSchedule WHERE Id = @0",
+                        occurrence.RecurringScheduleId);
+
+                    if (recurringSchedule == null || !recurringSchedule.IsEnabled)
+                    {
+                        _logger.LogWarning(
+                            "Recurring schedule {RecurringScheduleId} not found or disabled for occurrence {OccurrenceId}",
+                            occurrence.RecurringScheduleId, occurrence.Id);
+                        occurrence.IsProcessed = true;
+                        database.Update(occurrence);
+                        continue;
+                    }
+
+                    // Create a one-time schedule from this occurrence
+                    var oneTimeSchedule = new SortScheduleDto
+                    {
+                        Id = Guid.NewGuid(),
+                        ContentId = recurringSchedule.ContentId,
+                        ParentId = recurringSchedule.ParentId,
+                        TargetPosition = recurringSchedule.TargetPosition,
+                        StartDateTime = occurrence.OccurrenceStartDate,
+                        EndDateTime = occurrence.OccurrenceEndDate,
+                        IsActive = false, // Will be activated by normal schedule processing
+                        Priority = recurringSchedule.Priority,
+                        Created = DateTime.UtcNow,
+                        CreatedBy = recurringSchedule.CreatedBy,
+                        RecurringScheduleId = recurringSchedule.Id
+                    };
+
+                    database.Insert(oneTimeSchedule);
+
+                    // Mark occurrence as processed
+                    occurrence.IsProcessed = true;
+                    database.Update(occurrence);
+
+                    _logger.LogInformation(
+                        "Created one-time schedule {ScheduleId} from recurring schedule {RecurringScheduleId} occurrence {OccurrenceId}",
+                        oneTimeSchedule.Id, recurringSchedule.Id, occurrence.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing occurrence {OccurrenceId}", occurrence.Id);
+                }
+            }
+
+            // Clean up old processed occurrences (older than 30 days)
+            var cleanupDate = now.AddDays(-30);
+            var deletedCount = database.Execute(
+                @"DELETE FROM ocPowerSortScheduleOccurrence 
+                  WHERE IsProcessed = 1 
+                  AND OccurrenceEndDate < @0",
+                cleanupDate);
+
+            if (deletedCount > 0)
+            {
+                _logger.LogInformation("Cleaned up {Count} old processed occurrences", deletedCount);
+            }
+        }
+
+        private async Task RestoreDefaultSortOrderAsync(Guid parentId, Umbraco.Cms.Infrastructure.Persistence.IUmbracoDatabase database)
         {
             try
             {
@@ -239,103 +351,78 @@ namespace OC.PowerSort.Services
                 }
 
                 _logger.LogInformation(
-                    "Processing {ScheduleCount} schedules for parent {ParentId} with {ChildCount} children",
+                    "Processing {ScheduleCount} schedules for parent {ParentId} with {ChildCount} children using provider system",
                     schedules.Count, parentId, children.Count);
 
-                // Create a list we can manipulate
-                var orderedChildren = children.ToList();
-                var changesMade = false;
-
-                // Track which positions have been claimed by schedules (for conflict resolution)
-                var claimedPositions = new Dictionary<int, SortScheduleDto>();
-
-                // Sort schedules by priority (highest first), then by start time (earliest first)
-                var sortedSchedules = schedules
-                    .OrderByDescending(s => s.Priority)
-                    .ThenBy(s => s.StartDateTime)
-                    .ToList();
-
-                // First pass: Determine which schedule claims which position
-                foreach (var schedule in sortedSchedules)
+                // Convert to provider context
+                var context = new SortContext
                 {
-                    var targetPosition = Math.Min(schedule.TargetPosition, children.Count - 1);
-
-                    if (!claimedPositions.ContainsKey(targetPosition))
+                    ParentId = parentId,
+                    Children = children.Select(c => new SortableContent
                     {
-                        claimedPositions[targetPosition] = schedule;
-                        _logger.LogInformation(
-                            "Schedule {ScheduleId} (Priority: {Priority}) claims position {Position} for content {ContentName}",
-                            schedule.Id, schedule.Priority, targetPosition, 
-                            children.FirstOrDefault(c => c.Key == schedule.ContentId)?.Name ?? "Unknown");
-                    }
-                    else
+                        Id = c.Key,
+                        Name = c.Name,
+                        CurrentSortOrder = c.SortOrder,
+                        CreateDate = c.CreateDate,
+                        UpdateDate = c.UpdateDate,
+                        Properties = new Dictionary<string, object>()
+                    }).ToList(),
+                    ActiveSchedules = schedules.Select(s => new SortSchedule
                     {
-                        var existingSchedule = claimedPositions[targetPosition];
-                        _logger.LogWarning(
-                            "Position {Position} conflict: Schedule {ScheduleId} (Priority: {Priority}) is blocked by schedule {ExistingScheduleId} (Priority: {ExistingPriority}). Skipping lower priority schedule.",
-                            targetPosition, schedule.Id, schedule.Priority, existingSchedule.Id, existingSchedule.Priority);
-                    }
-                }
+                        Id = s.Id,
+                        ContentId = s.ContentId,
+                        TargetPosition = s.TargetPosition,
+                        Priority = s.Priority,
+                        StartDateTime = s.StartDateTime,
+                        EndDateTime = s.EndDateTime
+                    }).ToList(),
+                    Timestamp = DateTime.UtcNow
+                };
 
-                // Second pass: Apply only the winning schedules
-                foreach (var kvp in claimedPositions.OrderBy(x => x.Key))
+                // Get the default provider and calculate sort order
+                var provider = _sortProviderFactory.GetDefaultProvider();
+                _logger.LogInformation("Using sort provider: {ProviderKey} - {DisplayName}", 
+                    provider.ProviderKey, provider.DisplayName);
+
+                var sortResult = await provider.CalculateSortOrderAsync(context);
+
+                _logger.LogInformation(
+                    "Provider completed in {ExecutionTime}ms. Changes needed: {ChangesMade}",
+                    sortResult.ExecutionTimeMs, sortResult.ChangesMade);
+
+                // Apply the sorted order if changes were made
+                if (sortResult.ChangesMade && sortResult.SortedContentIds.Any())
                 {
-                    var targetPosition = kvp.Key;
-                    var schedule = kvp.Value;
+                    _logger.LogInformation("Applying new sort order to {Count} children", sortResult.SortedContentIds.Count);
 
-                    // Find the content by Key in our ordered list
-                    var contentIndex = orderedChildren.FindIndex(c => c.Key == schedule.ContentId);
-                    
-                    if (contentIndex == -1)
+                    for (int i = 0; i < sortResult.SortedContentIds.Count; i++)
                     {
-                        _logger.LogWarning(
-                            "Content {ContentId} not found in parent {ParentId}",
-                            schedule.ContentId, parentId);
-                        continue;
-                    }
+                        var contentId = sortResult.SortedContentIds[i];
+                        var child = children.FirstOrDefault(c => c.Key == contentId);
 
-                    if (contentIndex != targetPosition)
-                    {
-                        _logger.LogInformation(
-                            "Moving content {ContentName} (Key: {ContentKey}, Priority: {Priority}) from position {From} to {To} based on schedule {ScheduleId}",
-                            orderedChildren[contentIndex].Name, schedule.ContentId, schedule.Priority, contentIndex, targetPosition, schedule.Id);
-
-                        // Remove from current position and insert at target position
-                        var contentToMove = orderedChildren[contentIndex];
-                        orderedChildren.RemoveAt(contentIndex);
-                        orderedChildren.Insert(targetPosition, contentToMove);
-                        
-                        changesMade = true;
-                    }
-                    else
-                    {
-                        _logger.LogInformation(
-                            "Content {ContentName} (Priority: {Priority}) already at target position {Position}",
-                            orderedChildren[contentIndex].Name, schedule.Priority, targetPosition);
-                    }
-                }
-
-                // If changes were made, apply the new sort order to all children
-                if (changesMade)
-                {
-                    _logger.LogInformation("Applying new sort order to {Count} children", orderedChildren.Count);
-                    
-                    for (int i = 0; i < orderedChildren.Count; i++)
-                    {
-                        var child = orderedChildren[i];
-                        var oldSortOrder = child.SortOrder;
-                        child.SortOrder = i;
-                        
-                        if (oldSortOrder != i)
+                        if (child != null)
                         {
-                            _contentService.Save(child);
-                            _logger.LogInformation(
-                                "Updated {ContentName} SortOrder from {OldOrder} to {NewOrder}",
-                                child.Name, oldSortOrder, i);
+                            var oldSortOrder = child.SortOrder;
+                            child.SortOrder = i;
+
+                            if (oldSortOrder != i)
+                            {
+                                _contentService.Save(child);
+                                _logger.LogInformation(
+                                    "Updated {ContentName} SortOrder from {OldOrder} to {NewOrder}",
+                                    child.Name, oldSortOrder, i);
+                            }
                         }
                     }
-                    
+
                     _logger.LogInformation("Successfully applied sort order changes for parent {ParentId}", parentId);
+
+                    // Log metadata if available
+                    if (sortResult.Metadata.Any())
+                    {
+                        _logger.LogInformation("Sort metadata: {Metadata}", 
+                            string.Join(", ", sortResult.Metadata.Select(kvp => $"{kvp.Key}={kvp.Value}")));
+                    }
                 }
                 else
                 {

@@ -18,19 +18,9 @@ using Umbraco.Extensions;
 
 namespace Umbraco.Cms.Web.Common.PublishedModels
 {
-	// Mixin Content Type with alias "footerControls"
-	/// <summary>Footer Controls</summary>
-	public partial interface IFooterControls : IPublishedContent
-	{
-		/// <summary>Social Icon Links</summary>
-		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "17.2.0+51e91c8")]
-		[global::System.Diagnostics.CodeAnalysis.MaybeNull]
-		global::Umbraco.Cms.Core.Models.Blocks.BlockListModel SocialIconLinks { get; }
-	}
-
 	/// <summary>Footer Controls</summary>
 	[PublishedModel("footerControls")]
-	public partial class FooterControls : PublishedContentModel, IFooterControls
+	public partial class FooterControls : PublishedContentModel
 	{
 		// helpers
 #pragma warning disable 0109 // new is redundant
@@ -65,11 +55,6 @@ namespace Umbraco.Cms.Web.Common.PublishedModels
 		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "17.2.0+51e91c8")]
 		[global::System.Diagnostics.CodeAnalysis.MaybeNull]
 		[ImplementPropertyType("socialIconLinks")]
-		public virtual global::Umbraco.Cms.Core.Models.Blocks.BlockListModel SocialIconLinks => GetSocialIconLinks(this, _publishedValueFallback);
-
-		/// <summary>Static getter for Social Icon Links</summary>
-		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "17.2.0+51e91c8")]
-		[return: global::System.Diagnostics.CodeAnalysis.MaybeNull]
-		public static global::Umbraco.Cms.Core.Models.Blocks.BlockListModel GetSocialIconLinks(IFooterControls that, IPublishedValueFallback publishedValueFallback) => that.Value<global::Umbraco.Cms.Core.Models.Blocks.BlockListModel>(publishedValueFallback, "socialIconLinks");
+		public virtual global::Umbraco.Cms.Core.Models.Blocks.BlockListModel SocialIconLinks => this.Value<global::Umbraco.Cms.Core.Models.Blocks.BlockListModel>(_publishedValueFallback, "socialIconLinks");
 	}
 }
