@@ -8,10 +8,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Provider System**: Extensible architecture allowing third-party developers to create custom sorting strategies
+  - `ISortProvider` interface for implementing custom sort logic
+  - `ISortProviderFactory` for provider discovery and management
+  - `DefaultScheduleSortProvider` implementing existing schedule-based sorting (backward compatible)
+  - Example providers demonstrating PowerSort-specific use cases:
+    - `FeaturedContentBoostProvider` - Boosts featured content while respecting schedules
+    - `PopularityBoostProvider` - Boosts content by view count, with schedule overrides
+  - Comprehensive provider development documentation
+- **Unit Tests**: Complete test coverage for provider system (90 tests, 100% passing)
+  - `DefaultScheduleSortProviderTests` (23 tests)
+  - `SortProviderFactoryTests` (15 tests)
+  - `FeaturedContentBoostProviderTests` (10 tests) - Schedule-aware boosting tests
+  - `PopularityBoostProviderTests` (11 tests) - Analytics integration with schedules
 - Recurring schedule support for automated content sorting
 - Recurring schedule API endpoints
 - Schedule occurrence tracking and generation
 - Recurrence calculator service for handling complex recurring patterns
+
+### Changed
+- `ScheduleProcessingService` now uses provider system for sort calculations
+- Provider-based sorting maintains full backward compatibility with existing schedules
+- Example providers now demonstrate **schedule-aware boosting** (PowerSort's core strength) rather than generic sorting
+
+### Fixed
+- Null key handling in `SortProviderFactory.GetProvider()`
+- Empty children handling in provider metadata calculation
+
+### Technical
+- New namespace: `OC.PowerSort.Providers` for provider implementations
+- New namespace: `OC.PowerSort.Providers.Examples` for reference providers
+- New service: `SortProviderFactory` registered as singleton
+- Enhanced logging in sort operations with provider metadata
+- All example providers now demonstrate `SupportsScheduling = true` pattern
 
 ### Fixed
 - API response handling to prevent "body stream already read" errors

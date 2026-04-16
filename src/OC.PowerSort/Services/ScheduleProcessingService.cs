@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Persistence;
 using OC.PowerSort.Models;
+using OC.PowerSort.Interfaces;
 using NPoco;
 using Umbraco.Cms.Core.Scoping;
 
@@ -20,6 +21,7 @@ namespace OC.PowerSort.Services
         private readonly IContentService _contentService;
         private readonly ICoreScopeProvider _scopeProvider;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly ISortProviderFactory _sortProviderFactory;
         private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1); // Check every minute
         private readonly TimeSpan _occurrenceGenerationInterval = TimeSpan.FromHours(6); // Generate occurrences every 6 hours
         private DateTime _lastOccurrenceGeneration = DateTime.MinValue;
@@ -29,13 +31,15 @@ namespace OC.PowerSort.Services
             IUmbracoDatabaseFactory databaseFactory,
             IContentService contentService,
             ICoreScopeProvider scopeProvider,
-            IServiceScopeFactory serviceScopeFactory)
+            IServiceScopeFactory serviceScopeFactory,
+            ISortProviderFactory sortProviderFactory)
         {
             _logger = logger;
             _databaseFactory = databaseFactory;
             _contentService = contentService;
             _scopeProvider = scopeProvider;
             _serviceScopeFactory = serviceScopeFactory;
+            _sortProviderFactory = sortProviderFactory;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -347,103 +351,78 @@ namespace OC.PowerSort.Services
                 }
 
                 _logger.LogInformation(
-                    "Processing {ScheduleCount} schedules for parent {ParentId} with {ChildCount} children",
+                    "Processing {ScheduleCount} schedules for parent {ParentId} with {ChildCount} children using provider system",
                     schedules.Count, parentId, children.Count);
 
-                // Create a list we can manipulate
-                var orderedChildren = children.ToList();
-                var changesMade = false;
-
-                // Track which positions have been claimed by schedules (for conflict resolution)
-                var claimedPositions = new Dictionary<int, SortScheduleDto>();
-
-                // Sort schedules by priority (highest first), then by start time (earliest first)
-                var sortedSchedules = schedules
-                    .OrderByDescending(s => s.Priority)
-                    .ThenBy(s => s.StartDateTime)
-                    .ToList();
-
-                // First pass: Determine which schedule claims which position
-                foreach (var schedule in sortedSchedules)
+                // Convert to provider context
+                var context = new SortContext
                 {
-                    var targetPosition = Math.Min(schedule.TargetPosition, children.Count - 1);
-
-                    if (!claimedPositions.ContainsKey(targetPosition))
+                    ParentId = parentId,
+                    Children = children.Select(c => new SortableContent
                     {
-                        claimedPositions[targetPosition] = schedule;
-                        _logger.LogInformation(
-                            "Schedule {ScheduleId} (Priority: {Priority}) claims position {Position} for content {ContentName}",
-                            schedule.Id, schedule.Priority, targetPosition, 
-                            children.FirstOrDefault(c => c.Key == schedule.ContentId)?.Name ?? "Unknown");
-                    }
-                    else
+                        Id = c.Key,
+                        Name = c.Name,
+                        CurrentSortOrder = c.SortOrder,
+                        CreateDate = c.CreateDate,
+                        UpdateDate = c.UpdateDate,
+                        Properties = new Dictionary<string, object>()
+                    }).ToList(),
+                    ActiveSchedules = schedules.Select(s => new SortSchedule
                     {
-                        var existingSchedule = claimedPositions[targetPosition];
-                        _logger.LogWarning(
-                            "Position {Position} conflict: Schedule {ScheduleId} (Priority: {Priority}) is blocked by schedule {ExistingScheduleId} (Priority: {ExistingPriority}). Skipping lower priority schedule.",
-                            targetPosition, schedule.Id, schedule.Priority, existingSchedule.Id, existingSchedule.Priority);
-                    }
-                }
+                        Id = s.Id,
+                        ContentId = s.ContentId,
+                        TargetPosition = s.TargetPosition,
+                        Priority = s.Priority,
+                        StartDateTime = s.StartDateTime,
+                        EndDateTime = s.EndDateTime
+                    }).ToList(),
+                    Timestamp = DateTime.UtcNow
+                };
 
-                // Second pass: Apply only the winning schedules
-                foreach (var kvp in claimedPositions.OrderBy(x => x.Key))
+                // Get the default provider and calculate sort order
+                var provider = _sortProviderFactory.GetDefaultProvider();
+                _logger.LogInformation("Using sort provider: {ProviderKey} - {DisplayName}", 
+                    provider.ProviderKey, provider.DisplayName);
+
+                var sortResult = await provider.CalculateSortOrderAsync(context);
+
+                _logger.LogInformation(
+                    "Provider completed in {ExecutionTime}ms. Changes needed: {ChangesMade}",
+                    sortResult.ExecutionTimeMs, sortResult.ChangesMade);
+
+                // Apply the sorted order if changes were made
+                if (sortResult.ChangesMade && sortResult.SortedContentIds.Any())
                 {
-                    var targetPosition = kvp.Key;
-                    var schedule = kvp.Value;
+                    _logger.LogInformation("Applying new sort order to {Count} children", sortResult.SortedContentIds.Count);
 
-                    // Find the content by Key in our ordered list
-                    var contentIndex = orderedChildren.FindIndex(c => c.Key == schedule.ContentId);
-                    
-                    if (contentIndex == -1)
+                    for (int i = 0; i < sortResult.SortedContentIds.Count; i++)
                     {
-                        _logger.LogWarning(
-                            "Content {ContentId} not found in parent {ParentId}",
-                            schedule.ContentId, parentId);
-                        continue;
-                    }
+                        var contentId = sortResult.SortedContentIds[i];
+                        var child = children.FirstOrDefault(c => c.Key == contentId);
 
-                    if (contentIndex != targetPosition)
-                    {
-                        _logger.LogInformation(
-                            "Moving content {ContentName} (Key: {ContentKey}, Priority: {Priority}) from position {From} to {To} based on schedule {ScheduleId}",
-                            orderedChildren[contentIndex].Name, schedule.ContentId, schedule.Priority, contentIndex, targetPosition, schedule.Id);
-
-                        // Remove from current position and insert at target position
-                        var contentToMove = orderedChildren[contentIndex];
-                        orderedChildren.RemoveAt(contentIndex);
-                        orderedChildren.Insert(targetPosition, contentToMove);
-                        
-                        changesMade = true;
-                    }
-                    else
-                    {
-                        _logger.LogInformation(
-                            "Content {ContentName} (Priority: {Priority}) already at target position {Position}",
-                            orderedChildren[contentIndex].Name, schedule.Priority, targetPosition);
-                    }
-                }
-
-                // If changes were made, apply the new sort order to all children
-                if (changesMade)
-                {
-                    _logger.LogInformation("Applying new sort order to {Count} children", orderedChildren.Count);
-                    
-                    for (int i = 0; i < orderedChildren.Count; i++)
-                    {
-                        var child = orderedChildren[i];
-                        var oldSortOrder = child.SortOrder;
-                        child.SortOrder = i;
-                        
-                        if (oldSortOrder != i)
+                        if (child != null)
                         {
-                            _contentService.Save(child);
-                            _logger.LogInformation(
-                                "Updated {ContentName} SortOrder from {OldOrder} to {NewOrder}",
-                                child.Name, oldSortOrder, i);
+                            var oldSortOrder = child.SortOrder;
+                            child.SortOrder = i;
+
+                            if (oldSortOrder != i)
+                            {
+                                _contentService.Save(child);
+                                _logger.LogInformation(
+                                    "Updated {ContentName} SortOrder from {OldOrder} to {NewOrder}",
+                                    child.Name, oldSortOrder, i);
+                            }
                         }
                     }
-                    
+
                     _logger.LogInformation("Successfully applied sort order changes for parent {ParentId}", parentId);
+
+                    // Log metadata if available
+                    if (sortResult.Metadata.Any())
+                    {
+                        _logger.LogInformation("Sort metadata: {Metadata}", 
+                            string.Join(", ", sortResult.Metadata.Select(kvp => $"{kvp.Key}={kvp.Value}")));
+                    }
                 }
                 else
                 {

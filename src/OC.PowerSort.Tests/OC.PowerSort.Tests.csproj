@@ -9,6 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="NotificationHandlers\**" />
+    <EmbeddedResource Remove="NotificationHandlers\**" />
+    <None Remove="NotificationHandlers\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="NUnit" Version="4.3.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
@@ -28,10 +34,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OC.PowerSort.TestSite\OC.PowerSort.TestSite.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="NotificationHandlers\" />
   </ItemGroup>
 
  
