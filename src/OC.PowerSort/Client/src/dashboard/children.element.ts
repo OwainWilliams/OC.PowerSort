@@ -786,6 +786,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                         <uui-button
                           look="outline"
                           color="default"
+                          label="View Schedule${schedules.length > 1 ? "s" : ""}"
                           @click=${(e: MouseEvent) =>
               this.toggleSchedules(e, index)}
                         >

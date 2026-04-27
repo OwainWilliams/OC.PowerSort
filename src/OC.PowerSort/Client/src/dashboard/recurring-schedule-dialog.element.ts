@@ -418,6 +418,32 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
         width: 100%;
       }
 
+      .form-group.inline {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-2);
+        flex-wrap: nowrap;
+      }
+
+      .form-group.inline label {
+        display: inline-block;
+        margin-bottom: 0;
+        white-space: nowrap;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+
+      .form-group.inline uui-input,
+      .form-group.inline select {
+        width: auto;
+        flex-shrink: 0;
+      }
+
+      .form-group.inline .interval-text {
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
       .form-group select {
         padding: var(--uui-size-space-2);
         border: 1px solid var(--uui-color-border);
@@ -650,28 +676,25 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
         ? html`<div class="error-message">${this.error}</div>`
         : ""}
 
-            ${!this.schedule
-        ? html`
-                  <div class="form-group">
-                    <label for="contentSelect">Content to Boost</label>
-                    ${this.loadingChildren
-            ? html`<div>Loading children...</div>`
-            : this.children.length === 0
-              ? html`<div>No children found</div>`
-              : html`
+            <div class="form-group">
+              <label for="contentSelect">Content to Boost</label>
+              ${!this.schedule ? html`${this.loadingChildren
+        ? html`<uui-loader></uui-loader>` : this.nodeChildren.length === 0
+          ? html`<div>No children found</div>` : html`
                             <select
                               id="contentSelect"
+                              style="width: auto; min-width: 200px;"
                               @change=${(e: Event) => {
-                  const select = e.target as HTMLSelectElement;
-                  this.contentId = select.value;
-                  const selectedChild = this.nodeChildren.find(
-                    (c) => c.id === select.value,
-                  );
-                  this.contentName = selectedChild?.name || "";
-                }}
+              const select = e.target as HTMLSelectElement;
+              this.contentId = select.value;
+              const selectedChild = this.nodeChildren.find(
+                (c) => c.id === select.value,
+              );
+              this.contentName = selectedChild?.name || "";
+            }}
                             >
                               ${this.nodeChildren.map(
-                  (child) => html`
+              (child) => html`
                                   <option
                                     value="${child.id}"
                                     ?selected=${this.contentId === child.id}
@@ -679,27 +702,19 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                                     ${child.name}
                                   </option>
                                 `,
-                )}
+            )}
                             </select>
-                            ${this.contentName
-                  ? html`<div
-                                  style="margin-top: var(--uui-size-space-2); font-size: var(--uui-type-small-size);"
-                                >
-                                  Selected: ${this.contentName}
-                                </div>`
-                  : ""}
                           `}
-                  </div>
-                `
-        : html`<div class="form-group">
-                  <strong>Content:</strong> ${this.contentName}
-                </div>`}
+                  `
+        : html`<div><strong>${this.contentName}</strong></div>`}
+            </div>
 
             <div class="form-group">
               <label for="targetPosition">Target Position</label>
               <uui-input
                 type="number"
                 id="targetPosition"
+                label="Target Position"
                 .value=${this.targetPosition.toString()}
                 @input=${(e: Event) =>
       (this.targetPosition = parseInt(
@@ -715,6 +730,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               <uui-input
                 type="number"
                 id="boostDuration"
+                label="Boost Duration (hours)"
                 .value=${this.boostDurationHours.toString()}
                 @input=${(e: Event) =>
       (this.boostDurationHours = parseInt(
@@ -723,10 +739,11 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               ></uui-input>
             </div>
 
-            <div class="form-group">
-              <label for="recurrenceType">Recurrence Pattern</label>
+            <div class="form-group inline">
+              <label for="recurrenceType">How often to repeat</label>
               <select
                 id="recurrenceType"
+                style="width: auto; min-width: 150px;"
                 @change=${this.handleRecurrenceTypeChange}
               >
                 <option
@@ -750,24 +767,27 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group inline">
               <label for="interval">Every</label>
               <uui-input
                 type="number"
                 id="interval"
+                label="Interval"
                 min="1"
-                style="width: 100px;"
+                style="width: 80px;"
                 .value=${this.interval.toString()}
                 @input=${(e: Event) =>
       (this.interval = parseInt(
         (e.target as HTMLInputElement).value,
       ))}
               ></uui-input>
-              ${this.recurrenceType === "Daily"
+              <span class="interval-text">
+                ${this.recurrenceType === "Daily"
         ? "day(s)"
         : this.recurrenceType === "Weekly"
           ? "week(s)"
           : "month(s)"}
+              </span>
             </div>
 
             ${this.recurrenceType === "Weekly"
@@ -782,6 +802,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               <uui-input
                 type="date"
                 id="startDate"
+                label="Start Date"
                 .value=${this.startDate}
                 @input=${(e: Event) =>
         (this.startDate = (e.target as HTMLInputElement).value)}
@@ -862,10 +883,10 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
 
 
           <div class="dialog-footer">
-            <uui-button look="secondary" @click=${this.handleClose}>
+            <uui-button look="secondary" label="Cancel" @click=${this.handleClose}>
               Cancel
             </uui-button>
-            <uui-button look="primary" color="positive" @click=${this.handleSave}>
+            <uui-button look="primary" color="positive" label="Save" @click=${this.handleSave}>
               ${this.schedule ? "Update" : "Create"}
             </uui-button>
           </div>
@@ -888,6 +909,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
                 look="${this.daysOfWeek.includes(day.value)
           ? "primary"
           : "secondary"}"
+                label="${day.label}"
                 @click=${() => this.handleDayOfWeekToggle(day.value)}
               >
                 ${day.short}
@@ -930,6 +952,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
               <uui-input
                 type="number"
                 id="dayOfMonth"
+                label="Day of Month"
                 min="1"
                 max="31"
                 .value=${this.dayOfMonth.toString()}
@@ -993,6 +1016,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
       <div class="end-options">
         <div class="end-option">
           <uui-checkbox
+            label="No end date (runs indefinitely)"
             .checked=${!this.useEndDate && !this.useMaxOccurrences}
             @change=${() => {
         this.useEndDate = false;
@@ -1004,6 +1028,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
 
         <div class="end-option">
           <uui-checkbox
+            label="End by"
             .checked=${this.useEndDate}
             @change=${(e: Event) => {
         this.useEndDate = (e.target as HTMLInputElement).checked;
@@ -1015,6 +1040,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
         ? html`
                 <uui-input
                   type="date"
+                  label="End Date"
                   .value=${this.endDate}
                   @input=${(e: Event) =>
             (this.endDate = (e.target as HTMLInputElement).value)}
@@ -1025,6 +1051,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
 
         <div class="end-option">
           <uui-checkbox
+            label="After occurrences"
             .checked=${this.useMaxOccurrences}
             @change=${(e: Event) => {
         this.useMaxOccurrences = (e.target as HTMLInputElement).checked;
@@ -1036,6 +1063,7 @@ export default class RecurringScheduleDialogElement extends UmbUiMixin(
         ? html`
                 <uui-input
                   type="number"
+                  label="Max Occurrences"
                   min="1"
                   .value=${this.maxOccurrences?.toString() || "1"}
                   @input=${(e: Event) =>

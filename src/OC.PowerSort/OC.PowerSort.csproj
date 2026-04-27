@@ -26,7 +26,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>ocPowerSortLogo.png</PackageIcon>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>17.2.0-alpha003</Version>
+    <Version>17.2.0-alpha005</Version>
     <PackageReleaseNotes>Recurring schedules now possible</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <IncludeSymbols>true</IncludeSymbols>
