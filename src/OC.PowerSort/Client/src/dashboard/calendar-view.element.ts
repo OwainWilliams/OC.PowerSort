@@ -44,6 +44,7 @@ const visTimelineCss = `
   bottom: 0;
   overflow: hidden;
 }
+
 .vis-panel.vis-center,
 .vis-panel.vis-top,
 .vis-panel.vis-bottom {
@@ -187,6 +188,9 @@ const visTimelineCss = `
   border-style: solid;
   border-radius: 2px;
   box-sizing: border-box;
+  cursor: pointer;
+  font-weight: 600;
+
 }
 .vis-item.vis-background {
   border: none;
@@ -396,22 +400,23 @@ const visTimelineCss = `
 .vis-panel.vis-background.vis-horizontal .vis-grid.vis-major {
   border-color: #bfbfbf;
 }
-.vis-tooltip {
-  position: absolute;
-  visibility: visible;
-  padding: 8px;
-  white-space: nowrap;
-  font-family: sans-serif;
-  font-size: 13px;
-  color: #1a1a1a;
-  background-color: #fff;
-  border: 1px solid #bfbfbf;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
-  pointer-events: none;
-  z-index: 1000;
-}
+
+
 `;
+
+// Type for timeline items
+type TimelineItem = {
+  id: string;
+  group: number;
+  content: string;
+  start: Date;
+  end: Date;
+  type: string;
+  className: string;
+  title: string;
+  subgroup: number;
+  data: ScheduleResponse | RecurringSchedule;
+};
 
 @customElement("calendar-view")
 export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
@@ -488,6 +493,12 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
       zoomMin: 1000 * 60 * 60 * 24, // 1 day minimum zoom
       zoomMax: 1000 * 60 * 60 * 24 * 90, // 90 days maximum zoom
       editable: false,
+      selectable: true,
+      // Order function controls stacking - higher priority items appear on top
+      order: (a: any, b: any) => {
+        // Higher subgroup (priority) value should be on top (first in stack)
+        return (b.subgroup || 0) - (a.subgroup || 0);
+      },
       margin: {
         item: {
           horizontal: 10,
@@ -502,24 +513,52 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
         followMouse: true,
         overflowMethod: "flip",
         template: function (originalItemData: any, _parsedItemData: any) {
-          const colorMap: Record<string, string> = {
-            "active-schedule": "#16a34a",
-            scheduled: "#2563eb",
-            "recurring-scheduled": "#9333ea",
-            "recurring-processed": "#64748b",
+          const labelMap: Record<string, string> = {
+            "active-schedule": "Currently Active",
+            scheduled: "Scheduled",
+            "recurring-scheduled": "Recurring (Scheduled)",
+            "recurring-processed": "Recurring (Processed)",
           };
-          const color = colorMap[originalItemData.className] ?? "#333";
-          return `<div style="padding:6px 10px;font-family:sans-serif;font-size:13px;">
-            <strong style="color:${color}">${originalItemData.content}</strong>
-            <hr style="margin:4px 0;border-color:${color};opacity:0.3;" />
-            ${originalItemData.title.replace(/<br\s*\/?>/gi, "<br/>")}
-          </div>`;
+
+          return `<section>
+                    <div>
+                      <strong>${originalItemData.content}</strong>
+                      <div>${labelMap[originalItemData.className]}</div>
+                    </div>
+                    <hr />
+                    <div>
+                     <strong>Position:</strong> ${originalItemData.data.targetPosition !== undefined ? originalItemData.data.targetPosition : ""}<br/>
+                      <strong>Priority:</strong> ${originalItemData.data.priority !== undefined ? originalItemData.data.priority : ""}<br/>
+                      <strong>Start:</strong> ${new Date(originalItemData.start).toLocaleString()}<br/>
+                      <strong>End:</strong> ${new Date(originalItemData.end).toLocaleString()}
+                      ${originalItemData.data.pattern ? `<br/><strong>Pattern:</strong> ${originalItemData.data.pattern.description}` : ""}
+                    </div>
+                  </section>`;
         },
       },
     };
 
     // Initialize timeline
     this.timeline = new Timeline(container, this.items, this.groups, options);
+
+    this.timeline.on("itemover", (properties) => {
+      if (properties.item) {
+        const item = this.items!.get(
+          properties.item,
+        ) as unknown as TimelineItem;
+        if (item) {
+          // Find the tooltip element and style it
+          setTimeout(() => {
+            const tooltip = this.renderRoot.querySelector(
+              ".vis-tooltip",
+            ) as HTMLElement;
+            if (tooltip) {
+              this.styleTooltip(tooltip, item.className);
+            }
+          }, 10);
+        }
+      }
+    });
 
     // Add click handler for items
     this.timeline.on("select", (properties) => {
@@ -533,6 +572,57 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
     this.updateTimelineData();
   }
 
+  private styleTooltip(tooltip: HTMLElement, className: string) {
+    const colorMap: Record<string, string> = {
+      "active-schedule": "#16a34a",
+      scheduled: "#2563eb",
+      "recurring-scheduled": "#f79c37",
+      "recurring-processed": "#64748b",
+    };
+
+    const color = colorMap[className] || "#333";
+
+    const strong = tooltip.querySelector("strong") as HTMLElement;
+    if (strong) {
+      strong.style.color = color;
+      strong.style.fontWeight = "600";
+      strong.style.fontSize = "16px";
+    }
+
+    const headerContainer = tooltip.querySelector(
+      "section > div",
+    ) as HTMLElement;
+    if (headerContainer) {
+      headerContainer.style.display = "flex";
+      headerContainer.style.alignItems = "center";
+      headerContainer.style.justifyContent = "space-between";
+    }
+
+    const classNameDiv = tooltip.querySelector("strong + div") as HTMLElement;
+    if (classNameDiv) {
+      classNameDiv.style.fontSize = "14px";
+      classNameDiv.style.fontWeight = "600";
+      classNameDiv.style.marginTop = "4px";
+      classNameDiv.style.backgroundColor = color;
+      classNameDiv.style.padding = "6px";
+      classNameDiv.style.borderRadius = "5px";
+      classNameDiv.style.color = "#fff";
+    }
+
+    // Target the hr element
+    const hr = tooltip.querySelector("hr") as HTMLElement;
+    if (hr) {
+      hr.style.margin = "8px 0";
+      hr.style.border = "none";
+      hr.style.height = "1px";
+      hr.style.backgroundColor = color;
+      hr.style.opacity = "0.3";
+    }
+
+    // Add colored left border to tooltip
+    tooltip.style.borderLeftWidth = "4px";
+    tooltip.style.borderLeftColor = color;
+  }
   private isUpdating = false;
 
   private async updateTimelineData() {
@@ -568,8 +658,8 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
 
         this.items!.add({
           id: schedule.id,
-          group: schedule.targetPosition, // ← use position as group
-          content: schedule.contentName, // ← show content name as label
+          group: schedule.targetPosition,
+          content: schedule.contentName,
           start: startDate,
           end: endDate,
           type: "range",
@@ -577,6 +667,7 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
             ? "active-schedule"
             : "scheduled",
           title: `${schedule.contentName}<br/>Position: ${schedule.targetPosition}<br/>Priority: ${schedule.priority}`,
+          subgroup: schedule.priority,
           data: schedule,
         });
       });
@@ -627,6 +718,7 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
                   ? "recurring-processed"
                   : "recurring-scheduled",
                 title: `${recurring.contentName} (Recurring)<br/>Position: ${recurring.targetPosition}<br/>Priority: ${recurring.priority}<br/>Pattern: ${recurring.pattern.description}`,
+                subgroup: recurring.priority,
                 data: recurring,
               });
             }
@@ -639,8 +731,6 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
   }
 
   private handleScheduleClick(itemId: string) {
-    console.log("Schedule clicked:", itemId);
-    // Emit custom event or handle schedule editing
     this.dispatchEvent(
       new CustomEvent("schedule-selected", {
         detail: { itemId },
@@ -657,6 +747,54 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
     :host {
       display: block;
       width: 100%;
+    }
+
+    .vis-tooltip {
+      position: absolute;
+      min-width: 320px;
+      white-space: nowrap;
+      color: #1a1a1a;
+      background-color: #fff;
+      border: 1px solid #bfbfbf;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 1000;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .vis-tooltip .tooltip-header strong {
+      font-weight: 600;
+    }
+
+    .vis-tooltip hr {
+      margin: 4px 0;
+      height: 1px;
+      background-color: currentColor;
+      opacity: 0.3;
+    }
+
+    .vis-tooltip .tooltip-body {
+      margin-top: 4px;
+    }
+
+    /* Color based on schedule type */
+    .vis-tooltip .schedule-tooltip-active-schedule .tooltip-header strong {
+      color: #16a34a;
+    }
+
+    .vis-tooltip .schedule-tooltip-scheduled .tooltip-header strong {
+      color: #2563eb;
+    }
+
+    .vis-tooltip .schedule-tooltip-recurring-scheduled .tooltip-header strong {
+      color: #f79c37;
+    }
+
+    .vis-tooltip .schedule-tooltip-recurring-processed .tooltip-header strong {
+      color: #64748b;
     }
 
     #calendar-view {
@@ -684,8 +822,8 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
     }
 
     .vis-item.recurring-scheduled {
-      background-color: #a855f7;
-      border-color: #9333ea;
+      background-color: #f79c37;
+      border-color: #f79c37;
       border-style: dashed;
     }
 
@@ -725,11 +863,29 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
     }
 
     .recurring-color {
-      background-color: #a855f7;
-      border: 2px dashed #9333ea;
+      background-color: #f79c37;
+      border: 2px dashed #f79c37;
     }
 
-    .recurring-scheduled {
+    .info-box {
+      border: 1px solid var(--uui-color-border, #d8d7d9);
+      background: var(--uui-color-surface, #fff);
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      margin-left: auto;
+      max-width: 480px;
+      drop-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .info-box li {
+      list-style-type: none;
+      margin-bottom: 6px;
+    }
+
+    .info-box uui-icon {
+      color: var(--uui-color-primary, #0078d4);
+      margin-right: 6px;
     }
   `;
 
@@ -740,6 +896,35 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
         class="js-view js-calendar-view schedule-view-panel"
         role="tabpanel"
       >
+        <div class="info-box">
+          <ul>
+            <li>
+              <uui-icon-registry-essential>
+                <uui-icon name="icon-hand-pointer"> </uui-icon>
+              </uui-icon-registry-essential>
+              Scroll horizontally to navigate through time.
+            </li>
+            <li>
+              <uui-icon-registry-essential>
+                <uui-icon name="icon-zoom-in">
+                </uui-icon> </uui-icon-registry-essential
+              >Use mouse wheel to zoom in/out.
+            </li>
+
+            <li>
+              <uui-icon-registry-essential>
+                <uui-icon name="icon-mouse-cursor">
+                </uui-icon> </uui-icon-registry-essential
+              >Hover over any schedule to see details.
+            </li>
+            <li>
+              <uui-icon-registry-essential>
+                <uui-icon name="icon-edit">
+                </uui-icon> </uui-icon-registry-essential
+              >Click on a schedule to edit.
+            </li>
+          </ul>
+        </div>
         <div class="timeline-legend">
           <div class="legend-item">
             <div class="legend-color active-color"></div>
