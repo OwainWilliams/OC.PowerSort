@@ -159,7 +159,6 @@ namespace OC.PowerSort.Controllers
             try
             {
                 using var database = databaseFactory.CreateDatabase();
-                
                 var schedule = new RecurringScheduleDto
                 {
                     Id = Guid.NewGuid(),
@@ -219,7 +218,7 @@ namespace OC.PowerSort.Controllers
             if (positionValidation != null)
                 return positionValidation;
 
-            var patternValidation = ValidateRecurrencePattern(request.Pattern);
+            var patternValidation = ValidateRecurrencePattern(request.Pattern, isUpdate: true);
             if (patternValidation != null)
                 return patternValidation;
 
@@ -302,7 +301,6 @@ namespace OC.PowerSort.Controllers
 
                 // Delete will cascade to occurrences and set null on one-time schedules
                 database.Delete(schedule);
-                
                 return new { success = true };
             });
         }
@@ -480,14 +478,14 @@ namespace OC.PowerSort.Controllers
             return "Unknown pattern";
         }
 
-        private IActionResult? ValidateRecurrencePattern(RecurrencePatternRequest pattern)
+        private IActionResult? ValidateRecurrencePattern(RecurrencePatternRequest pattern, bool isUpdate = false)
         {
             if (pattern.Interval < 1)
             {
                 return BadRequest(new { error = "Recurrence interval must be at least 1" });
             }
 
-            if (pattern.StartDate < DateTime.UtcNow.AddDays(-1))
+            if (pattern.StartDate < DateTime.UtcNow.AddDays(-1) && !isUpdate)
             {
                 return BadRequest(new { error = "Start date cannot be in the past" });
             }
