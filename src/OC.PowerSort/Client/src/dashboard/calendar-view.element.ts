@@ -18,11 +18,13 @@ import { powerSortSharedStyles } from "../styles/shared.styles.js";
 const visTimelineCss = `
 .vis-timeline {
   position: relative;
-  border: 1px solid #bfbfbf;
+  border: 1px solid #fff;
   overflow: hidden;
   padding: 0;
   margin: 0;
   box-sizing: border-box;
+  background-color: var(--uui-palette-white-dark);
+
 }
 .vis-panel {
   position: absolute;
@@ -45,6 +47,11 @@ const visTimelineCss = `
   overflow: hidden;
 }
 
+.vis-panel.vis-vertical {
+background-color: #fff;
+}
+
+
 .vis-panel.vis-center,
 .vis-panel.vis-top,
 .vis-panel.vis-bottom {
@@ -53,6 +60,8 @@ const visTimelineCss = `
 }
 .vis-panel.vis-center {
   overflow: hidden;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.15);
+
 }
 .vis-panel.vis-top {
   overflow: hidden;
@@ -89,18 +98,19 @@ const visTimelineCss = `
   width: 100%;
   color: #4d4d4d;
   box-sizing: border-box;
-  border-bottom: 1px solid #bfbfbf;
+  border-bottom: 1px solid rgba( 106, 117, 154, 0.4 );
 }
 .vis-labelset .vis-label:last-child {
   border-bottom: none;
 }
 .vis-labelset .vis-label .vis-inner {
-  display: inline-block;
-  padding: 5px;
+  padding: 5px 16px;
+  font-weight: 600;
 }
 .vis-labelset .vis-label .vis-inner.vis-hidden {
   padding: 0;
 }
+
 .vis-itemset {
   position: relative;
   padding: 0;
@@ -124,8 +134,9 @@ const visTimelineCss = `
 .vis-foreground .vis-group {
   position: relative;
   box-sizing: border-box;
-  border-bottom: 1px solid #bfbfbf;
+  border-bottom: 1px solid rgba( 106, 117, 154, 0.4 );
 }
+
 .vis-foreground .vis-group:last-child {
   border-bottom: none;
 }
@@ -317,6 +328,9 @@ const visTimelineCss = `
   top: 0;
   left: 0;
   width: 100%;
+    background-color: var(--uui-palette-white-dark);
+
+
 }
 .vis-time-axis.vis-background {
   position: absolute;
@@ -356,7 +370,7 @@ const visTimelineCss = `
   border-color: #bfbfbf;
 }
 .vis-current-time {
-  background-color: #ff7f6e;
+  background-color: var(--uui-palette-malibu, #3879ff);
   width: 2px;
   z-index: 1;
   pointer-events: none;
@@ -401,6 +415,12 @@ const visTimelineCss = `
   border-color: #bfbfbf;
 }
 
+.vis-text.vis-major {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--uui-palette-space-cadet);
+  padding: 8px;
+}
 
 `;
 
@@ -805,7 +825,7 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
     #timeline-container {
       width: 100%;
       min-height: 400px;
-      border: 1px solid var(--uui-color-border, #d8d7d9);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       border-radius: 4px;
       background: var(--uui-color-surface, #fff);
     }
@@ -868,14 +888,16 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
     }
 
     .info-box {
-      border: 1px solid var(--uui-color-border, #d8d7d9);
-      background: var(--uui-color-surface, #fff);
+      background: var(--uui-palette-white-dark, #f5f5f5);
+      border: 1px solid var(--uui-palette-white-dark, #bfbfbf);
       padding: 12px;
       border-radius: 4px;
       margin-bottom: 12px;
       margin-left: auto;
-      max-width: 480px;
-      drop-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      max-width: 360px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
     }
 
     .info-box li {
@@ -883,8 +905,14 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
       margin-bottom: 6px;
     }
 
-    .info-box uui-icon {
-      color: var(--uui-color-primary, #0078d4);
+    .info-box uui-icon[name="icon-info"] {
+      color: var(--uui-palette-space-cadet, #0078d4);
+      font-size: 24px;
+    }
+
+    .info-box ul uui-icon {
+      color: var(--uui-palette-malibu, #0078d4);
+      font-size: 16px;
       margin-right: 6px;
     }
   `;
@@ -897,6 +925,9 @@ export default class CalendarView extends UmbUiMixin(UmbAuthMixin(LitElement)) {
         role="tabpanel"
       >
         <div class="info-box">
+          <uui-icon-registry-essential>
+            <uui-icon name="icon-info"> </uui-icon>
+          </uui-icon-registry-essential>
           <ul>
             <li>
               <uui-icon-registry-essential>
