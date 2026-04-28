@@ -768,6 +768,21 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
       : (this.showCalendarView = true);
   }
 
+  private handleCalendarScheduleClick(event: CustomEvent) {
+    const { itemId } = event.detail;
+
+    const oneOffSchedule = this.activeSchedules.find((s) => s.id === itemId);
+    const recurringSchedule = this.recurringSchedules.find(
+      (s) => itemId.startsWith(s.id)
+    );
+
+    if (oneOffSchedule) {
+      this.openEditDialog(oneOffSchedule);
+    } else if (recurringSchedule) {
+      this.openEditRecurringDialog(recurringSchedule);
+    }
+  }
+
   private renderChildrenTable() {
     if (this.nodeChildren.length === 0) {
       return this.renderEmptyState(
@@ -806,6 +821,7 @@ export default class PowerSortChildrenDashboardElement extends UmbUiMixin(
                 .nodeChildren=${this.nodeChildren}
                 .activeSchedules=${this.activeSchedules}
                 .recurringSchedules=${this.recurringSchedules}
+                @schedule-selected=${this.handleCalendarScheduleClick}
               >
               </calendar-view>
             `
