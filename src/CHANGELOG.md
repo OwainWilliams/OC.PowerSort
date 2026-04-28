@@ -8,34 +8,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - **Provider System**: Extensible architecture allowing third-party developers to create custom sorting strategies
-  - `ISortProvider` interface for implementing custom sort logic
-  - `ISortProviderFactory` for provider discovery and management
-  - `DefaultScheduleSortProvider` implementing existing schedule-based sorting (backward compatible)
-  - Example providers demonstrating PowerSort-specific use cases:
-    - `FeaturedContentBoostProvider` - Boosts featured content while respecting schedules
-    - `PopularityBoostProvider` - Boosts content by view count, with schedule overrides
-  - Comprehensive provider development documentation
+    - `ISortProvider` interface for implementing custom sort logic
+    - `ISortProviderFactory` for provider discovery and management
+    - `DefaultScheduleSortProvider` implementing existing schedule-based sorting (backward compatible)
+    - Example providers demonstrating PowerSort-specific use cases:
+        - `FeaturedContentBoostProvider` - Boosts featured content while respecting schedules
+        - `PopularityBoostProvider` - Boosts content by view count, with schedule overrides
+    - Comprehensive provider development documentation
 - **Unit Tests**: Complete test coverage for provider system (90 tests, 100% passing)
-  - `DefaultScheduleSortProviderTests` (23 tests)
-  - `SortProviderFactoryTests` (15 tests)
-  - `FeaturedContentBoostProviderTests` (10 tests) - Schedule-aware boosting tests
-  - `PopularityBoostProviderTests` (11 tests) - Analytics integration with schedules
+    - `DefaultScheduleSortProviderTests` (23 tests)
+    - `SortProviderFactoryTests` (15 tests)
+    - `FeaturedContentBoostProviderTests` (10 tests) - Schedule-aware boosting tests
+    - `PopularityBoostProviderTests` (11 tests) - Analytics integration with schedules
 - Recurring schedule support for automated content sorting
 - Recurring schedule API endpoints
 - Schedule occurrence tracking and generation
 - Recurrence calculator service for handling complex recurring patterns
+- **Calendar View Implementation**: Interactive timeline visualization
+    - Timeline view of schedules using vis-timeline package
+    - Enhanced tooltip display with detailed schedule information (position, priority, start/end times, pattern)
+    - Clickable schedule items that open edit dialogs directly from the calendar
+    - Info box with user instructions for calendar navigation (scroll, zoom, hover, click)
+    - Type-safe timeline item definitions
 
 ### Changed
+
 - `ScheduleProcessingService` now uses provider system for sort calculations
 - Provider-based sorting maintains full backward compatibility with existing schedules
 - Example providers now demonstrate **schedule-aware boosting** (PowerSort's core strength) rather than generic sorting
+- Calendar view accessible from children dashboard (as alternative to list view).
 
 ### Fixed
+
 - Null key handling in `SortProviderFactory.GetProvider()`
 - Empty children handling in provider metadata calculation
 
 ### Technical
+
 - New namespace: `OC.PowerSort.Providers` for provider implementations
 - New namespace: `OC.PowerSort.Providers.Examples` for reference providers
 - New service: `SortProviderFactory` registered as singleton
@@ -43,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All example providers now demonstrate `SupportsScheduling = true` pattern
 
 ### Fixed
+
 - API response handling to prevent "body stream already read" errors
 - MenuItems API controller authorization logic
 - Cross-database migration compatibility for SQLite and SQL Server
@@ -52,22 +64,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [17.1.0] - 2026-03-18
 
 ### Added
+
 - Enhanced sorting capabilities for content nodes
 - Schedule processing service for automated sorting
 - Default sort order functionality
 - Priority-based sorting when multiple items share the same sort order
 
 ### Changed
+
 - Migrated all migrations to AsyncMigrationBase for Umbraco 17 compatibility
 - Improved backoffice integration
 
 ## [17.0.2-alpha003] - 2026-04-12
 
 ### Added
+
 - Recurring schedules feature completion
 - Comprehensive database migration system
 
 ### Fixed
+
 - Migration execution issues
 - Database compatibility issues between SQLite and SQL Server
 - Formatting and merge conflicts
@@ -75,18 +91,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [17.0.2-alpha002] - 2026-03-18
 
 ### Changed
+
 - Enhanced release workflow with Node.js setup
 - Improved package build process
 
 ## [17.0.2-alpha001] - 2026-03-18
 
 ### Added
+
 - Initial alpha release for Umbraco 17
 - Auto version numbering system
 
 ## [17.0.1] - 2026-03-17
 
 ### Added
+
 - Initial stable release for Umbraco 17
 - PowerSort section in Umbraco backoffice
 - Drag-and-drop sorting interface
@@ -95,12 +114,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Flag provider integration with Umbraco
 
 ### Changed
+
 - Updated to support Umbraco v17+ and .NET 10
 - Modernized API architecture using Management API
 
 ## [17.0.0] - 2026-03-XX
 
 ### Added
+
 - First version compatible with Umbraco 17
 - Backoffice section for PowerSort
 - Enhanced sorting options for content nodes
@@ -108,6 +129,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Database migrations for sort schedules, recurring schedules, and default sort orders
 
 ### Features
+
 - **Manual Sorting**: Drag-and-drop interface for immediate content reordering
 - **Scheduled Sorting**: Schedule specific sort orders to activate at future dates/times
 - **Recurring Schedules**: Set up recurring sort patterns (daily, weekly, monthly, yearly)
@@ -119,21 +141,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.4-beta] - Previous Generation
 
 ### Note
+
 Legacy version for older Umbraco releases (pre-v17). See git tags for details.
 
 ## [1.0.3-beta] - Previous Generation
 
 ### Note
+
 Legacy version for older Umbraco releases (pre-v17). See git tags for details.
 
 ## [1.0.2] - Previous Generation
 
 ### Note
+
 Legacy version for older Umbraco releases (pre-v17). See git tags for details.
 
 ## [1.0.1] - Previous Generation
 
 ### Note
+
 Legacy version for older Umbraco releases (pre-v17). See git tags for details.
 
 ---
@@ -141,17 +167,20 @@ Legacy version for older Umbraco releases (pre-v17). See git tags for details.
 ## Key Features Overview
 
 ### Sorting Capabilities
+
 - **Drag-and-Drop Sorting**: Intuitive interface for manual content reordering
 - **Scheduled Sorting**: Plan content order changes in advance
 - **Recurring Schedules**: Automate repetitive sorting patterns
 - **Priority-Based Resolution**: Handle sort order conflicts intelligently
 
 ### Database Support
+
 - SQL Server (recommended)
 - SQLite (for development/testing)
 - Cross-database migration compatibility
 
 ### API Endpoints
+
 - `/umbraco/management/api/v1/oc/power-sort/menu-items` - Menu item management
 - `/umbraco/management/api/v1/oc/power-sort/children/{id}` - Get sortable children
 - `/umbraco/management/api/v1/oc/power-sort/sort/document` - Apply sort order
@@ -161,6 +190,7 @@ Legacy version for older Umbraco releases (pre-v17). See git tags for details.
 - `/umbraco/management/api/v1/oc/power-sort/enum-priorities` - Priority management
 
 ### Requirements
+
 - Umbraco CMS v17.0.0 or higher
 - .NET 10
 - SQL Server or SQLite database
@@ -170,7 +200,9 @@ Legacy version for older Umbraco releases (pre-v17). See git tags for details.
 ## Migration Notes
 
 ### From v1.x to v17.0.0
+
 This is a major version upgrade aligning with Umbraco 17. The package has been completely rewritten to use modern Umbraco APIs:
+
 - Migrated from legacy APIs to Umbraco Management API
 - Updated to .NET 10
 - New backoffice section implementation
@@ -178,7 +210,9 @@ This is a major version upgrade aligning with Umbraco 17. The package has been c
 - Added recurring schedule support
 
 ### Database Migrations
+
 The package automatically handles database schema creation and updates through Umbraco's migration system:
+
 - `CreateSortScheduleTableMigration` - Core scheduling table
 - `CreateRecurringScheduleTableMigration` - Recurring schedule support
 - `CreateScheduleOccurrenceTableMigration` - Occurrence tracking
@@ -191,8 +225,10 @@ All migrations are compatible with both SQL Server and SQLite.
 ---
 
 ## Contributors
+
 - [Owain Williams](https://github.com/OwainWilliams)
 - [Harrie Mayhew](https://github.com/mayhemcreates)
 
 ## License
+
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

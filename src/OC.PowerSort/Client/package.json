@@ -16,5 +16,9 @@
     "node-fetch": "^3.3.2",
     "typescript": "^5.9.3",
     "vite": "^7.1.9"
+  },
+  "dependencies": {
+    "vis-data": "^8.0.3",
+    "vis-timeline": "^8.5.0"
   }
 }

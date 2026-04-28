@@ -241,5 +241,13 @@ export const powerSortSharedStyles = css`
     padding: 8px !important;
   }
 
+  .hidden {
+    display: none;
+  }
 
+  .schedule-view-panel {
+    padding: var(--uui-size-space-6) var(--uui-size-space-4)
+      var(--uui-size-space-4) var(--uui-size-space-4);
+    background: var(--uui-color-surface);
+  }
 `;
