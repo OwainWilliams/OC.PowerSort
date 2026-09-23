@@ -5,7 +5,28 @@ All notable changes to OC.PowerSort will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [17.2.1] - 2026-09-23
+
+### Breaking changes
+- **Content permissions are enforced.** Node-scoped endpoints return `403` unless the user has Browse permission (reads) or Sort permission (creating, editing or deleting schedules, default orders and sort changes) on the parent node. Umbraco's default Editors group has Sort; the default Writers group does not and will lose PowerSort write access until an administrator grants it
+- **Delete endpoints return `204 No Content`** instead of `200` with a `{ "success": true }` body. The bundled backoffice client already handles this; custom API consumers parsing the body must be updated
+- **Error responses changed.** Validation failures and missing records return `400`/`404` instead of `500`; `500` responses no longer include the exception message or `stackTrace`
+- **`PowerSortControllerBase` API changed** for anyone subclassing it from another assembly: the constructor now takes `IContentPermissionAuthorizer` and `ILogger`, and `ExecuteDatabaseOperation`, `ExecuteWithUserContext`, `CreatedResult` and `GetParentChildrenSafe` were replaced by `ExecuteAsync`, `AuthorizeContentAsync`, `GetOrderedChildren` and `ApplySortOrder`
+- **`ScheduleProcessingService` is an `IRecurringBackgroundJob`**, not a `BackgroundService`. It runs only on servers with the Single or SchedulingPublisher role (the same rule as Umbraco's scheduled publishing) and first runs 30 seconds after start-up
+- **Sort changes raise `ContentSorting`/`ContentSorted` notifications** via `IContentService.Sort` rather than `ContentSaving`/`ContentSaved` per child
+
+### Security
+- API endpoints now check the current user's Umbraco content permissions on the parent node (Browse for reads, Sort for changes) instead of relying on section access alone
+- Unhandled server errors no longer return exception messages or stack traces to the client
+
+### Fixed
+- Deleting a recurring schedule that had generated occurrences failed on SQL Server with a foreign key violation; occurrences are now removed first and the foreign key on new installs cascades
+- Editing a recurring schedule no longer resurrects occurrences the editor had cancelled
+- `MaxOccurrences` on a recurring schedule is now counted from the recurrence start rather than resetting every time occurrences are generated
+- Endpoints documented as returning 404/400 no longer return 500 for missing records or validation failures; clearing a default sort order now returns 204 as documented
+- Schedule processing runs as an Umbraco recurring background job, so it executes only on the scheduling publisher (or a single server) instead of on every node in a load-balanced setup
+- Schedule state changes and content sort changes made by the processor now share one Umbraco scope and database transaction
+- Sort order changes are applied through `IContentService.Sort` instead of saving each child individually
 
 ### Added
 - **Provider System**: Extensible architecture allowing third-party developers to create custom sorting strategies

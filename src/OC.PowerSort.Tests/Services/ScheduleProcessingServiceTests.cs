@@ -1,10 +1,14 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NPoco;
+using OC.PowerSort.Interfaces;
 using OC.PowerSort.Models;
 using OC.PowerSort.Services;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Scoping;
 using Umbraco.Cms.Core.Services;
+using Umbraco.Cms.Core.Sync;
+using Umbraco.Cms.Infrastructure.BackgroundJobs;
 using Umbraco.Cms.Infrastructure.Persistence;
 
 namespace OC.PowerSort.Tests.Services;
@@ -31,6 +35,36 @@ public class ScheduleProcessingServiceTests
 
         _databaseFactoryMock.Setup(x => x.CreateDatabase()).Returns(_databaseMock.Object);
         _scopeProviderMock.Setup(x => x.CreateCoreScope()).Returns(_scopeMock.Object);
+    }
+
+    private ScheduleProcessingService CreateJob()
+    {
+        return new ScheduleProcessingService(
+            _loggerMock.Object,
+            new Mock<Umbraco.Cms.Infrastructure.Scoping.IScopeProvider>().Object,
+            _contentServiceMock.Object,
+            new Mock<IServiceScopeFactory>().Object,
+            new Mock<ISortProviderFactory>().Object);
+    }
+
+    [Test]
+    public void Job_IsAnUmbracoRecurringBackgroundJob_SoItIsCoordinatedAcrossServers()
+    {
+        // The job must go through Umbraco's recurring job runner rather than a raw hosted service so that
+        // MainDom and server role checks stop it running on every node of a load-balanced setup.
+        var job = CreateJob();
+
+        job.Should().BeAssignableTo<IRecurringBackgroundJob>();
+        job.Period.Should().Be(TimeSpan.FromMinutes(1));
+    }
+
+    [Test]
+    public void Job_ServerRoles_ShouldExcludeSubscribers()
+    {
+        var job = CreateJob();
+
+        job.ServerRoles.Should().BeEquivalentTo(new[] { ServerRole.Single, ServerRole.SchedulingPublisher });
+        job.ServerRoles.Should().NotContain(ServerRole.Subscriber);
     }
 
     [Test]
