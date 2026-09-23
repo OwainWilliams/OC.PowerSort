@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider-based sorting maintains full backward compatibility with existing schedules
 - Example providers now demonstrate **schedule-aware boosting** (PowerSort's core strength) rather than generic sorting
 - Calendar view accessible from children dashboard (as alternative to list view).
+- Migrations use the `TableExists`/`ColumnExists` helpers provided by `AsyncMigrationBase` instead of private copies, and the migration plan runs through `Upgrader.ExecuteAsync` (the synchronous `Execute` is removed in Umbraco 18). The package now builds with zero compiler warnings
 
 ### Fixed
 

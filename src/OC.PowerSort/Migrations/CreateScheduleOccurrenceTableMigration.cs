@@ -82,12 +82,5 @@ namespace OC.PowerSort.Migrations
 
         private bool IsSqlite() =>
             DatabaseType.GetType().Name.Contains("SQLite", StringComparison.OrdinalIgnoreCase);
-
-        private bool TableExists(string tableName)
-        {
-            if (IsSqlite())
-                return Database.ExecuteScalar<int>("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@0", tableName) > 0;
-            return Database.ExecuteScalar<int>("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME=@0", tableName) > 0;
-        }
     }
 }
