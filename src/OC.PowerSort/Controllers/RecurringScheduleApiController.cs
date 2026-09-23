@@ -196,7 +196,7 @@ namespace OC.PowerSort.Controllers
             return ExecuteAsync(async (database, userId) =>
             {
                 var validation = ValidateTargetPosition(request.TargetPosition)
-                    ?? ValidateRecurrencePattern(request.Pattern)
+                    ?? ValidateRecurrencePattern(request.Pattern, isUpdate: true)
                     ?? ValidateBoostDuration(request.BoostDurationHours);
                 if (validation != null)
                     return validation;
@@ -494,14 +494,18 @@ namespace OC.PowerSort.Controllers
             return null;
         }
 
-        private IActionResult? ValidateRecurrencePattern(RecurrencePatternRequest pattern)
+        /// <summary>
+        /// Validates a recurrence pattern. On update the start date may already be in the past, because the
+        /// schedule has been running; the past-date rule only applies when creating a new schedule.
+        /// </summary>
+        private IActionResult? ValidateRecurrencePattern(RecurrencePatternRequest pattern, bool isUpdate = false)
         {
             if (pattern.Interval < 1)
             {
                 return BadRequest(new { error = "Recurrence interval must be at least 1" });
             }
 
-            if (pattern.StartDate < DateTime.UtcNow.AddDays(-1))
+            if (pattern.StartDate < DateTime.UtcNow.AddDays(-1) && !isUpdate)
             {
                 return BadRequest(new { error = "Start date cannot be in the past" });
             }
