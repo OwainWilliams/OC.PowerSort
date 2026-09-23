@@ -26,8 +26,8 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>ocPowerSortLogo.png</PackageIcon>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>17.2.0-alpha005</Version>
-    <PackageReleaseNotes>Recurring schedules now possible</PackageReleaseNotes>
+    <Version>17.2.1</Version>
+    <PackageReleaseNotes>Recurring schedules; content permission checks on all node-scoped endpoints (users need Sort permission to reorder or schedule); schedule processing runs as an Umbraco recurring background job. See CHANGELOG for breaking changes.</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
