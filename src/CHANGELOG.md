@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unhandled server errors no longer return exception messages or stack traces to the client
 - Resolved all NuGet vulnerability advisories in the package's dependency graph without raising the Umbraco 17.0.0 floor, by referencing patched versions of transitive dependencies directly: MessagePack 3.1.10 (GHSA-hv8m-jj95-wg3x and related), Microsoft.OpenApi 2.9.0 (GHSA-v5pm-xwqc-g5wc), System.Security.Cryptography.Xml 10.0.12 (GHSA-37gx-xxp4-5rgx and related), MailKit 4.18.0 / MimeKit 4.18.0 (GHSA-9j88-vvj5-vhgr, GHSA-g7hc-96xr-gvvx). These match the versions Umbraco 17.6+ ships
 - Removed the explicit `Microsoft.SourceLink.GitHub` 8.0.0 reference (GHSA-23fw-v26w-5fgq, no patched 8.x); the .NET SDK provides Source Link natively
-- Test site and test project now target Umbraco 17.2.2, which fixes GHSA-fpvf-fvp5-996r in Umbraco itself. Sites running PowerSort should be on Umbraco 17.2.2 or later for the same reason
+- Test site and test project now target Umbraco 17.7.0. Umbraco itself has advisories fixed in 17.2.2 (GHSA-fpvf-fvp5-996r), 17.4.0 (GHSA-vr9v-27gg-qgx4) and 17.5.3 (GHSA-wr57-hqmp-fgvh, high), so sites running PowerSort should be on Umbraco 17.5.3 or later. The package's supported range is unchanged at 17.0.0 to 17.x
 
 ### Fixed
 - Deleting a recurring schedule that had generated occurrences failed on SQL Server with a foreign key violation; occurrences are now removed first and the foreign key on new installs cascades
