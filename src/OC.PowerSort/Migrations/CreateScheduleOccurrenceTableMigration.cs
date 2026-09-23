@@ -43,6 +43,7 @@ namespace OC.PowerSort.Migrations
                         Create.ForeignKey("FK_ocPowerSortScheduleOccurrence_RecurringSchedule")
                             .FromTable(tableName).ForeignColumn("RecurringScheduleId")
                             .ToTable("ocPowerSortRecurringSchedule").PrimaryColumn("Id")
+                            .OnDelete(System.Data.Rule.Cascade)
                             .Do();
 
                         Logger.LogInformation("OC.PowerSort: Foreign key created successfully");

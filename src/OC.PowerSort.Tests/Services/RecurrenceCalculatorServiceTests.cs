@@ -417,6 +417,53 @@ public class RecurrenceCalculatorServiceTests
         occurrences.Should().HaveCount(5);
     }
 
+    [Test]
+    public void CalculateOccurrences_WithMaxOccurrences_ShouldCountFromRecurrenceStartNotFromWindow()
+    {
+        // A daily schedule limited to 5 occurrences starting 1 Jan has its last occurrence on 5 Jan.
+        // Asking for a window that starts later must not hand out a fresh allowance of 5.
+        var startDate = new DateTime(2024, 1, 1);
+        var schedule = new RecurringScheduleDto
+        {
+            Id = Guid.NewGuid(),
+            RecurrenceType = "Daily",
+            RecurrenceInterval = 1,
+            RecurrenceStart = startDate,
+            MaxOccurrences = 5,
+            IsEnabled = true
+        };
+
+        // Act
+        var afterLimit = _service.CalculateOccurrences(schedule, startDate.AddDays(10), startDate.AddMonths(1)).ToList();
+        var straddlingLimit = _service.CalculateOccurrences(schedule, startDate.AddDays(3), startDate.AddMonths(1)).ToList();
+
+        // Assert
+        afterLimit.Should().BeEmpty();
+        straddlingLimit.Should().Equal(startDate.AddDays(3), startDate.AddDays(4));
+    }
+
+    [Test]
+    public void GetNextOccurrence_WhenMaxOccurrencesExhausted_ShouldReturnNull()
+    {
+        // Arrange
+        var startDate = new DateTime(2024, 1, 1);
+        var schedule = new RecurringScheduleDto
+        {
+            Id = Guid.NewGuid(),
+            RecurrenceType = "Daily",
+            RecurrenceInterval = 1,
+            RecurrenceStart = startDate,
+            MaxOccurrences = 3,
+            IsEnabled = true
+        };
+
+        // Act
+        var next = _service.GetNextOccurrence(schedule, startDate.AddDays(30));
+
+        // Assert
+        next.Should().BeNull();
+    }
+
     #endregion
 
     #region Disabled Schedule Tests

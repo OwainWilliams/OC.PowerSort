@@ -1,9 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Asp.Versioning;
+using Umbraco.Cms.Core.Security.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using OC.PowerSort.Controllers.Base;
 using OC.PowerSort.Models;
 using Umbraco.Cms.Api.Management.Routing;
@@ -13,131 +12,75 @@ using Umbraco.Cms.Infrastructure.Persistence;
 
 namespace OC.PowerSort.Controllers
 {
+    /// <summary>
+    /// Enum priorities are global PowerSort settings (not tied to a content node), so access is governed
+    /// by section access alone rather than per-node content permissions.
+    /// </summary>
     [ApiVersion("1.0")]
     [VersionedApiBackOfficeRoute("oc/power-sort")]
     [ApiExplorerSettings(GroupName = Constants.ApiName)]
     public class EnumPriorityApiController : PowerSortControllerBase
     {
-        private readonly IEntityService _entityService;
-        private readonly IHttpClientFactory _httpClientFactory;
-
-
         public EnumPriorityApiController(
             IBackOfficeSecurityAccessor backOfficeSecurityAccessor,
             IUmbracoDatabaseFactory databaseFactory,
-            IHttpClientFactory httpClientFactory,
-            IEntityService entityService,
             IContentService contentService,
-            IUserService userService)
-            : base(backOfficeSecurityAccessor, databaseFactory, contentService, userService)
+            IUserService userService,
+            IContentPermissionAuthorizer contentPermissionAuthorizer,
+            ILogger<EnumPriorityApiController> logger)
+            : base(backOfficeSecurityAccessor, databaseFactory, contentService, userService, contentPermissionAuthorizer, logger)
         {
-            _entityService = entityService;
-            _httpClientFactory = httpClientFactory;
         }
-
 
         [HttpGet("enum-priorities")]
         [ProducesResponseType<EnumPriorityListResponse>(StatusCodes.Status200OK)]
-        public IActionResult GetEnumPriorities([FromQuery] int skip = 0, [FromQuery] int take = 100)
+        public Task<IActionResult> GetEnumPriorities([FromQuery] int skip = 0, [FromQuery] int take = 100)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync((database, _) =>
             {
-                var authResult = ValidateUserAccess(out _);
-                if (authResult != null)
-                    throw new UnauthorizedAccessException();
-
                 var sql = "SELECT * FROM ocPowerSortEnumPriority ORDER BY SortPriority ASC, Name ASC";
                 var enumPriorities = database.Fetch<EnumPriorityDto>(sql);
 
-                var items = enumPriorities.Skip(skip).Take(take).Select(ep => new EnumPriorityResponse
-                {
-                    Id = ep.Id,
-                    Name = ep.Name,
-                    SortPriority = ep.SortPriority,
-                    Created = ep.Created,
-                    CreatedByName = GetUserName(ep.CreatedBy),
-                    Updated = ep.Updated,
-                    UpdatedByName = GetUserName(ep.UpdatedBy)
-                }).ToList();
+                var items = enumPriorities.Skip(skip).Take(take).Select(ToResponse).ToList();
 
-                return new EnumPriorityListResponse
+                return Task.FromResult<IActionResult>(Ok(new EnumPriorityListResponse
                 {
                     Total = enumPriorities.Count,
                     Items = items
-                };
+                }));
             });
         }
 
         [HttpGet("enum-priorities/{id:guid}")]
         [ProducesResponseType<EnumPriorityResponse>(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetEnumPriority(Guid id)
+        public Task<IActionResult> GetEnumPriority(Guid id)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync((database, _) =>
             {
-                var authResult = ValidateUserAccess(out _);
-                if (authResult != null)
-                    throw new UnauthorizedAccessException();
-
                 var enumPriority = database.SingleOrDefault<EnumPriorityDto>(
                     "SELECT * FROM ocPowerSortEnumPriority WHERE Id = @0", id);
 
                 if (enumPriority == null)
                 {
-                    throw new KeyNotFoundException("Enum priority not found");
+                    return Task.FromResult<IActionResult>(NotFound(new { error = "Enum priority not found" }));
                 }
 
-                return new EnumPriorityResponse
-                {
-                    Id = enumPriority.Id,
-                    Name = enumPriority.Name,
-                    SortPriority = enumPriority.SortPriority,
-                    Created = enumPriority.Created,
-                    CreatedByName = GetUserName(enumPriority.CreatedBy),
-                    Updated = enumPriority.Updated,
-                    UpdatedByName = GetUserName(enumPriority.UpdatedBy)
-                };
+                return Task.FromResult<IActionResult>(Ok(ToResponse(enumPriority)));
             });
         }
 
         [HttpPost("enum-priorities")]
         [ProducesResponseType<EnumPriorityResponse>(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public IActionResult CreateEnumPriority([FromBody] CreateEnumPriorityRequest request)
+        public Task<IActionResult> CreateEnumPriority([FromBody] CreateEnumPriorityRequest request)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync((database, userId) =>
             {
-                var authResult = ValidateUserAccess(out var userId);
-                if (authResult != null)
-                    throw new UnauthorizedAccessException();
-
-                // Validation
-                if (string.IsNullOrWhiteSpace(request.Name))
+                var validation = ValidateRequest(database, request.Name, request.SortPriority, excludeId: null);
+                if (validation != null)
                 {
-                    throw new ArgumentException("Name is required");
-                }
-
-                if (request.SortPriority < 0)
-                {
-                    throw new ArgumentException("Sort priority must be 0 or greater");
-                }
-
-                // Check if weight already exists
-                var existingWithSamePriority = database.SingleOrDefault<EnumPriorityDto>(
-                    "SELECT * FROM ocPowerSortEnumPriority WHERE SortPriority = @0", request.SortPriority);
-
-                if (existingWithSamePriority != null)
-                {
-                    throw new ArgumentException($"Sort priority {request.SortPriority} is already in use by '{existingWithSamePriority.Name}'");
-                }
-
-                // Check if name already exists
-                var existingWithSameName = database.SingleOrDefault<EnumPriorityDto>(
-                    "SELECT * FROM ocPowerSortEnumPriority WHERE Name = @0", request.Name.Trim());
-
-                if (existingWithSameName != null)
-                {
-                    throw new ArgumentException($"Name '{request.Name.Trim()}' is already in use");
+                    return Task.FromResult(validation);
                 }
 
                 var now = DateTime.UtcNow;
@@ -154,16 +97,8 @@ namespace OC.PowerSort.Controllers
 
                 database.Insert(enumPriority);
 
-                return new EnumPriorityResponse
-                {
-                    Id = enumPriority.Id,
-                    Name = enumPriority.Name,
-                    SortPriority = enumPriority.SortPriority,
-                    Created = enumPriority.Created,
-                    CreatedByName = GetUserName(enumPriority.CreatedBy),
-                    Updated = enumPriority.Updated,
-                    UpdatedByName = GetUserName(enumPriority.UpdatedBy)
-                };
+                return Task.FromResult<IActionResult>(
+                    CreatedAtAction(nameof(GetEnumPriority), new { id = enumPriority.Id }, ToResponse(enumPriority)));
             });
         }
 
@@ -171,51 +106,22 @@ namespace OC.PowerSort.Controllers
         [ProducesResponseType<EnumPriorityResponse>(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public IActionResult UpdateEnumPriority(Guid id, [FromBody] UpdateEnumPriorityRequest request)
+        public Task<IActionResult> UpdateEnumPriority(Guid id, [FromBody] UpdateEnumPriorityRequest request)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync((database, userId) =>
             {
-                var authResult = ValidateUserAccess(out var userId);
-                if (authResult != null)
-                    throw new UnauthorizedAccessException();
-
                 var enumPriority = database.SingleOrDefault<EnumPriorityDto>(
                     "SELECT * FROM ocPowerSortEnumPriority WHERE Id = @0", id);
 
                 if (enumPriority == null)
                 {
-                    throw new KeyNotFoundException("Enum priority not found");
+                    return Task.FromResult<IActionResult>(NotFound(new { error = "Enum priority not found" }));
                 }
 
-                // Validation
-                if (string.IsNullOrWhiteSpace(request.Name))
+                var validation = ValidateRequest(database, request.Name, request.SortPriority, excludeId: id);
+                if (validation != null)
                 {
-                    throw new ArgumentException("Name is required");
-                }
-
-                if (request.SortPriority < 0)
-                {
-                    throw new ArgumentException("Sort priority must be 0 or greater");
-                }
-
-                // Check if weight already exists (excluding current record)
-                var existingWithSamePriority = database.SingleOrDefault<EnumPriorityDto>(
-                    "SELECT * FROM ocPowerSortEnumPriority WHERE SortPriority = @0 AND Id != @1",
-                    request.SortPriority, id);
-
-                if (existingWithSamePriority != null)
-                {
-                    throw new ArgumentException($"Sort priority {request.SortPriority} is already in use by '{existingWithSamePriority.Name}'");
-                }
-
-                // Check if name already exists (excluding current record)
-                var existingWithSameName = database.SingleOrDefault<EnumPriorityDto>(
-                    "SELECT * FROM ocPowerSortEnumPriority WHERE Name = @0 AND Id != @1",
-                    request.Name.Trim(), id);
-
-                if (existingWithSameName != null)
-                {
-                    throw new ArgumentException($"Name '{request.Name.Trim()}' is already in use");
+                    return Task.FromResult(validation);
                 }
 
                 enumPriority.Name = request.Name.Trim();
@@ -225,52 +131,85 @@ namespace OC.PowerSort.Controllers
 
                 database.Update(enumPriority);
 
-                return new EnumPriorityResponse
-                {
-                    Id = enumPriority.Id,
-                    Name = enumPriority.Name,
-                    SortPriority = enumPriority.SortPriority,
-                    Created = enumPriority.Created,
-                    CreatedByName = GetUserName(enumPriority.CreatedBy),
-                    Updated = enumPriority.Updated,
-                    UpdatedByName = GetUserName(enumPriority.UpdatedBy)
-                };
+                return Task.FromResult<IActionResult>(Ok(ToResponse(enumPriority)));
             });
         }
 
         [HttpDelete("enum-priorities/{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult DeleteEnumPriority(Guid id)
+        public Task<IActionResult> DeleteEnumPriority(Guid id)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync((database, _) =>
             {
-                var authResult = ValidateUserAccess(out _);
-                if (authResult != null)
-                    throw new UnauthorizedAccessException();
-
                 var enumPriority = database.SingleOrDefault<EnumPriorityDto>(
                     "SELECT * FROM ocPowerSortEnumPriority WHERE Id = @0", id);
 
                 if (enumPriority == null)
                 {
-                    throw new KeyNotFoundException("Enum priority not found");
+                    return Task.FromResult<IActionResult>(NotFound(new { error = "Enum priority not found" }));
                 }
 
                 database.Delete(enumPriority);
-                return NoContent();
+                return Task.FromResult<IActionResult>(NoContent());
             });
         }
 
         /// <summary>
-        /// Helper method to get user name by ID
+        /// Validates name and priority, including uniqueness against other rows.
         /// </summary>
+        private IActionResult? ValidateRequest(IUmbracoDatabase database, string name, int sortPriority, Guid? excludeId)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return BadRequest(new { error = "Name is required" });
+            }
+
+            if (sortPriority < 0)
+            {
+                return BadRequest(new { error = "Sort priority must be 0 or greater" });
+            }
+
+            var trimmedName = name.Trim();
+            var exclusion = excludeId.HasValue ? " AND Id != @1" : string.Empty;
+            var args = excludeId.HasValue ? new object[] { sortPriority, excludeId.Value } : new object[] { sortPriority };
+
+            var existingWithSamePriority = database.SingleOrDefault<EnumPriorityDto>(
+                "SELECT * FROM ocPowerSortEnumPriority WHERE SortPriority = @0" + exclusion, args);
+
+            if (existingWithSamePriority != null)
+            {
+                return BadRequest(new { error = $"Sort priority {sortPriority} is already in use by '{existingWithSamePriority.Name}'" });
+            }
+
+            args = excludeId.HasValue ? new object[] { trimmedName, excludeId.Value } : new object[] { trimmedName };
+
+            var existingWithSameName = database.SingleOrDefault<EnumPriorityDto>(
+                "SELECT * FROM ocPowerSortEnumPriority WHERE Name = @0" + exclusion, args);
+
+            if (existingWithSameName != null)
+            {
+                return BadRequest(new { error = $"Name '{trimmedName}' is already in use" });
+            }
+
+            return null;
+        }
+
+        private EnumPriorityResponse ToResponse(EnumPriorityDto ep) => new()
+        {
+            Id = ep.Id,
+            Name = ep.Name,
+            SortPriority = ep.SortPriority,
+            Created = ep.Created,
+            CreatedByName = GetUserName(ep.CreatedBy),
+            Updated = ep.Updated,
+            UpdatedByName = GetUserName(ep.UpdatedBy)
+        };
+
         private string GetUserName(int userId)
         {
             var user = userService.GetUserById(userId);
             return user?.Name ?? "Unknown";
         }
-
-
     }
 }
