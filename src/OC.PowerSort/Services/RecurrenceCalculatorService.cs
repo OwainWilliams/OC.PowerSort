@@ -44,21 +44,29 @@ namespace OC.PowerSort.Services
             if (effectiveStart >= effectiveEnd)
                 return Enumerable.Empty<DateTime>();
 
-            var occurrences = schedule.RecurrenceType switch
-            {
-                "Daily" => CalculateDailyOccurrences(schedule, effectiveStart, effectiveEnd),
-                "Weekly" => CalculateWeeklyOccurrences(schedule, effectiveStart, effectiveEnd),
-                "Monthly" => CalculateMonthlyOccurrences(schedule, effectiveStart, effectiveEnd),
-                _ => Enumerable.Empty<DateTime>()
-            };
-
-            // Apply max occurrences limit if specified
             if (schedule.MaxOccurrences.HasValue)
             {
-                occurrences = occurrences.Take(schedule.MaxOccurrences.Value);
+                // The limit applies to the whole life of the schedule, not to the requested window.
+                // Count from the recurrence start so every generation run sees the same first N
+                // occurrences, then return only the ones that fall inside the requested window.
+                return CalculateOccurrencesByType(schedule, schedule.RecurrenceStart, effectiveEnd)
+                    .Take(schedule.MaxOccurrences.Value)
+                    .Where(d => d >= effectiveStart)
+                    .ToList();
             }
 
-            return occurrences.ToList();
+            return CalculateOccurrencesByType(schedule, effectiveStart, effectiveEnd).ToList();
+        }
+
+        private IEnumerable<DateTime> CalculateOccurrencesByType(RecurringScheduleDto schedule, DateTime start, DateTime end)
+        {
+            return schedule.RecurrenceType switch
+            {
+                "Daily" => CalculateDailyOccurrences(schedule, start, end),
+                "Weekly" => CalculateWeeklyOccurrences(schedule, start, end),
+                "Monthly" => CalculateMonthlyOccurrences(schedule, start, end),
+                _ => Enumerable.Empty<DateTime>()
+            };
         }
 
         public DateTime? GetNextOccurrence(RecurringScheduleDto schedule, DateTime afterDate)

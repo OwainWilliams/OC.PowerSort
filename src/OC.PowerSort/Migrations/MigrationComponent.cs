@@ -10,7 +10,10 @@ using Umbraco.Cms.Infrastructure.Migrations.Upgrade;
 
 namespace OC.PowerSort.Migrations
 {
-    public class MigrationComponent : INotificationHandler<UmbracoApplicationStartedNotification>
+    /// <summary>
+    /// Runs the PowerSort migration plan once the application has started.
+    /// </summary>
+    public class MigrationComponent : INotificationAsyncHandler<UmbracoApplicationStartedNotification>
     {
         private readonly IMigrationPlanExecutor _migrationPlanExecutor;
         private readonly ICoreScopeProvider _coreScopeProvider;
@@ -32,7 +35,7 @@ namespace OC.PowerSort.Migrations
             _logger = logger;
         }
 
-        public void Handle(UmbracoApplicationStartedNotification notification)
+        public async Task HandleAsync(UmbracoApplicationStartedNotification notification, CancellationToken cancellationToken)
         {
             if (_runtimeState.Level < RuntimeLevel.Run)
             {
@@ -54,22 +57,15 @@ namespace OC.PowerSort.Migrations
                     .To<CreateScheduleOccurrenceTableMigration>("create-schedule-occurrence-table-v1")
                     .To<AddRecurringScheduleIdToScheduleMigration>("add-recurring-schedule-id-to-schedule-v1");
 
-
                 var upgrader = new Upgrader(plan);
 
-                upgrader.Execute(_migrationPlanExecutor, _coreScopeProvider, _keyValueService);
+                await upgrader.ExecuteAsync(_migrationPlanExecutor, _coreScopeProvider, _keyValueService);
 
                 _logger.LogInformation("OC.PowerSort: Migration execution completed successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "OC.PowerSort: Error executing migrations - {Message}", ex.Message);
-
-                // Log inner exception details
-                if (ex.InnerException != null)
-                {
-                    _logger.LogError(ex.InnerException, "OC.PowerSort: Inner exception - {InnerMessage}", ex.InnerException.Message);
-                }
+                _logger.LogError(ex, "OC.PowerSort: Error executing migrations");
             }
         }
     }

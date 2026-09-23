@@ -1,15 +1,19 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Api.Management.Controllers;
+using Umbraco.Cms.Core.Actions;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Security;
+using Umbraco.Cms.Core.Security.Authorization;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Persistence;
 
 namespace OC.PowerSort.Controllers.Base
 {
     /// <summary>
-    /// Base controller that provides common functionality for Power Sorting API controllers
-    /// Eliminates code duplication across API endpoints
+    /// Base controller that provides common functionality for Power Sorting API controllers:
+    /// current-user resolution, content permission checks, database access and consistent error handling.
     /// </summary>
     public abstract class PowerSortControllerBase : ManagementApiControllerBase
     {
@@ -17,17 +21,23 @@ namespace OC.PowerSort.Controllers.Base
         protected readonly IUmbracoDatabaseFactory databaseFactory;
         protected readonly IContentService contentService;
         protected readonly IUserService userService;
+        protected readonly IContentPermissionAuthorizer contentPermissionAuthorizer;
+        protected readonly ILogger logger;
 
         protected PowerSortControllerBase(
             IBackOfficeSecurityAccessor backOfficeSecurityAccessor,
             IUmbracoDatabaseFactory databaseFactory,
             IContentService contentService,
-            IUserService userService)
+            IUserService userService,
+            IContentPermissionAuthorizer contentPermissionAuthorizer,
+            ILogger logger)
         {
             this.backOfficeSecurityAccessor = backOfficeSecurityAccessor;
             this.databaseFactory = databaseFactory;
             this.contentService = contentService;
             this.userService = userService;
+            this.contentPermissionAuthorizer = contentPermissionAuthorizer;
+            this.logger = logger;
         }
 
         /// <summary>
@@ -48,67 +58,10 @@ namespace OC.PowerSort.Controllers.Base
         }
 
         /// <summary>
-        /// Execute database operation with consistent error handling
+        /// Runs an operation for the current user with a database connection and consistent error handling.
+        /// The operation returns the action result directly, so status codes such as 404 or 204 are preserved.
         /// </summary>
-        protected async Task<IActionResult> ExecuteDatabaseOperation<T>(
-            Func<IUmbracoDatabase, Task<T>> operation,
-            string? successMessage = null)
-        {
-            var authResult = ValidateUserAccess(out _);
-            if (authResult != null)
-            {
-                return authResult;
-            }
-
-            try
-            {
-                using var database = databaseFactory.CreateDatabase();
-                var result = await operation(database);
-
-                return successMessage != null
-                    ? Ok(new { success = true, message = successMessage, data = result })
-                    : Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex);
-            }
-        }
-
-        /// <summary>
-        /// Execute database operation synchronously with consistent error handling
-        /// </summary>
-        protected IActionResult ExecuteDatabaseOperation<T>(
-            Func<IUmbracoDatabase, T> operation,
-            string? successMessage = null)
-        {
-            var authResult = ValidateUserAccess(out _);
-            if (authResult != null)
-            {
-                return authResult;
-            }
-
-            try
-            {
-                using var database = databaseFactory.CreateDatabase();
-                var result = operation(database);
-
-                return successMessage != null
-                    ? Ok(new { success = true, message = successMessage, data = result })
-                    : Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex);
-            }
-        }
-
-        /// <summary>
-        /// Execute operation with user context and consistent error handling
-        /// </summary>
-        protected async Task<IActionResult> ExecuteWithUserContext<T>(
-            Func<int, Task<T>> operation,
-            string? successMessage = null)
+        protected async Task<IActionResult> ExecuteAsync(Func<IUmbracoDatabase, int, Task<IActionResult>> operation)
         {
             var authResult = ValidateUserAccess(out var userId);
             if (authResult != null)
@@ -118,16 +71,61 @@ namespace OC.PowerSort.Controllers.Base
 
             try
             {
-                var result = await operation(userId);
-
-                return successMessage != null
-                    ? Ok(new { success = true, message = successMessage, data = result })
-                    : Ok(result);
+                using var database = databaseFactory.CreateDatabase();
+                return await operation(database, userId);
             }
             catch (Exception ex)
             {
                 return HandleException(ex);
             }
+        }
+
+        /// <summary>
+        /// Runs an operation for the current user with consistent error handling (no database connection).
+        /// </summary>
+        protected async Task<IActionResult> ExecuteAsync(Func<int, Task<IActionResult>> operation)
+        {
+            var authResult = ValidateUserAccess(out var userId);
+            if (authResult != null)
+            {
+                return authResult;
+            }
+
+            try
+            {
+                return await operation(userId);
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
+        }
+
+        /// <summary>
+        /// Checks that the current back-office user has the given content permission (for example
+        /// <see cref="ActionSort.ActionLetter"/> or <see cref="ActionBrowse.ActionLetter"/>) on a content node,
+        /// using the same authorizer Umbraco's own management API uses.
+        /// Returns a 401 when there is no user, a 403 when the user is not allowed, otherwise null.
+        /// </summary>
+        protected async Task<IActionResult?> AuthorizeContentAsync(string actionLetter, Guid contentKey)
+        {
+            var currentUser = backOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser;
+            if (currentUser == null)
+            {
+                return Unauthorized();
+            }
+
+            var denied = await contentPermissionAuthorizer.IsDeniedAsync(currentUser, contentKey, actionLetter);
+            if (!denied)
+            {
+                return null;
+            }
+
+            logger.LogWarning(
+                "User {UserId} was denied permission {Action} on content {ContentKey}",
+                currentUser.Id, actionLetter, contentKey);
+
+            return Forbid();
         }
 
         /// <summary>
@@ -138,7 +136,7 @@ namespace OC.PowerSort.Controllers.Base
             content = contentService.GetById(contentId);
             if (content == null)
             {
-                return BadRequest(new { error = errorMessage });
+                return NotFound(new { error = errorMessage });
             }
             return null;
         }
@@ -148,51 +146,44 @@ namespace OC.PowerSort.Controllers.Base
         /// </summary>
         protected IActionResult? ValidateParentChildRelationship(IContent content, Guid expectedParentId)
         {
-            try
+            var expectedParent = contentService.GetById(expectedParentId);
+            if (expectedParent == null)
             {
-                var expectedParent = contentService.GetById(expectedParentId);
-                if (expectedParent == null)
-                {
-                    Console.WriteLine($"[PowerSort] ValidateParentChildRelationship: Expected parent {expectedParentId} not found");
-                    return BadRequest(new { error = "Parent not found" });
-                }
+                logger.LogDebug("Expected parent {ParentKey} not found", expectedParentId);
+                return NotFound(new { error = "Parent not found" });
+            }
 
-                // Check if content has a parent (ParentId -1 means root level)
-                if (content.ParentId == -1)
-                {
-                    Console.WriteLine($"[PowerSort] ValidateParentChildRelationship: Content {content.Key} is at root level, expected parent {expectedParent.Key}");
-                    return BadRequest(new { error = "Content is at root level and cannot be a child of the specified parent" });
-                }
+            // Check if content has a parent (ParentId -1 means root level)
+            if (content.ParentId == -1)
+            {
+                logger.LogDebug("Content {ContentKey} is at root level, expected parent {ParentKey}", content.Key, expectedParent.Key);
+                return BadRequest(new { error = "Content is at root level and cannot be a child of the specified parent" });
+            }
 
-                if (content.ParentId != expectedParent.Id)
-                {
-                    // Get the actual parent for better error reporting
-                    var actualParent = contentService.GetById(content.ParentId);
-                    Console.WriteLine($"[PowerSort] ValidateParentChildRelationship: Content {content.Key} ('{content.Name}') has parent {content.ParentId} ({actualParent?.Key}:'{actualParent?.Name}'), expected parent {expectedParent.Id} ({expectedParent.Key}:'{expectedParent.Name}')");
+            if (content.ParentId != expectedParent.Id)
+            {
+                // Get the actual parent for better error reporting
+                var actualParent = contentService.GetById(content.ParentId);
+                logger.LogDebug(
+                    "Content {ContentKey} has parent {ActualParentKey}, expected parent {ExpectedParentKey}",
+                    content.Key, actualParent?.Key, expectedParent.Key);
 
-                    return BadRequest(new
+                return BadRequest(new
+                {
+                    error = "Content is not a child of the specified parent",
+                    details = new
                     {
-                        error = "Content is not a child of the specified parent",
-                        details = new
-                        {
-                            contentId = content.Key,
-                            contentName = content.Name,
-                            actualParentId = actualParent?.Key,
-                            actualParentName = actualParent?.Name,
-                            expectedParentId = expectedParent.Key,
-                            expectedParentName = expectedParent.Name
-                        }
-                    });
-                }
+                        contentId = content.Key,
+                        contentName = content.Name,
+                        actualParentId = actualParent?.Key,
+                        actualParentName = actualParent?.Name,
+                        expectedParentId = expectedParent.Key,
+                        expectedParentName = expectedParent.Name
+                    }
+                });
+            }
 
-                Console.WriteLine($"[PowerSort] ValidateParentChildRelationship: Content {content.Key} is correctly a child of parent {expectedParent.Key}");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[PowerSort] ValidateParentChildRelationship exception: {ex.Message}");
-                return StatusCode(500, new { error = "Failed to validate parent-child relationship", details = ex.Message });
-            }
+            return null;
         }
 
         /// <summary>
@@ -220,20 +211,32 @@ namespace OC.PowerSort.Controllers.Base
         }
 
         /// <summary>
-        /// Consistent exception handling
+        /// Maps exceptions to HTTP responses. Known exception types become 400/401/404; anything else is logged
+        /// and returned as a generic 500 without exposing internal details to the client.
         /// </summary>
         protected IActionResult HandleException(Exception ex, string? customMessage = null)
         {
-            // Log the exception (could be injected logger)
-            Console.WriteLine($"Controller error: {ex.Message}");
-
-            var message = customMessage ?? ex.Message;
-
-            return StatusCode(500, new
+            switch (ex)
             {
-                error = message,
-                stackTrace = ex.StackTrace
-            });
+                case KeyNotFoundException:
+                    return NotFound(new { error = customMessage ?? ex.Message });
+
+                case ArgumentException:
+                    return BadRequest(new { error = customMessage ?? ex.Message });
+
+                case UnauthorizedAccessException:
+                    return Unauthorized(new { error = customMessage ?? "Unauthorized" });
+
+                default:
+                    logger.LogError(ex, "Unhandled error in {Controller}.{Action}",
+                        ControllerContext.ActionDescriptor?.ControllerName,
+                        ControllerContext.ActionDescriptor?.ActionName);
+
+                    return StatusCode(StatusCodes.Status500InternalServerError, new
+                    {
+                        error = customMessage ?? "An unexpected error occurred while processing the request."
+                    });
+            }
         }
 
         /// <summary>
@@ -245,41 +248,51 @@ namespace OC.PowerSort.Controllers.Base
         }
 
         /// <summary>
-        /// Create standardized created response
+        /// Loads the children of a parent ordered by their current sort order.
         /// </summary>
-        protected IActionResult CreatedResult<T>(string actionName, object routeValues, T data, string? message = null)
+        protected List<IContent> GetOrderedChildren(IContent parent)
         {
-            return CreatedAtAction(actionName, routeValues, new
-            {
-                success = true,
-                message = message ?? "Created successfully",
-                data
-            });
+            return contentService.GetPagedChildren(parent.Id, 0, int.MaxValue, out _)
+                .OrderBy(c => c.SortOrder)
+                .ToList();
         }
 
         /// <summary>
-        /// Get children with error handling
+        /// Applies a new order to a parent's children using Umbraco's sort API. Children that are not in
+        /// <paramref name="orderedKeys"/> keep their relative order and are appended after the ordered ones.
+        /// Returns the number of children whose position changed.
         /// </summary>
-        protected async Task<(IActionResult? error, List<IContent> children)> GetParentChildrenSafe(Guid parentId)
+        protected int ApplySortOrder(IContent parent, IEnumerable<Guid> orderedKeys, int userId)
         {
-            var validationResult = ValidateContentExists(parentId, out var parent, "Parent not found");
-            if (validationResult != null)
+            var children = GetOrderedChildren(parent);
+            var byKey = children.ToDictionary(c => c.Key, c => c);
+
+            var ordered = new List<IContent>();
+            var seen = new HashSet<Guid>();
+
+            foreach (var key in orderedKeys)
             {
-                return (validationResult, new List<IContent>());
+                if (byKey.TryGetValue(key, out var child) && seen.Add(key))
+                {
+                    ordered.Add(child);
+                }
             }
 
-            try
-            {
-                var children = contentService.GetPagedChildren(parent!.Id, 0, int.MaxValue, out _)
-                    .OrderBy(c => c.SortOrder)
-                    .ToList();
+            ordered.AddRange(children.Where(c => !seen.Contains(c.Key)));
 
-                return (null, children);
-            }
-            catch (Exception ex)
+            var changed = ordered.Where((c, index) => c.SortOrder != index).Count();
+            if (changed == 0)
             {
-                return (HandleException(ex, "Failed to load children"), new List<IContent>());
+                return 0;
             }
+
+            var result = contentService.Sort(ordered, userId);
+            if (!result.Success)
+            {
+                throw new InvalidOperationException($"Sorting children of {parent.Key} failed: {result.Result}");
+            }
+
+            return changed;
         }
     }
 }

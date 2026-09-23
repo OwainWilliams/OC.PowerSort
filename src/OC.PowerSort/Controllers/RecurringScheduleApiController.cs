@@ -1,10 +1,13 @@
 using Asp.Versioning;
+using Umbraco.Cms.Core.Security.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using OC.PowerSort.Controllers.Base;
 using OC.PowerSort.Models;
 using OC.PowerSort.Services;
 using Umbraco.Cms.Api.Management.Routing;
+using Umbraco.Cms.Core.Actions;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Persistence;
@@ -24,9 +27,11 @@ namespace OC.PowerSort.Controllers
             IUmbracoDatabaseFactory databaseFactory,
             IContentService contentService,
             IUserService userService,
+            IContentPermissionAuthorizer contentPermissionAuthorizer,
+            ILogger<RecurringScheduleApiController> logger,
             IRecurrenceCalculatorService recurrenceCalculator,
             IOccurrenceGenerationService occurrenceGenerator)
-            : base(backOfficeSecurityAccessor, databaseFactory, contentService, userService)
+            : base(backOfficeSecurityAccessor, databaseFactory, contentService, userService, contentPermissionAuthorizer, logger)
         {
             _recurrenceCalculator = recurrenceCalculator;
             _occurrenceGenerator = occurrenceGenerator;
@@ -34,15 +39,20 @@ namespace OC.PowerSort.Controllers
 
         [HttpGet("recurring-schedules")]
         [ProducesResponseType<RecurringScheduleListResponse>(StatusCodes.Status200OK)]
-        public IActionResult GetRecurringSchedules([FromQuery] Guid? parentId = null, [FromQuery] bool enabledOnly = false)
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public Task<IActionResult> GetRecurringSchedules([FromQuery] Guid? parentId = null, [FromQuery] bool enabledOnly = false)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync(async (database, _) =>
             {
                 var sql = "SELECT * FROM ocPowerSortRecurringSchedule WHERE 1=1";
                 var args = new List<object>();
 
                 if (parentId.HasValue)
                 {
+                    var forbidden = await AuthorizeContentAsync(ActionBrowse.ActionLetter, parentId.Value);
+                    if (forbidden != null)
+                        return forbidden;
+
                     sql += " AND ParentId = @0";
                     args.Add(parentId.Value);
                 }
@@ -56,109 +66,102 @@ namespace OC.PowerSort.Controllers
 
                 var schedules = database.Fetch<RecurringScheduleDto>(sql, args.ToArray());
 
-                var items = schedules.Select(s => BuildRecurringScheduleResponse(s, false)).ToList();
+                var items = new List<RecurringScheduleResponse>(schedules.Count);
+                foreach (var schedule in schedules)
+                {
+                    items.Add(await BuildRecurringScheduleResponseAsync(schedule, includeOccurrences: false));
+                }
 
-                return new RecurringScheduleListResponse
+                return Ok(new RecurringScheduleListResponse
                 {
                     Total = items.Count,
                     Items = items
-                };
+                });
             });
         }
 
         [HttpGet("recurring-schedules/{id:guid}")]
         [ProducesResponseType<RecurringScheduleResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetRecurringSchedule(Guid id)
+        public Task<IActionResult> GetRecurringSchedule(Guid id)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync(async (database, _) =>
             {
-                var schedule = database.SingleOrDefault<RecurringScheduleDto>(
-                    "SELECT * FROM ocPowerSortRecurringSchedule WHERE Id = @0", id);
-
+                var schedule = GetRecurringSchedule(database, id);
                 if (schedule == null)
                 {
-                    throw new KeyNotFoundException("Recurring schedule not found");
+                    return NotFound(new { error = "Recurring schedule not found" });
                 }
 
-                return BuildRecurringScheduleResponse(schedule, true);
+                var forbidden = await AuthorizeContentAsync(ActionBrowse.ActionLetter, schedule.ParentId);
+                if (forbidden != null)
+                    return forbidden;
+
+                return Ok(await BuildRecurringScheduleResponseAsync(schedule, includeOccurrences: true));
             });
         }
 
         [HttpGet("recurring-schedules/{id:guid}/debug")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetRecurringScheduleDebug(Guid id)
+        public Task<IActionResult> GetRecurringScheduleDebug(Guid id)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync(async (database, _) =>
             {
-                var schedule = database.SingleOrDefault<RecurringScheduleDto>(
-                    "SELECT * FROM ocPowerSortRecurringSchedule WHERE Id = @0", id);
-
+                var schedule = GetRecurringSchedule(database, id);
                 if (schedule == null)
                 {
-                    throw new KeyNotFoundException("Recurring schedule not found");
+                    return NotFound(new { error = "Recurring schedule not found" });
                 }
+
+                var forbidden = await AuthorizeContentAsync(ActionBrowse.ActionLetter, schedule.ParentId);
+                if (forbidden != null)
+                    return forbidden;
 
                 var daysOfWeekArray = schedule.GetDaysOfWeekArray();
                 var nextOccurrence = _recurrenceCalculator.GetNextOccurrence(schedule, DateTime.UtcNow);
-                var upcomingOccurrences = _occurrenceGenerator.GetUpcomingOccurrencesAsync(schedule.Id, 5).Result;
+                var upcomingOccurrences = await _occurrenceGenerator.GetUpcomingOccurrencesAsync(schedule.Id, 5);
 
-                return new
+                return Ok(new
                 {
                     scheduleId = schedule.Id,
                     recurrenceType = schedule.RecurrenceType,
                     recurrenceInterval = schedule.RecurrenceInterval,
                     recurrenceStart = schedule.RecurrenceStart,
-                    daysOfWeekJson = schedule.DaysOfWeek,  // Raw JSON string
-                    daysOfWeekArray = daysOfWeekArray,      // Parsed array
+                    daysOfWeekJson = schedule.DaysOfWeek,
+                    daysOfWeekArray,
                     daysOfWeekDisplay = daysOfWeekArray.Select(d => ((DayOfWeek)d).ToString()).ToArray(),
                     currentTime = DateTime.UtcNow,
-                    nextOccurrence = nextOccurrence,
-                    upcomingOccurrences = upcomingOccurrences
-                };
+                    nextOccurrence,
+                    upcomingOccurrences
+                });
             });
         }
 
         [HttpPost("recurring-schedules")]
         [ProducesResponseType<RecurringScheduleResponse>(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> CreateRecurringSchedule([FromBody] CreateRecurringScheduleRequest request)
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> CreateRecurringSchedule([FromBody] CreateRecurringScheduleRequest request)
         {
-            var authResult = ValidateUserAccess(out var userId);
-            if (authResult != null)
-                return authResult;
-
-            // Validation
-            var positionValidation = ValidateTargetPosition(request.TargetPosition);
-            if (positionValidation != null)
-                return positionValidation;
-
-            var patternValidation = ValidateRecurrencePattern(request.Pattern);
-            if (patternValidation != null)
-                return patternValidation;
-
-            // Verify content exists and relationship
-            var contentValidation = ValidateContentExists(request.ContentId, out var content);
-            if (contentValidation != null)
-                return contentValidation;
-
-            var parentValidation = ValidateContentExists(request.ParentId, out var parent, "Parent not found");
-            if (parentValidation != null)
-                return parentValidation;
-
-            var relationshipValidation = ValidateParentChildRelationship(content!, request.ParentId);
-            if (relationshipValidation != null)
-                return relationshipValidation;
-
-            if (request.BoostDurationHours <= 0)
+            return ExecuteAsync(async (database, userId) =>
             {
-                return BadRequest(new { error = "Boost duration must be greater than 0" });
-            }
+                var validation = ValidateTargetPosition(request.TargetPosition)
+                    ?? ValidateRecurrencePattern(request.Pattern)
+                    ?? ValidateBoostDuration(request.BoostDurationHours)
+                    ?? ValidateContentExists(request.ContentId, out var content)
+                    ?? ValidateContentExists(request.ParentId, out _, "Parent not found")
+                    ?? ValidateParentChildRelationship(content!, request.ParentId);
+                if (validation != null)
+                    return validation;
 
-            try
-            {
-                using var database = databaseFactory.CreateDatabase();
+                var forbidden = await AuthorizeContentAsync(ActionSort.ActionLetter, request.ParentId);
+                if (forbidden != null)
+                    return forbidden;
+
                 var schedule = new RecurringScheduleDto
                 {
                     Id = Guid.NewGuid(),
@@ -166,227 +169,234 @@ namespace OC.PowerSort.Controllers
                     ParentId = request.ParentId,
                     TargetPosition = request.TargetPosition,
                     Priority = request.Priority,
-                    RecurrenceType = request.Pattern.Type.ToString(),
-                    RecurrenceInterval = request.Pattern.Interval,
-                    RecurrenceStart = request.Pattern.StartDate,
-                    RecurrenceEnd = request.Pattern.EndDate,
-                    MaxOccurrences = request.Pattern.MaxOccurrences,
-                    BoostDurationHours = request.BoostDurationHours,
                     IsEnabled = true,
                     Created = DateTime.UtcNow,
                     CreatedBy = userId
                 };
 
-                // Set pattern-specific fields
-                if (request.Pattern.Type == RecurrenceType.Weekly && request.Pattern.DaysOfWeek != null)
-                {
-                    schedule.SetDaysOfWeekArray(request.Pattern.DaysOfWeek);
-                }
-                else if (request.Pattern.Type == RecurrenceType.Monthly && request.Pattern.MonthlyPattern != null)
-                {
-                    schedule.MonthlyPattern = request.Pattern.MonthlyPattern.Type.ToString();
-                    schedule.DayOfMonth = request.Pattern.MonthlyPattern.DayOfMonth;
-                    schedule.WeekOfMonth = request.Pattern.MonthlyPattern.WeekOfMonth;
-                    schedule.DayOfWeek = request.Pattern.MonthlyPattern.DayOfWeek;
-                }
+                ApplyPattern(schedule, request.Pattern, request.BoostDurationHours);
 
                 database.Insert(schedule);
 
                 // Generate initial occurrences
                 await _occurrenceGenerator.GenerateUpcomingOccurrencesAsync(schedule.Id);
 
-                var response = BuildRecurringScheduleResponse(schedule, true);
+                var response = await BuildRecurringScheduleResponseAsync(schedule, includeOccurrences: true);
                 return CreatedAtAction(nameof(GetRecurringSchedule), new { id = schedule.Id }, response);
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex);
-            }
+            });
         }
 
         [HttpPut("recurring-schedules/{id:guid}")]
         [ProducesResponseType<RecurringScheduleResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateRecurringSchedule(Guid id, [FromBody] UpdateRecurringScheduleRequest request)
+        public Task<IActionResult> UpdateRecurringSchedule(Guid id, [FromBody] UpdateRecurringScheduleRequest request)
         {
-            var authResult = ValidateUserAccess(out var userId);
-            if (authResult != null)
-                return authResult;
-
-            // Validation
-            var positionValidation = ValidateTargetPosition(request.TargetPosition);
-            if (positionValidation != null)
-                return positionValidation;
-
-            var patternValidation = ValidateRecurrencePattern(request.Pattern, isUpdate: true);
-            if (patternValidation != null)
-                return patternValidation;
-
-            if (request.BoostDurationHours <= 0)
+            return ExecuteAsync(async (database, userId) =>
             {
-                return BadRequest(new { error = "Boost duration must be greater than 0" });
-            }
+                var validation = ValidateTargetPosition(request.TargetPosition)
+                    ?? ValidateRecurrencePattern(request.Pattern, isUpdate: true)
+                    ?? ValidateBoostDuration(request.BoostDurationHours);
+                if (validation != null)
+                    return validation;
 
-            try
-            {
-                using var database = databaseFactory.CreateDatabase();
-
-                var schedule = database.SingleOrDefault<RecurringScheduleDto>(
-                    "SELECT * FROM ocPowerSortRecurringSchedule WHERE Id = @0", id);
-
+                var schedule = GetRecurringSchedule(database, id);
                 if (schedule == null)
                 {
                     return NotFound(new { error = "Recurring schedule not found" });
                 }
 
+                var forbidden = await AuthorizeContentAsync(ActionSort.ActionLetter, schedule.ParentId);
+                if (forbidden != null)
+                    return forbidden;
+
                 schedule.TargetPosition = request.TargetPosition;
                 schedule.Priority = request.Priority;
-                schedule.RecurrenceType = request.Pattern.Type.ToString();
-                schedule.RecurrenceInterval = request.Pattern.Interval;
-                schedule.RecurrenceStart = request.Pattern.StartDate;
-                schedule.RecurrenceEnd = request.Pattern.EndDate;
-                schedule.MaxOccurrences = request.Pattern.MaxOccurrences;
-                schedule.BoostDurationHours = request.BoostDurationHours;
                 schedule.IsEnabled = request.IsEnabled;
                 schedule.Modified = DateTime.UtcNow;
                 schedule.ModifiedBy = userId;
 
-                // Set pattern-specific fields
-                if (request.Pattern.Type == RecurrenceType.Weekly && request.Pattern.DaysOfWeek != null)
-                {
-                    schedule.SetDaysOfWeekArray(request.Pattern.DaysOfWeek);
-                }
-                else if (request.Pattern.Type == RecurrenceType.Monthly && request.Pattern.MonthlyPattern != null)
-                {
-                    schedule.MonthlyPattern = request.Pattern.MonthlyPattern.Type.ToString();
-                    schedule.DayOfMonth = request.Pattern.MonthlyPattern.DayOfMonth;
-                    schedule.WeekOfMonth = request.Pattern.MonthlyPattern.WeekOfMonth;
-                    schedule.DayOfWeek = request.Pattern.MonthlyPattern.DayOfWeek;
-                }
+                ApplyPattern(schedule, request.Pattern, request.BoostDurationHours);
 
                 database.Update(schedule);
 
-                // Delete future unprocessed occurrences and regenerate
+                // Regenerate future occurrences for the new pattern. Occurrences the editor has explicitly
+                // cancelled are kept so that a cancellation survives editing the schedule.
                 database.Execute(
-                    @"DELETE FROM ocPowerSortScheduleOccurrence 
-                      WHERE RecurringScheduleId = @0 
-                      AND IsProcessed = 0 
+                    @"DELETE FROM ocPowerSortScheduleOccurrence
+                      WHERE RecurringScheduleId = @0
+                      AND IsProcessed = 0
+                      AND IsCancelled = 0
                       AND OccurrenceStartDate > @1",
                     id, DateTime.UtcNow);
 
                 await _occurrenceGenerator.GenerateUpcomingOccurrencesAsync(schedule.Id);
 
-                return Ok(BuildRecurringScheduleResponse(schedule, true));
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex);
-            }
+                return Ok(await BuildRecurringScheduleResponseAsync(schedule, includeOccurrences: true));
+            });
         }
 
         [HttpDelete("recurring-schedules/{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult DeleteRecurringSchedule(Guid id)
+        public Task<IActionResult> DeleteRecurringSchedule(Guid id)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync(async (database, _) =>
             {
-                var schedule = database.SingleOrDefault<RecurringScheduleDto>(
-                    "SELECT * FROM ocPowerSortRecurringSchedule WHERE Id = @0", id);
-
+                var schedule = GetRecurringSchedule(database, id);
                 if (schedule == null)
                 {
-                    throw new KeyNotFoundException("Recurring schedule not found");
+                    return NotFound(new { error = "Recurring schedule not found" });
                 }
 
-                // Delete will cascade to occurrences and set null on one-time schedules
+                var forbidden = await AuthorizeContentAsync(ActionSort.ActionLetter, schedule.ParentId);
+                if (forbidden != null)
+                    return forbidden;
+
+                using var transaction = database.GetTransaction();
+
+                // Remove dependants explicitly: existing installations may have a foreign key without a
+                // cascade rule, and SQLite installations have no foreign key at all.
+                database.Execute(
+                    "DELETE FROM ocPowerSortScheduleOccurrence WHERE RecurringScheduleId = @0", id);
+
+                database.Execute(
+                    "UPDATE ocPowerSortSchedule SET RecurringScheduleId = NULL WHERE RecurringScheduleId = @0", id);
+
                 database.Delete(schedule);
-                return new { success = true };
+
+                transaction.Complete();
+
+                return NoContent();
             });
         }
 
         [HttpGet("recurring-schedules/{id:guid}/preview")]
         [ProducesResponseType<List<OccurrencePreview>>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> PreviewOccurrences(Guid id, [FromQuery] int count = 10)
+        public Task<IActionResult> PreviewOccurrences(Guid id, [FromQuery] int count = 10)
         {
-            var authResult = ValidateUserAccess(out _);
-            if (authResult != null)
-                return authResult;
-
-            try
+            return ExecuteAsync(async (database, _) =>
             {
-                var previews = await _occurrenceGenerator.GetUpcomingOccurrencesAsync(id, count);
-
-                if (!previews.Any())
+                var schedule = GetRecurringSchedule(database, id);
+                if (schedule == null)
                 {
-                    using var database = databaseFactory.CreateDatabase();
-                    var schedule = database.SingleOrDefault<RecurringScheduleDto>(
-                        "SELECT * FROM ocPowerSortRecurringSchedule WHERE Id = @0", id);
-
-                    if (schedule == null)
-                    {
-                        return NotFound(new { error = "Recurring schedule not found" });
-                    }
+                    return NotFound(new { error = "Recurring schedule not found" });
                 }
 
+                var forbidden = await AuthorizeContentAsync(ActionBrowse.ActionLetter, schedule.ParentId);
+                if (forbidden != null)
+                    return forbidden;
+
+                var previews = await _occurrenceGenerator.GetUpcomingOccurrencesAsync(id, count);
                 return Ok(previews);
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex);
-            }
+            });
         }
 
         [HttpPost("recurring-schedules/{id:guid}/cancel-occurrence")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult CancelOccurrence(Guid id, [FromBody] CancelOccurrenceRequest request)
+        public Task<IActionResult> CancelOccurrence(Guid id, [FromBody] CancelOccurrenceRequest request)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync(async (database, _) =>
             {
+                var schedule = GetRecurringSchedule(database, id);
+                if (schedule == null)
+                {
+                    return NotFound(new { error = "Recurring schedule not found" });
+                }
+
+                var forbidden = await AuthorizeContentAsync(ActionSort.ActionLetter, schedule.ParentId);
+                if (forbidden != null)
+                    return forbidden;
+
                 var occurrence = database.SingleOrDefault<ScheduleOccurrenceDto>(
-                    @"SELECT * FROM ocPowerSortScheduleOccurrence 
-                      WHERE RecurringScheduleId = @0 
-                      AND OccurrenceStartDate >= @1 
+                    @"SELECT * FROM ocPowerSortScheduleOccurrence
+                      WHERE RecurringScheduleId = @0
+                      AND OccurrenceStartDate >= @1
                       AND OccurrenceStartDate < @2",
                     id, request.OccurrenceDate.Date, request.OccurrenceDate.Date.AddDays(1));
 
                 if (occurrence == null)
                 {
-                    throw new KeyNotFoundException("Occurrence not found");
+                    return NotFound(new { error = "Occurrence not found" });
                 }
 
                 occurrence.IsCancelled = true;
                 database.Update(occurrence);
 
-                return new { success = true, message = "Occurrence cancelled successfully" };
+                return Ok(new { success = true, message = "Occurrence cancelled successfully" });
             });
         }
 
         [HttpPost("recurring-schedules/{id:guid}/toggle")]
         [ProducesResponseType<RecurringScheduleResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult ToggleRecurringSchedule(Guid id)
+        public Task<IActionResult> ToggleRecurringSchedule(Guid id)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync(async (database, _) =>
             {
-                var schedule = database.SingleOrDefault<RecurringScheduleDto>(
-                    "SELECT * FROM ocPowerSortRecurringSchedule WHERE Id = @0", id);
-
+                var schedule = GetRecurringSchedule(database, id);
                 if (schedule == null)
                 {
-                    throw new KeyNotFoundException("Recurring schedule not found");
+                    return NotFound(new { error = "Recurring schedule not found" });
                 }
+
+                var forbidden = await AuthorizeContentAsync(ActionSort.ActionLetter, schedule.ParentId);
+                if (forbidden != null)
+                    return forbidden;
 
                 schedule.IsEnabled = !schedule.IsEnabled;
                 database.Update(schedule);
 
-                return BuildRecurringScheduleResponse(schedule, false);
+                return Ok(await BuildRecurringScheduleResponseAsync(schedule, includeOccurrences: false));
             });
         }
 
-        private RecurringScheduleResponse BuildRecurringScheduleResponse(RecurringScheduleDto schedule, bool includeOccurrences)
+        private static RecurringScheduleDto? GetRecurringSchedule(IUmbracoDatabase database, Guid id)
+        {
+            return database.SingleOrDefault<RecurringScheduleDto>(
+                "SELECT * FROM ocPowerSortRecurringSchedule WHERE Id = @0", id);
+        }
+
+        /// <summary>
+        /// Copies the recurrence pattern from a request onto the DTO, clearing fields that do not apply
+        /// to the selected pattern type so a Weekly-to-Monthly edit does not leave stale data behind.
+        /// </summary>
+        private static void ApplyPattern(RecurringScheduleDto schedule, RecurrencePatternRequest pattern, int boostDurationHours)
+        {
+            schedule.RecurrenceType = pattern.Type.ToString();
+            schedule.RecurrenceInterval = pattern.Interval;
+            schedule.RecurrenceStart = pattern.StartDate;
+            schedule.RecurrenceEnd = pattern.EndDate;
+            schedule.MaxOccurrences = pattern.MaxOccurrences;
+            schedule.BoostDurationHours = boostDurationHours;
+
+            schedule.DaysOfWeek = null;
+            schedule.MonthlyPattern = null;
+            schedule.DayOfMonth = null;
+            schedule.WeekOfMonth = null;
+            schedule.DayOfWeek = null;
+
+            if (pattern.Type == RecurrenceType.Weekly && pattern.DaysOfWeek != null)
+            {
+                schedule.SetDaysOfWeekArray(pattern.DaysOfWeek);
+            }
+            else if (pattern.Type == RecurrenceType.Monthly && pattern.MonthlyPattern != null)
+            {
+                schedule.MonthlyPattern = pattern.MonthlyPattern.Type.ToString();
+                schedule.DayOfMonth = pattern.MonthlyPattern.DayOfMonth;
+                schedule.WeekOfMonth = pattern.MonthlyPattern.WeekOfMonth;
+                schedule.DayOfWeek = pattern.MonthlyPattern.DayOfWeek;
+            }
+        }
+
+        private async Task<RecurringScheduleResponse> BuildRecurringScheduleResponseAsync(RecurringScheduleDto schedule, bool includeOccurrences)
         {
             var content = contentService.GetById(schedule.ContentId);
             var parent = contentService.GetById(schedule.ParentId);
@@ -408,18 +418,13 @@ namespace OC.PowerSort.Controllers
                 CreatedByName = creator?.Name ?? "Unknown",
                 Modified = schedule.Modified,
                 ModifiedByName = modifier?.Name,
-                Pattern = BuildRecurrencePatternResponse(schedule)
+                Pattern = BuildRecurrencePatternResponse(schedule),
+                NextOccurrence = _recurrenceCalculator.GetNextOccurrence(schedule, DateTime.UtcNow)
             };
 
-            // Get next occurrence
-            response.NextOccurrence = _recurrenceCalculator.GetNextOccurrence(schedule, DateTime.UtcNow);
-
-            // Include upcoming occurrences if requested
             if (includeOccurrences)
             {
-                response.UpcomingOccurrences = _occurrenceGenerator
-                    .GetUpcomingOccurrencesAsync(schedule.Id, 10)
-                    .Result;
+                response.UpcomingOccurrences = await _occurrenceGenerator.GetUpcomingOccurrencesAsync(schedule.Id, 10);
             }
 
             return response;
@@ -460,15 +465,16 @@ namespace OC.PowerSort.Controllers
             return pattern;
         }
 
-        private string GetMonthlyPatternDescription(RecurringScheduleDto schedule)
+        private static string GetMonthlyPatternDescription(RecurringScheduleDto schedule)
         {
             if (schedule.MonthlyPattern == "DayOfMonth" && schedule.DayOfMonth.HasValue)
             {
                 return $"Day {schedule.DayOfMonth} of each month";
             }
-            else if (schedule.MonthlyPattern == "DayOfWeek" &&
-                     schedule.WeekOfMonth.HasValue &&
-                     schedule.DayOfWeek.HasValue)
+
+            if (schedule.MonthlyPattern == "DayOfWeek" &&
+                schedule.WeekOfMonth.HasValue &&
+                schedule.DayOfWeek.HasValue)
             {
                 var weekName = schedule.WeekOfMonth.Value == 5 ? "last" : $"{schedule.WeekOfMonth}";
                 var dayName = ((DayOfWeek)schedule.DayOfWeek.Value).ToString();
@@ -478,6 +484,20 @@ namespace OC.PowerSort.Controllers
             return "Unknown pattern";
         }
 
+        private IActionResult? ValidateBoostDuration(int boostDurationHours)
+        {
+            if (boostDurationHours <= 0)
+            {
+                return BadRequest(new { error = "Boost duration must be greater than 0" });
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Validates a recurrence pattern. On update the start date may already be in the past, because the
+        /// schedule has been running; the past-date rule only applies when creating a new schedule.
+        /// </summary>
         private IActionResult? ValidateRecurrencePattern(RecurrencePatternRequest pattern, bool isUpdate = false)
         {
             if (pattern.Interval < 1)

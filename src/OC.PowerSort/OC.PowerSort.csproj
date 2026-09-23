@@ -26,8 +26,8 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>ocPowerSortLogo.png</PackageIcon>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>17.2.0-alpha004</Version>
-    <PackageReleaseNotes>Recurring schedules now possible</PackageReleaseNotes>
+    <Version>17.2.1</Version>
+    <PackageReleaseNotes>Recurring schedules; content permission checks on all node-scoped endpoints (users need Sort permission to reorder or schedule); schedule processing runs as an Umbraco recurring background job. See CHANGELOG for breaking changes.</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -44,7 +44,19 @@
     <PackageReference Include="Umbraco.Cms.Web.Common" Version="[17.0.0,18.0.0)" />
     <PackageReference Include="Umbraco.Cms.Api.Common" Version="[17.0.0,18.0.0)" />
     <PackageReference Include="Umbraco.Cms.Api.Management" Version="[17.0.0,18.0.0)" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Transitive dependencies of Umbraco 17.0.x that have published security advisories. Referencing patched
+      versions directly makes NuGet prefer them over the older transitive ones without raising the Umbraco floor.
+      These are the versions Umbraco 17.6+ ships itself, so they are known to work with Umbraco 17.
+      Review when the Umbraco floor is raised; they can be removed once the floor already brings in fixed versions.
+    -->
+    <PackageReference Include="MessagePack" Version="3.1.10" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.9.0" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.12" />
+    <PackageReference Include="MailKit" Version="4.18.0" />
   </ItemGroup>
   
   <ItemGroup>

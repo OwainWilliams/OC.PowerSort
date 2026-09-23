@@ -9,6 +9,11 @@ export class ApiResponseHandler {
     if (!response.ok) {
       let errorMessage = `API Error (${response.status})`;
 
+      if (response.status === 403) {
+        // The server returns an empty body for a permission failure
+        errorMessage = 'You do not have permission to perform this action on this content';
+      }
+
       try {
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {

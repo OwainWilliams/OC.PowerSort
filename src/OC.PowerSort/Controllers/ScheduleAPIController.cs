@@ -1,46 +1,50 @@
 using Asp.Versioning;
+using Umbraco.Cms.Core.Security.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using OC.PowerSort.Controllers.Base;
 using OC.PowerSort.Models;
 using Umbraco.Cms.Api.Management.Routing;
+using Umbraco.Cms.Core.Actions;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Persistence;
 
 namespace OC.PowerSort.Controllers
 {
-
     [ApiVersion("1.0")]
     [VersionedApiBackOfficeRoute("oc/power-sort")]
     [ApiExplorerSettings(GroupName = Constants.ApiName)]
     public class ScheduleApiController : PowerSortControllerBase
     {
-
-        private readonly IEntityService _entityService;
         public ScheduleApiController(
             IBackOfficeSecurityAccessor backOfficeSecurityAccessor,
             IUmbracoDatabaseFactory databaseFactory,
-            IEntityService entityService,
             IContentService contentService,
-            IUserService userService)
-            : base(backOfficeSecurityAccessor, databaseFactory, contentService, userService)
+            IUserService userService,
+            IContentPermissionAuthorizer contentPermissionAuthorizer,
+            ILogger<ScheduleApiController> logger)
+            : base(backOfficeSecurityAccessor, databaseFactory, contentService, userService, contentPermissionAuthorizer, logger)
         {
-            _entityService = entityService;
-
         }
 
         [HttpGet("schedules")]
         [ProducesResponseType<ScheduleListResponse>(StatusCodes.Status200OK)]
-        public IActionResult GetSchedules([FromQuery] Guid? parentId = null, [FromQuery] bool activeOnly = false)
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public Task<IActionResult> GetSchedules([FromQuery] Guid? parentId = null, [FromQuery] bool activeOnly = false)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync(async (database, _) =>
             {
                 var sql = "SELECT * FROM ocPowerSortSchedule WHERE 1=1";
                 var args = new List<object>();
 
                 if (parentId.HasValue)
                 {
+                    var forbidden = await AuthorizeContentAsync(ActionBrowse.ActionLetter, parentId.Value);
+                    if (forbidden != null)
+                        return forbidden;
+
                     sql += " AND ParentId = @0";
                     args.Add(parentId.Value);
                 }
@@ -57,67 +61,59 @@ namespace OC.PowerSort.Controllers
 
                 var items = schedules.Select(s => BuildScheduleResponse(s, now)).ToList();
 
-                return new ScheduleListResponse
+                return Ok(new ScheduleListResponse
                 {
                     Total = items.Count,
                     Items = items
-                };
+                });
             });
         }
 
         [HttpGet("schedules/{id:guid}")]
         [ProducesResponseType<ScheduleResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetSchedule(Guid id)
+        public Task<IActionResult> GetSchedule(Guid id)
         {
-            return ExecuteDatabaseOperation(database =>
+            return ExecuteAsync(async (database, _) =>
             {
                 var schedule = database.SingleOrDefault<SortScheduleDto>(
                     "SELECT * FROM ocPowerSortSchedule WHERE Id = @0", id);
 
                 if (schedule == null)
                 {
-                    throw new KeyNotFoundException("Schedule not found");
+                    return NotFound(new { error = "Schedule not found" });
                 }
 
-                return BuildScheduleResponse(schedule, DateTime.UtcNow);
+                var forbidden = await AuthorizeContentAsync(ActionBrowse.ActionLetter, schedule.ParentId);
+                if (forbidden != null)
+                    return forbidden;
+
+                return Ok(BuildScheduleResponse(schedule, DateTime.UtcNow));
             });
         }
 
         [HttpPost("schedules")]
         [ProducesResponseType<ScheduleResponse>(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public IActionResult CreateSchedule([FromBody] CreateScheduleRequest request)
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> CreateSchedule([FromBody] CreateScheduleRequest request)
         {
-            var authResult = ValidateUserAccess(out var userId);
-            if (authResult != null)
-                return authResult;
-
-            // Validation
-            var dateValidation = ValidateDateRange(request.StartDateTime, request.EndDateTime);
-            if (dateValidation != null)
-                return dateValidation;
-
-            var positionValidation = ValidateTargetPosition(request.TargetPosition);
-            if (positionValidation != null)
-                return positionValidation;
-
-            // Verify content exists and relationship
-            var contentValidation = ValidateContentExists(request.ContentId, out var content);
-            if (contentValidation != null)
-                return contentValidation;
-
-            var parentValidation = ValidateContentExists(request.ParentId, out var parent, "Parent not found");
-            if (parentValidation != null)
-                return parentValidation;
-
-            var relationshipValidation = ValidateParentChildRelationship(content!, request.ParentId);
-            if (relationshipValidation != null)
-                return relationshipValidation;
-
-            try
+            return ExecuteAsync(async (database, userId) =>
             {
-                using var database = databaseFactory.CreateDatabase();
+                var validation = ValidateDateRange(request.StartDateTime, request.EndDateTime)
+                    ?? ValidateTargetPosition(request.TargetPosition)
+                    ?? ValidateContentExists(request.ContentId, out var content)
+                    ?? ValidateContentExists(request.ParentId, out _, "Parent not found")
+                    ?? ValidateParentChildRelationship(content!, request.ParentId);
+                if (validation != null)
+                    return validation;
+
+                var forbidden = await AuthorizeContentAsync(ActionSort.ActionLetter, request.ParentId);
+                if (forbidden != null)
+                    return forbidden;
+
                 var schedule = new SortScheduleDto
                 {
                     Id = Guid.NewGuid(),
@@ -136,11 +132,106 @@ namespace OC.PowerSort.Controllers
 
                 var response = BuildScheduleResponse(schedule, DateTime.UtcNow);
                 return CreatedAtAction(nameof(GetSchedule), new { id = schedule.Id }, response);
-            }
-            catch (Exception ex)
+            });
+        }
+
+        [HttpPut("schedules/{id:guid}")]
+        [ProducesResponseType<ScheduleResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> UpdateSchedule(Guid id, [FromBody] UpdateScheduleRequest request)
+        {
+            return ExecuteAsync(async (database, _) =>
             {
-                return HandleException(ex);
-            }
+                var validation = ValidateDateRange(request.StartDateTime, request.EndDateTime)
+                    ?? ValidateTargetPosition(request.TargetPosition);
+                if (validation != null)
+                    return validation;
+
+                var schedule = database.SingleOrDefault<SortScheduleDto>(
+                    "SELECT * FROM ocPowerSortSchedule WHERE Id = @0", id);
+
+                if (schedule == null)
+                {
+                    return NotFound(new { error = "Schedule not found" });
+                }
+
+                var forbidden = await AuthorizeContentAsync(ActionSort.ActionLetter, schedule.ParentId);
+                if (forbidden != null)
+                    return forbidden;
+
+                schedule.TargetPosition = request.TargetPosition;
+                schedule.StartDateTime = request.StartDateTime;
+                schedule.EndDateTime = request.EndDateTime;
+                schedule.Priority = request.Priority;
+
+                database.Update(schedule);
+
+                return Ok(BuildScheduleResponse(schedule, DateTime.UtcNow));
+            });
+        }
+
+        [HttpDelete("schedules/{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> DeleteSchedule(Guid id)
+        {
+            return ExecuteAsync(async (database, _) =>
+            {
+                var schedule = database.SingleOrDefault<SortScheduleDto>(
+                    "SELECT * FROM ocPowerSortSchedule WHERE Id = @0", id);
+
+                if (schedule == null)
+                {
+                    return NotFound(new { error = "Schedule not found" });
+                }
+
+                var forbidden = await AuthorizeContentAsync(ActionSort.ActionLetter, schedule.ParentId);
+                if (forbidden != null)
+                    return forbidden;
+
+                database.Delete(schedule);
+                return NoContent();
+            });
+        }
+
+        [HttpGet("schedules/active/{parentId:guid}")]
+        [ProducesResponseType<List<ActiveScheduleInfo>>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public Task<IActionResult> GetActiveSchedules(Guid parentId)
+        {
+            return ExecuteAsync(async (database, _) =>
+            {
+                var forbidden = await AuthorizeContentAsync(ActionBrowse.ActionLetter, parentId);
+                if (forbidden != null)
+                    return forbidden;
+
+                var now = DateTime.UtcNow;
+
+                var activeSchedules = database.Fetch<SortScheduleDto>(
+                    @"SELECT * FROM ocPowerSortSchedule
+                      WHERE ParentId = @0
+                      AND IsActive = 1
+                      AND StartDateTime <= @1
+                      AND EndDateTime > @1
+                      ORDER BY Priority DESC, StartDateTime ASC",
+                    parentId, now);
+
+                var items = activeSchedules.Select(s => new ActiveScheduleInfo
+                {
+                    ScheduleId = s.Id,
+                    ContentId = s.ContentId,
+                    ContentName = contentService.GetById(s.ContentId)?.Name ?? "Unknown",
+                    TargetPosition = s.TargetPosition,
+                    StartDateTime = s.StartDateTime,
+                    EndDateTime = s.EndDateTime,
+                    Priority = s.Priority
+                }).ToList();
+
+                return Ok(items);
+            });
         }
 
         /// <summary>
@@ -170,94 +261,5 @@ namespace OC.PowerSort.Controllers
                 RecurringScheduleId = schedule.RecurringScheduleId
             };
         }
-
-        [HttpPut("schedules/{id:guid}")]
-        [ProducesResponseType<ScheduleResponse>(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult UpdateSchedule(Guid id, [FromBody] UpdateScheduleRequest request)
-        {
-            var authResult = ValidateUserAccess(out _);
-            if (authResult != null)
-                return authResult;
-
-            // Validation
-            var dateValidation = ValidateDateRange(request.StartDateTime, request.EndDateTime);
-            if (dateValidation != null)
-                return dateValidation;
-
-            var positionValidation = ValidateTargetPosition(request.TargetPosition);
-            if (positionValidation != null)
-                return positionValidation;
-
-            return ExecuteDatabaseOperation(database =>
-            {
-                var schedule = database.SingleOrDefault<SortScheduleDto>(
-                    "SELECT * FROM ocPowerSortSchedule WHERE Id = @0", id);
-
-                if (schedule == null)
-                {
-                    throw new KeyNotFoundException("Schedule not found");
-                }
-
-                schedule.TargetPosition = request.TargetPosition;
-                schedule.StartDateTime = request.StartDateTime;
-                schedule.EndDateTime = request.EndDateTime;
-                schedule.Priority = request.Priority;
-
-                database.Update(schedule);
-
-                return BuildScheduleResponse(schedule, DateTime.UtcNow);
-            });
-        }
-
-        [HttpDelete("schedules/{id:guid}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult DeleteSchedule(Guid id)
-        {
-            return ExecuteDatabaseOperation(database =>
-            {
-                var schedule = database.SingleOrDefault<SortScheduleDto>(
-                    "SELECT * FROM ocPowerSortSchedule WHERE Id = @0", id);
-
-                if (schedule == null)
-                {
-                    throw new KeyNotFoundException("Schedule not found");
-                }
-
-                database.Delete(schedule);
-                return new { success = true };
-            });
-        }
-
-        [HttpGet("schedules/active/{parentId:guid}")]
-        [ProducesResponseType<List<ActiveScheduleInfo>>(StatusCodes.Status200OK)]
-        public IActionResult GetActiveSchedules(Guid parentId)
-        {
-            return ExecuteDatabaseOperation(database =>
-            {
-                var now = DateTime.UtcNow;
-
-                var activeSchedules = database.Fetch<SortScheduleDto>(
-                    @"SELECT * FROM ocPowerSortSchedule 
-                      WHERE ParentId = @0 
-                      AND IsActive = 1 
-                      AND StartDateTime <= @1 
-                      AND EndDateTime > @1
-                      ORDER BY Priority DESC, StartDateTime ASC",
-                    parentId, now);
-
-                return activeSchedules.Select(s => new ActiveScheduleInfo
-                {
-                    ScheduleId = s.Id,
-                    ContentId = s.ContentId,
-                    TargetPosition = s.TargetPosition,
-                    EndDateTime = s.EndDateTime,
-                    Priority = s.Priority
-                }).ToList();
-            });
-        }
-
-      
     }
 }

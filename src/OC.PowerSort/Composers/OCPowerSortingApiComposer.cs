@@ -13,6 +13,7 @@ using Umbraco.Cms.Api.Management.OpenApi;
 using Umbraco.Cms.Api.Management.Services.Flags;
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.DependencyInjection;
+using Umbraco.Extensions;
 
 namespace OC.PowerSort.Composers
 {
@@ -30,8 +31,9 @@ namespace OC.PowerSort.Composers
             builder.Services.AddScoped<IRecurrenceCalculatorService, RecurrenceCalculatorService>();
             builder.Services.AddScoped<IOccurrenceGenerationService, OccurrenceGenerationService>();
 
-            // Register background service for schedule processing
-            builder.Services.AddHostedService<ScheduleProcessingService>();
+            // Register schedule processing as an Umbraco recurring background job so it only runs on the
+            // scheduling publisher / single server and only once the runtime is in the Run state.
+            builder.Services.AddRecurringBackgroundJob<ScheduleProcessingService>();
 
             // Register sorting flag service as singleton 
             // (must match FlagProvider lifetime which is registered as Singleton by FlagProviderCollectionBuilder)
